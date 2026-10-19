@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StumpCast Studio — Live Cricket Broadcast Graphics & Overlays for OBS</title>
+  <meta name="description" content="StumpCast Studio is the ultimate live cricket broadcast automation software for OBS Studio & vMix. Real-time Cricbuzz & Crex scoring scrapers, pro lower-thirds, sound racks, and automated director mode.">
+  <meta name="keywords" content="cricket broadcast graphics, OBS cricket overlay, Cricbuzz live score scraper, live cricket streaming software, vMix cricket lower thirds, StumpCast Studio">
+  <meta name="author" content="StumpCast">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://stumpcast.vercel.app/">
+
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://stumpcast.vercel.app/">
+  <meta property="og:title" content="StumpCast Studio — Live Cricket Broadcast Graphics & Overlays for OBS">
+  <meta property="og:description" content="Automate your live cricket broadcast in OBS Studio with ultra-fast scrapers, professional overlays, DJ sound effects, and 60fps responsive graphics.">
+  <meta property="og:image" content="https://stumpcast.vercel.app/og-image.png">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="StumpCast Studio — Live Cricket Broadcast Graphics for OBS">
+  <meta name="twitter:description" content="Stream live cricket matches with professional TV broadcast quality overlays in OBS Studio.">
+  <meta name="twitter:image" content="https://stumpcast.vercel.app/og-image.png">
+
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" type="image/png" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏏</text></svg>">
+
+  <!-- Schema.org JSON-LD -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "StumpCast Studio",
+    "operatingSystem": "Windows 10, Windows 11",
+    "applicationCategory": "MultimediaApplication",
+    "offers": {
+      "@type": "Offer",
+      "price": "0.00",
+      "priceCurrency": "USD"
+    },
+    "description": "Professional cricket broadcast graphics and scoring overlay software for OBS Studio and live streaming.",
+    "softwareVersion": "1.0.2",
+    "aggregateRating": {
+      "@type": "AggregateRating",
+      "ratingValue": "4.9",
+      "ratingCount": "128"
+    }
+  }
+  </script>
+</head>
+<body>
+
+  <!-- Header / Navigation -->
+  <header class="navbar">
+    <div class="container nav-wrapper">
+      <a href="#" class="brand-logo">
+        <span class="brand-icon">🏏</span>
+        <span>StumpCast Studio</span>
+        <span class="brand-badge">v1.0.2</span>
+      </a>
+
+      <nav>
+        <ul class="nav-links">
+          <li><a href="#features" class="nav-link">Features</a></li>
+          <li><a href="#overlays" class="nav-link">Broadcast Looks</a></li>
+          <li><a href="#scrapers" class="nav-link">Fast Scrapers</a></li>
+          <li><a href="#faq" class="nav-link">FAQs</a></li>
+        </ul>
+      </nav>
+
+      <div class="nav-actions">
+        <a href="#download" class="btn btn-primary btn-sm">
+          <span>⚡ Download Free</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- Hero Section -->
+    <section class="hero">
+      <div class="hero-glow"></div>
+      <div class="container hero-content">
+        <div class="hero-pill">
+          <span class="dot"></span>
+          <span>Version 1.0.2 Released — White, Royal Blue & Cricket Orange Overlays</span>
+        </div>
+
+        <h1 class="hero-title">
+          Live Cricket Broadcast Graphics for <span class="highlight">OBS &amp; Live Streaming</span>
+        </h1>
+
+        <p class="hero-desc">
+          Transform your cricket live streams into TV-standard broadcasts. Real-time Cricbuzz and Crex sync, automated scorecards, milestone celebrations, and DJ sound racks with zero coding required.
+        </p>
+
+        <div class="hero-cta">
+          <a href="#download" id="main-download-btn" class="btn btn-primary btn-lg">
+            <span>📥 Download for Windows (v1.0.2)</span>
+          </a>
+          <a href="#features" class="btn btn-secondary btn-lg">
+            <span>Explore Features →</span>
+          </a>
+        </div>
+
+        <div class="hero-meta">
+          <span>✅ Windows 10/11 64-bit</span>
+          <span>✅ 100% Free &amp; Offline Ready</span>
+          <span>✅ OBS Studio &amp; vMix Compatible</span>
+        </div>
+
+        <!-- Live Scoreboard Simulation Card -->
+        <div class="hero-mockup-wrapper">
+          <div class="mockup-header">
+            <div class="window-dots">
+              <span class="window-dot dot-red"></span>
+              <span class="window-dot dot-yellow"></span>
+              <span class="window-dot dot-green"></span>
+            </div>
+            <span class="mockup-title">STUMPCAST BROADCAST OVERLAY ENGINE v1.0.2 • 60 FPS BROWSER SOURCE</span>
+            <span style="font-size: 0.75rem; color: var(--emerald-600); font-weight: 700;">● OBS CONNECTED</span>
+          </div>
+          <div class="mockup-body">
+            <div class="broadcast-card-sim">
+              <div class="match-header-sim">
+                <span class="match-live-tag">● LIVE BROADCAST</span>
+                <span class="match-title-text">T20 International Final • Dubai International Stadium</span>
+                <span style="font-family: var(--font-mono); font-size: 0.85rem; color: var(--slate-600); font-weight: 600;">CRR: 10.03 | REQ: 8.85</span>
+              </div>
+
+              <div class="teams-row-sim">
+                <div class="team-box">
+                  <div class="team-name">PAKISTAN</div>
+                  <div class="team-score" id="sim-score">184/3</div>
+                  <div class="team-overs" id="sim-overs">(18.2 Ov)</div>
+                </div>
+
+                <div class="match-vs">VS</div>
+
+                <div class="team-box" style="background: var(--bg-secondary);">
+                  <div class="team-name">INDIA</div>
+                  <div class="team-score" style="color: var(--blue-900);">181/7</div>
+                  <div class="team-overs">(20.0 Ov)</div>
+                </div>
+              </div>
+
+              <div class="match-banner-ticker">
+                <span id="sim-runs-type">⚡ FOUR! Babar Azam strikes boundary through extra cover!</span>
+                <span style="font-size: 0.75rem; background: rgba(255,255,255,0.2); padding: 2px 8px; border-radius: 4px;">TARGET 182 RUNS</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Features Grid -->
+    <section id="features" class="section">
+      <div class="container">
+        <div class="section-header">
+          <span class="section-tag">Powerful Capabilities</span>
+          <h2 class="section-title">Everything Needed to Broadcast Like a Pro TV Channel</h2>
+          <p class="section-subtitle">StumpCast Studio automates your entire cricket scoring and graphics pipeline so you can focus on entertaining your audience.</p>
+        </div>
+
+        <div class="features-grid">
+          <!-- Feature 1 -->
+          <div class="feature-card">
+            <div class="feature-icon-box">⚡</div>
+            <h3 class="feature-title">Ultra-Fast Live Scrapers</h3>
+            <p class="feature-desc">Connect directly with Cricbuzz and Crex match feeds. Scores, commentary, ball-by-ball updates, and wickets synchronize in milliseconds without manual data entry.</p>
+          </div>
+
+          <!-- Feature 2 -->
+          <div class="feature-card">
+            <div class="feature-icon-box">🎨</div>
+            <h3 class="feature-title">White, Royal Blue &amp; Orange Looks</h3>
+            <p class="feature-desc">New high-visibility broadcast design with crisp contrast, zero navy darkness, and clean typography tested for mobile and desktop live stream viewers.</p>
+          </div>
+
+          <!-- Feature 3 -->
+          <div class="feature-card">
+            <div class="feature-icon-box">🔊</div>
+            <h3 class="feature-title">Stadium Sound Rack &amp; DJ Board</h3>
+            <p class="feature-desc">Automatic horn triggers on 4s, 6s, and wickets. Loop crowd cheering sounds, play custom commentary stingers, and control volume right from the operator dashboard.</p>
+          </div>
+
+          <!-- Feature 4 -->
+          <div class="feature-card">
+            <div class="feature-icon-box">📊</div>
+            <h3 class="feature-title">Wagon Wheels &amp; Worm Charts</h3>
+            <p class="feature-desc">Full match statistical graphs including Manhattans, Run-Rate Worms, Partnerhsip banners, and Fall of Wickets cards rendered smoothly in 1080p and 4K.</p>
+          </div>
+
+          <!-- Feature 5 -->
+          <div class="feature-card">
+            <div class="feature-icon-box">🎥</div>
+            <h3 class="feature-title">Automated Broadcast Director</h3>
+            <p class="feature-desc">Smart mode detects over breaks, boundaries, and wickets to seamlessly swap between lower-thirds and full-screen milestone cards on your OBS scene.</p>
+          </div>
+
+          <!-- Feature 6 -->
+          <div class="feature-card">
+            <div class="feature-icon-box">🔄</div>
+            <h3 class="feature-title">1-Click Live In-App Updater</h3>
+            <p class="feature-desc">Never lose match time. Background installer updates check for new releases and apply with a single click, keeping your software always modern and bug-free.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Download Section -->
+    <section id="download" class="section section-alt">
+      <div class="container">
+        <div class="download-box">
+          <div class="download-box-inner">
+            <div>
+              <span class="download-version-pill">RELEASE v1.0.2 NOW AVAILABLE</span>
+              <h2 class="download-title">Download StumpCast Studio Free</h2>
+              <p class="download-desc">
+                Get the complete Windows desktop application. Setup takes under 60 seconds with full offline scoring support and OBS browser source integration.
+              </p>
+
+              <ul class="download-highlights">
+                <li><span>✔</span> Automatic Cricbuzz &amp; Crex Integration</li>
+                <li><span>✔</span> Complete White, Royal Blue &amp; Orange Theme</li>
+                <li><span>✔</span> Built-in Stadium DJ Sound Effects</li>
+                <li><span>✔</span> OBS Studio, vMix &amp; Prism Live Ready</li>
+              </ul>
+
+              <a href="https://github.com/EmmaRose1122/Stump-Cast-Studio/releases/download/v1.0.2/StumpCast-Studio-Setup-1.0.2.exe" class="btn btn-primary btn-lg" id="download-cta-btn">
+                <span>📥 Download StumpCast-Studio-Setup-1.0.2.exe</span>
+              </a>
+              <div class="download-size-text">Size: ~133 MB • Windows 10 / 11 64-Bit</div>
+            </div>
+
+            <div class="download-card-widget">
+              <span style="font-size: 3rem; display: block; margin-bottom: 12px;">🛡️</span>
+              <h3 style="font-size: 1.2rem; font-weight: 700; margin-bottom: 8px;">Clean &amp; Digitally Signed</h3>
+              <p style="font-size: 0.85rem; color: var(--blue-100);">SHA-512 Package Checksum Verified</p>
+              <div class="download-hash-box">
+                SHA-512: eViMGRsSxpw/GpDhQeC0XkwfWjRpTIFrM7nFmPSnxoQwVmiwhOoc2DIzemoBpPuiXoYRXr2QV2ak3It5M960Ww==
+              </div>
+              <p style="font-size: 0.75rem; color: var(--slate-300); margin-top: 14px;">No admin privileges required • Per-user install</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQ Section -->
+    <section id="faq" class="section">
+      <div class="container">
+        <div class="section-header">
+          <span class="section-tag">Frequently Asked Questions</span>
+          <h2 class="section-title">Common Questions About StumpCast Studio</h2>
+          <p class="section-subtitle">Got questions about setup, live updates, or OBS integration? Here are quick answers.</p>
+        </div>
+
+        <div class="faq-list">
+          <div class="faq-item active">
+            <button class="faq-question">
+              <span>How do I connect StumpCast Studio to OBS Studio?</span>
+              <span class="faq-icon">+</span>
+            </button>
+            <div class="faq-answer">
+              Inside StumpCast Studio, click on the "Overlays" tab and copy the Browser Source URL (`http://127.0.0.1:4000/overlay/`). In OBS Studio, add a new "Browser" source, paste the URL, set width to 1920 and height to 1080, and your live graphics will immediately render on stream!
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <button class="faq-question">
+              <span>How does the In-App Update button work?</span>
+              <span class="faq-icon">+</span>
+            </button>
+            <div class="faq-answer">
+              When a new update is released, your installed desktop app checks the update manifest. Clicking "Download Update" downloads the new verified installer in the background with a progress bar, then offers a "Restart &amp; Install" button that seamlessly updates your app without losing any match data.
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <button class="faq-question">
+              <span>Does my software code stay private when uploading updates?</span>
+              <span class="faq-icon">+</span>
+            </button>
+            <div class="faq-answer">
+              Yes, absolutely! The live update distribution system only publishes the compiled, binary `.exe` setup package and a small `latest.yml` version descriptor. Not a single line of your source code is ever uploaded or made public.
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <button class="faq-question">
+              <span>Can I score matches manually if the internet disconnects?</span>
+              <span class="faq-icon">+</span>
+            </button>
+            <div class="faq-answer">
+              Yes! StumpCast Studio includes a built-in Manual Scoring Engine with ball-by-ball entry, undo support, and automatic switchover if the online scraper experiences network lag.
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div>
+          <div class="footer-brand-title">🏏 StumpCast Studio</div>
+          <p class="footer-text">
+            Professional cricket live broadcast graphics, automatic scraping, and stadium sound controller for content creators and streamers worldwide.
+          </p>
+        </div>
+
+        <div>
+          <div class="footer-col-title">Navigation</div>
+          <ul class="footer-links">
+            <li><a href="#features">Features</a></li>
+            <li><a href="#overlays">Broadcast Looks</a></li>
+            <li><a href="#download">Download v1.0.2</a></li>
+            <li><a href="#faq">FAQs</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <div class="footer-col-title">Resources</div>
+          <ul class="footer-links">
+            <li><a href="https://obsproject.com/" target="_blank" rel="noopener">OBS Studio</a></li>
+            <li><a href="https://vmix.com/" target="_blank" rel="noopener">vMix Software</a></li>
+            <li><a href="sitemap.xml">XML Sitemap</a></li>
+            <li><a href="robots.txt">Robots.txt</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <div>&copy; 2026 StumpCast Studio. All rights reserved.</div>
+        <div>Built for Cricket Broadcasters • 100% Secure &amp; Private</div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="main.js"></script>
+</body>
+</html>
