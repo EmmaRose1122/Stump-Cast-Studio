@@ -1,0 +1,62 @@
+{
+  "source": "cricbuzz",
+  "matchId": "1001",
+  "url": "https://www.cricbuzz.com/live-cricket-scores/1001/ind-vs-pak-result",
+  "capturedAt": 1700000000000,
+  "confidence": 1,
+  "fields": {
+    "title": "India vs Pakistan, 1st Match",
+    "status": "India won by 4 wickets",
+    "venue": "Melbourne Cricket Ground, Melbourne",
+    "teams": [
+      {
+        "name": "India"
+      }
+    ],
+    "innings": [
+      {
+        "team": "160/6",
+        "runs": 160,
+        "wkts": 6,
+        "overs": 20,
+        "balls": 0
+      }
+    ],
+    "batters": [
+      {
+        "name": "Virat Kohli",
+        "runs": 82,
+        "balls": 53,
+        "fours": 6,
+        "sixes": 4,
+        "onStrike": true
+      },
+      {
+        "name": "Ravichandran Ashwin",
+        "runs": 1,
+        "balls": 1,
+        "fours": 0,
+        "sixes": 0
+      }
+    ],
+    "bowler": {
+      "name": "Haris Rauf",
+      "overs": 4,
+      "balls": 0,
+      "maidens": 0,
+      "runs": 36,
+      "wkts": 2
+    },
+    "thisOver": [
+      "W",
+      "1",
+      "1",
+      "2",
+      "1",
+      "1"
+    ],
+    "lastBalls": [],
+    "crr": 160
+  },
+  "missing": []
+}

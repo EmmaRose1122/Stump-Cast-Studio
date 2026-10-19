@@ -1,0 +1,41 @@
+{
+  "id": "k13",
+  "name": "Street Yellow",
+  "plan": "pro",
+  "tokens": {
+    "colors": {
+      "bg": "#1C1604",
+      "surface": "#332909",
+      "accent": "#EAB308",
+      "accent2": "#FACC15",
+      "warn": "#F97316",
+      "text": "#FEFCE8"
+    },
+    "gradients": {
+      "accent": "linear-gradient(90deg, #EAB308, #FACC15)"
+    },
+    "fonts": {
+      "heading": "Space Grotesk",
+      "body": "Inter",
+      "numbers": "Barlow Condensed"
+    },
+    "radii": {
+      "card": 6,
+      "chip": 4
+    },
+    "shadows": {
+      "card": "0 8px 26px rgba(234,179,8,0.3)"
+    },
+    "scoreBarShape": "arrow"
+  },
+  "layoutVariant": {
+    "scorePosition": "top",
+    "playerCardStyle": "mirrored",
+    "boundaryStyle": "edge-flash"
+  },
+  "motion": {
+    "entrance": "drop",
+    "easing": "power2.out",
+    "durationMs": 480
+  }
+}

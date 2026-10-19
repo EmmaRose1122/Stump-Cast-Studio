@@ -1,0 +1,62 @@
+{
+  "app": { "name": "StumpCast Studio" },
+  "nav": {
+    "live": "Live",
+    "graphics": "Graphics",
+    "video": "Video & Cams",
+    "sounds": "Sounds",
+    "players": "Players & Logos",
+    "extension": "Extension",
+    "settings": "Settings",
+    "help": "Help"
+  },
+  "status": {
+    "provider": "Provider",
+    "match": "Match",
+    "obs": "OBS",
+    "licence": "Licence",
+    "onAir": "ON AIR",
+    "offAir": "OFF AIR"
+  },
+  "alarm": {
+    "mute": "Mute alarm",
+    "unmute": "Unmute",
+    "muted": "Muted"
+  },
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "close": "Close",
+    "theme": "Theme",
+    "dark": "Dark",
+    "light": "Light"
+  },
+  "pages": {
+    "live": {
+      "title": "Live",
+      "empty": "Waiting for a match. Open a match page with the StumpCast extension."
+    },
+    "graphics": {
+      "title": "Graphics",
+      "empty": "Card grid, director and looks arrive in the Graphics tab build."
+    },
+    "video": {
+      "title": "Video & Cams",
+      "empty": "Layout presets and OBS control arrive in the Video & Cams build."
+    },
+    "sounds": {
+      "title": "Sounds",
+      "empty": "The track rack and auto sounds arrive in the Sounds build."
+    },
+    "players": {
+      "title": "Players & Logos",
+      "empty": "Squads and the asset library arrive in the Players & Logos build."
+    },
+    "settings": { "title": "Settings", "timing": "Stream timing" },
+    "help": { "title": "Help", "empty": "Setup guide and FAQ arrive with the docs build." }
+  },
+  "shortcuts": {
+    "hint": "Keys 1-9 show quick cards, Space hides the card, G opens Graphics."
+  }
+}

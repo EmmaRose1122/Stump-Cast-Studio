@@ -1,0 +1,41 @@
+{
+  "id": "k24",
+  "name": "Festival Aurora",
+  "plan": "pro",
+  "tokens": {
+    "colors": {
+      "bg": "#080C21",
+      "surface": "#121B3D",
+      "accent": "#A855F7",
+      "accent2": "#2DD4BF",
+      "warn": "#FBBF24",
+      "text": "#F3E8FF"
+    },
+    "gradients": {
+      "accent": "linear-gradient(90deg, #A855F7, #2DD4BF)"
+    },
+    "fonts": {
+      "heading": "Space Grotesk",
+      "body": "Inter",
+      "numbers": "Barlow Condensed"
+    },
+    "radii": {
+      "card": 12,
+      "chip": 6
+    },
+    "shadows": {
+      "card": "0 10px 32px rgba(168,85,247,0.35)"
+    },
+    "scoreBarShape": "flat"
+  },
+  "layoutVariant": {
+    "scorePosition": "top",
+    "playerCardStyle": "badge-right",
+    "boundaryStyle": "glow-ring"
+  },
+  "motion": {
+    "entrance": "zoom",
+    "easing": "back.out(1.4)",
+    "durationMs": 480
+  }
+}

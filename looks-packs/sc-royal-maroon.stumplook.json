@@ -1,0 +1,41 @@
+{
+  "id": "sc-royal-maroon",
+  "name": "Royal Maroon",
+  "plan": "pro",
+  "tokens": {
+    "colors": {
+      "bg": "#2B0A14",
+      "surface": "#451225",
+      "accent": "#E8D8B0",
+      "accent2": "#C9A24B",
+      "warn": "#F2C14E",
+      "text": "#FFF8EA"
+    },
+    "gradients": {
+      "accent": "linear-gradient(90deg, #C9A24B, #E8D8B0)"
+    },
+    "fonts": {
+      "heading": "Space Grotesk",
+      "body": "Inter",
+      "numbers": "Barlow Condensed"
+    },
+    "radii": {
+      "card": 14,
+      "chip": 8
+    },
+    "shadows": {
+      "card": "0 12px 32px rgba(201,162,75,0.28)"
+    },
+    "scoreBarShape": "notched"
+  },
+  "layoutVariant": {
+    "scorePosition": "top",
+    "playerCardStyle": "cutout",
+    "boundaryStyle": "gold-flare"
+  },
+  "motion": {
+    "entrance": "curtain",
+    "easing": "power3.out",
+    "durationMs": 600
+  }
+}

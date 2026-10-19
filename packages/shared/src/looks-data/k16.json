@@ -1,0 +1,41 @@
+{
+  "id": "k16",
+  "name": "Glass Sky",
+  "plan": "pro",
+  "tokens": {
+    "colors": {
+      "bg": "#081A28",
+      "surface": "#0F2D42",
+      "accent": "#38BDF8",
+      "accent2": "#7DD3FC",
+      "warn": "#FBBF24",
+      "text": "#F0F9FF"
+    },
+    "gradients": {
+      "accent": "linear-gradient(90deg, #38BDF8, #7DD3FC)"
+    },
+    "fonts": {
+      "heading": "Space Grotesk",
+      "body": "Inter",
+      "numbers": "Barlow Condensed"
+    },
+    "radii": {
+      "card": 16,
+      "chip": 8
+    },
+    "shadows": {
+      "card": "0 12px 36px rgba(56,189,248,0.35)"
+    },
+    "scoreBarShape": "glass"
+  },
+  "layoutVariant": {
+    "scorePosition": "top",
+    "playerCardStyle": "cutout",
+    "boundaryStyle": "glow-ring"
+  },
+  "motion": {
+    "entrance": "blur",
+    "easing": "power2.out",
+    "durationMs": 550
+  }
+}

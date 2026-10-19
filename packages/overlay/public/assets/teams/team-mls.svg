@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 200" width="300" height="200" role="img" aria-label="Melbourne Stars">
+  <defs>
+    <clipPath id="tile"><rect width="300" height="200" rx="20"/></clipPath>
+    <linearGradient id="shade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".18"/><stop offset="1" stop-color="#000" stop-opacity=".22"/></linearGradient>
+  </defs>
+  <g clip-path="url(#tile)">
+    <rect width="300" height="200" fill="#1A8F3C"/>
+    <path d="M-20 160 L120 -20 L190 -20 L50 200 L-20 200 Z" fill="#F2C200" opacity=".9"/>
+    <rect width="300" height="200" fill="url(#shade)"/>
+    <text x="150" y="112" text-anchor="middle" font-family="Arial Black, Arial, Helvetica, sans-serif" font-weight="900" font-size="74" fill="#FFFFFF" stroke="none">MLS</text>
+    <rect x="95" y="136" width="110" height="3" rx="1.5" fill="#FFFFFF" opacity=".7"/>
+    <text x="150" y="168" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="700" font-size="22" letter-spacing="6" fill="#FFFFFF" opacity=".9">BBL</text>
+  </g>
+</svg>

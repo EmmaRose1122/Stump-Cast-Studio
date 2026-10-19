@@ -1,0 +1,16 @@
+{
+  "source": "cricbuzz",
+  "matchId": "sample-1",
+  "url": "https://example.invalid/_sample/live",
+  "capturedAt": 1700000000000,
+  "confidence": 1,
+  "fields": {
+    "title": "Sample Team v Other Team",
+    "teams": [],
+    "innings": [{ "team": "Sample Team", "runs": 52, "wkts": 1, "overs": 6, "balls": 3 }],
+    "batters": [],
+    "thisOver": [],
+    "lastBalls": []
+  },
+  "missing": []
+}

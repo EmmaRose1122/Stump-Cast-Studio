@@ -1,0 +1,41 @@
+{
+  "id": "k02",
+  "name": "Stadium Emerald",
+  "plan": "pro",
+  "tokens": {
+    "colors": {
+      "bg": "#022C22",
+      "surface": "#064E3B",
+      "accent": "#10B981",
+      "accent2": "#34D399",
+      "warn": "#FBBF24",
+      "text": "#F0FDF4"
+    },
+    "gradients": {
+      "accent": "linear-gradient(90deg, #10B981, #34D399)"
+    },
+    "fonts": {
+      "heading": "Space Grotesk",
+      "body": "Inter",
+      "numbers": "Barlow Condensed"
+    },
+    "radii": {
+      "card": 14,
+      "chip": 8
+    },
+    "shadows": {
+      "card": "0 10px 30px rgba(16,185,129,0.25)"
+    },
+    "scoreBarShape": "floating"
+  },
+  "layoutVariant": {
+    "scorePosition": "bottom",
+    "playerCardStyle": "badge-right",
+    "boundaryStyle": "edge-flash"
+  },
+  "motion": {
+    "entrance": "rise",
+    "easing": "power2.out",
+    "durationMs": 480
+  }
+}

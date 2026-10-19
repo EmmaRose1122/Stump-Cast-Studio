@@ -1,0 +1,32 @@
+{
+  "source": "cricbuzz",
+  "matchId": "1001",
+  "url": "https://www.cricbuzz.com/live-cricket-scores/1001/ind-vs-pak-pre-match",
+  "capturedAt": 1700000000000,
+  "confidence": 1,
+  "fields": {
+    "title": "India vs Pakistan, Match 1",
+    "status": "Match starts at 19:00 local time",
+    "venue": "Melbourne Cricket Ground, Melbourne",
+    "toss": "Pakistan won the toss and elected to bowl",
+    "teams": [
+      {
+        "name": "India"
+      }
+    ],
+    "innings": [
+      {
+        "team": "0/0",
+        "runs": 0,
+        "wkts": 0,
+        "overs": 0,
+        "balls": 0
+      }
+    ],
+    "batters": [],
+    "thisOver": [],
+    "lastBalls": [],
+    "crr": 0
+  },
+  "missing": []
+}

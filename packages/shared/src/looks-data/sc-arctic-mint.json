@@ -1,0 +1,41 @@
+{
+  "id": "sc-arctic-mint",
+  "name": "Arctic Mint",
+  "plan": "pro",
+  "tokens": {
+    "colors": {
+      "bg": "#0E2230",
+      "surface": "#173547",
+      "accent": "#5EEAD4",
+      "accent2": "#A5F3FC",
+      "warn": "#FDE68A",
+      "text": "#F0FFFD"
+    },
+    "gradients": {
+      "accent": "linear-gradient(90deg, #5EEAD4, #A5F3FC)"
+    },
+    "fonts": {
+      "heading": "Space Grotesk",
+      "body": "Inter",
+      "numbers": "Barlow Condensed"
+    },
+    "radii": {
+      "card": 20,
+      "chip": 12
+    },
+    "shadows": {
+      "card": "0 10px 30px rgba(94,234,212,0.28)"
+    },
+    "scoreBarShape": "line"
+  },
+  "layoutVariant": {
+    "scorePosition": "top",
+    "playerCardStyle": "round-badge",
+    "boundaryStyle": "spark"
+  },
+  "motion": {
+    "entrance": "fade",
+    "easing": "sine.out",
+    "durationMs": 520
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "id": "sc-paper-scoreboard",
+  "name": "Paper Scoreboard",
+  "plan": "pro",
+  "tokens": {
+    "colors": {
+      "bg": "#F5F1E8",
+      "surface": "#FFFFFF",
+      "accent": "#D6432B",
+      "accent2": "#1F2A44",
+      "warn": "#B7791F",
+      "text": "#1B1B1B"
+    },
+    "gradients": {
+      "accent": "linear-gradient(90deg, #D6432B, #F06B4F)"
+    },
+    "fonts": {
+      "heading": "Space Grotesk",
+      "body": "Inter",
+      "numbers": "Barlow Condensed"
+    },
+    "radii": {
+      "card": 6,
+      "chip": 4
+    },
+    "shadows": {
+      "card": "0 6px 18px rgba(31,42,68,0.18)"
+    },
+    "scoreBarShape": "flat"
+  },
+  "layoutVariant": {
+    "scorePosition": "bottom",
+    "playerCardStyle": "badge-right",
+    "boundaryStyle": "corner-tag"
+  },
+  "motion": {
+    "entrance": "rise",
+    "easing": "power2.out",
+    "durationMs": 420
+  }
+}

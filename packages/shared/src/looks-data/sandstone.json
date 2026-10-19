@@ -1,0 +1,41 @@
+{
+  "id": "sandstone",
+  "name": "Sandstone",
+  "plan": "pro",
+  "tokens": {
+    "colors": {
+      "bg": "#2B2118",
+      "surface": "#3A2E22",
+      "accent": "#E0B97A",
+      "accent2": "#C8553D",
+      "warn": "#F2C14E",
+      "text": "#FFF6E5"
+    },
+    "gradients": {
+      "accent": "linear-gradient(90deg, #E0B97A, #C8553D)"
+    },
+    "fonts": {
+      "heading": "Space Grotesk",
+      "body": "Inter",
+      "numbers": "Barlow Condensed"
+    },
+    "radii": {
+      "card": 4,
+      "chip": 2
+    },
+    "shadows": {
+      "card": "0 6px 0 rgba(0,0,0,0.25)"
+    },
+    "scoreBarShape": "notched"
+  },
+  "layoutVariant": {
+    "scorePosition": "bottom",
+    "playerCardStyle": "cutout",
+    "boundaryStyle": "banner-sweep"
+  },
+  "motion": {
+    "entrance": "curtain",
+    "easing": "power3.inOut",
+    "durationMs": 650
+  }
+}

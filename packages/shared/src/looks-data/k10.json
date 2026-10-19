@@ -1,0 +1,41 @@
+{
+  "id": "k10",
+  "name": "Retro Green LED",
+  "plan": "pro",
+  "tokens": {
+    "colors": {
+      "bg": "#051A0B",
+      "surface": "#0D3216",
+      "accent": "#22C55E",
+      "accent2": "#4ADE80",
+      "warn": "#EAB308",
+      "text": "#F0FDF4"
+    },
+    "gradients": {
+      "accent": "linear-gradient(90deg, #22C55E, #4ADE80)"
+    },
+    "fonts": {
+      "heading": "Space Grotesk",
+      "body": "Inter",
+      "numbers": "Barlow Condensed"
+    },
+    "radii": {
+      "card": 6,
+      "chip": 2
+    },
+    "shadows": {
+      "card": "0 8px 24px rgba(34,197,94,0.3)"
+    },
+    "scoreBarShape": "slanted"
+  },
+  "layoutVariant": {
+    "scorePosition": "top",
+    "playerCardStyle": "cutout",
+    "boundaryStyle": "split-bar"
+  },
+  "motion": {
+    "entrance": "unfold",
+    "easing": "power3.out",
+    "durationMs": 520
+  }
+}

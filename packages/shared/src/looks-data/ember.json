@@ -1,0 +1,41 @@
+{
+  "id": "ember",
+  "name": "Ember",
+  "plan": "pro",
+  "tokens": {
+    "colors": {
+      "bg": "#1A0E0A",
+      "surface": "#2A1710",
+      "accent": "#FF7A1A",
+      "accent2": "#FFC24D",
+      "warn": "#FFC24D",
+      "text": "#FFF0E3"
+    },
+    "gradients": {
+      "accent": "linear-gradient(90deg, #FF7A1A, #FFC24D)"
+    },
+    "fonts": {
+      "heading": "Space Grotesk",
+      "body": "Inter",
+      "numbers": "Barlow Condensed"
+    },
+    "radii": {
+      "card": 6,
+      "chip": 4
+    },
+    "shadows": {
+      "card": "0 10px 30px rgba(255,100,20,0.25)"
+    },
+    "scoreBarShape": "arrow"
+  },
+  "layoutVariant": {
+    "scorePosition": "bottom",
+    "playerCardStyle": "cutout",
+    "boundaryStyle": "spark"
+  },
+  "motion": {
+    "entrance": "skew",
+    "easing": "expo.out",
+    "durationMs": 480
+  }
+}

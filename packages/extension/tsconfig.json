@@ -1,0 +1,16 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src",
+    "tsBuildInfoFile": "dist/.tsbuildinfo",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "types": ["node", "chrome"]
+  },
+  "include": ["src", "src/**/*.json"],
+  "references": [
+    {
+      "path": "../shared"
+    }
+  ]
+}

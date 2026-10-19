@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 200" width="300" height="200">
+      <defs><clipPath id="c"><rect width="300" height="200" rx="20"/></clipPath></defs>
+      <g clip-path="url(#c)">
+        <rect width="300" height="200" fill="#004B8D"/>
+        <!-- Gold razor chakra / hurricane badge -->
+        <circle cx="150" cy="100" r="60" fill="none" stroke="#D1AB3E" stroke-width="12"/>
+        <circle cx="150" cy="100" r="30" fill="#D1AB3E"/>
+        <path d="M150,30 L165,70 L135,70 Z M150,170 L165,130 L135,130 Z M80,100 L120,85 L120,115 Z M220,100 L180,85 L180,115 Z" fill="#D1AB3E"/>
+      </g>
+    </svg>

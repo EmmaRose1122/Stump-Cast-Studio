@@ -1,0 +1,41 @@
+{
+  "id": "ink-gold",
+  "name": "Ink & Gold",
+  "plan": "pro",
+  "tokens": {
+    "colors": {
+      "bg": "#0A0A0C",
+      "surface": "#141418",
+      "accent": "#D4AF37",
+      "accent2": "#F5E6A8",
+      "warn": "#E8C547",
+      "text": "#F7F2E1"
+    },
+    "gradients": {
+      "accent": "linear-gradient(90deg, #D4AF37, #F5E6A8)"
+    },
+    "fonts": {
+      "heading": "Space Grotesk",
+      "body": "Inter",
+      "numbers": "Barlow Condensed"
+    },
+    "radii": {
+      "card": 2,
+      "chip": 0
+    },
+    "shadows": {
+      "card": "0 0 0 1px rgba(212,175,55,0.35)"
+    },
+    "scoreBarShape": "line"
+  },
+  "layoutVariant": {
+    "scorePosition": "bottom",
+    "playerCardStyle": "cutout",
+    "boundaryStyle": "gold-flare"
+  },
+  "motion": {
+    "entrance": "iris",
+    "easing": "power2.inOut",
+    "durationMs": 700
+  }
+}

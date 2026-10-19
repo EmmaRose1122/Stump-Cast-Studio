@@ -1,0 +1,41 @@
+{
+  "id": "sc-desert-dusk",
+  "name": "Desert Dusk",
+  "plan": "pro",
+  "tokens": {
+    "colors": {
+      "bg": "#2A140C",
+      "surface": "#4A2416",
+      "accent": "#FF8A3D",
+      "accent2": "#2FC4B2",
+      "warn": "#FFD166",
+      "text": "#FFF4E6"
+    },
+    "gradients": {
+      "accent": "linear-gradient(90deg, #FF8A3D, #FFB36B)"
+    },
+    "fonts": {
+      "heading": "Space Grotesk",
+      "body": "Inter",
+      "numbers": "Barlow Condensed"
+    },
+    "radii": {
+      "card": 10,
+      "chip": 6
+    },
+    "shadows": {
+      "card": "0 10px 28px rgba(255,138,61,0.30)"
+    },
+    "scoreBarShape": "slanted"
+  },
+  "layoutVariant": {
+    "scorePosition": "top",
+    "playerCardStyle": "badge",
+    "boundaryStyle": "banner-sweep"
+  },
+  "motion": {
+    "entrance": "skew",
+    "easing": "power2.out",
+    "durationMs": 500
+  }
+}

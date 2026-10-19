@@ -1,0 +1,41 @@
+{
+  "id": "sc-monsoon-night",
+  "name": "Monsoon Night",
+  "plan": "pro",
+  "tokens": {
+    "colors": {
+      "bg": "#0B1026",
+      "surface": "#141B3D",
+      "accent": "#4D7CFF",
+      "accent2": "#38D6F2",
+      "warn": "#FFC857",
+      "text": "#EAF0FF"
+    },
+    "gradients": {
+      "accent": "linear-gradient(90deg, #4D7CFF, #38D6F2)"
+    },
+    "fonts": {
+      "heading": "Space Grotesk",
+      "body": "Inter",
+      "numbers": "Barlow Condensed"
+    },
+    "radii": {
+      "card": 18,
+      "chip": 10
+    },
+    "shadows": {
+      "card": "0 12px 36px rgba(77,124,255,0.35)"
+    },
+    "scoreBarShape": "glass"
+  },
+  "layoutVariant": {
+    "scorePosition": "bottom",
+    "playerCardStyle": "mirrored",
+    "boundaryStyle": "glow-ring"
+  },
+  "motion": {
+    "entrance": "blur",
+    "easing": "power3.out",
+    "durationMs": 560
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "id": "pitch-green",
+  "name": "Pitch Green",
+  "plan": "pro",
+  "tokens": {
+    "colors": {
+      "bg": "#0B1F14",
+      "surface": "#123022",
+      "accent": "#5DDB6A",
+      "accent2": "#D6F36B",
+      "warn": "#FFC247",
+      "text": "#EAFBEF"
+    },
+    "gradients": {
+      "accent": "linear-gradient(90deg, #5DDB6A, #D6F36B)"
+    },
+    "fonts": {
+      "heading": "Space Grotesk",
+      "body": "Inter",
+      "numbers": "Barlow Condensed"
+    },
+    "radii": {
+      "card": 10,
+      "chip": 6
+    },
+    "shadows": {
+      "card": "0 8px 20px rgba(0,0,0,0.4)"
+    },
+    "scoreBarShape": "slanted"
+  },
+  "layoutVariant": {
+    "scorePosition": "top",
+    "playerCardStyle": "badge",
+    "boundaryStyle": "split-bar"
+  },
+  "motion": {
+    "entrance": "zoom",
+    "easing": "back.out(1.4)",
+    "durationMs": 480
+  }
+}

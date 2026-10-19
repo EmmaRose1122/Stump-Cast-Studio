@@ -1,0 +1,41 @@
+{
+  "id": "sc-volt-carbon",
+  "name": "Volt Carbon",
+  "plan": "pro",
+  "tokens": {
+    "colors": {
+      "bg": "#0C0D10",
+      "surface": "#1A1C22",
+      "accent": "#D4FF2A",
+      "accent2": "#FF2E93",
+      "warn": "#FFB020",
+      "text": "#F5F7FA"
+    },
+    "gradients": {
+      "accent": "linear-gradient(90deg, #D4FF2A, #8CFF2A)"
+    },
+    "fonts": {
+      "heading": "Space Grotesk",
+      "body": "Inter",
+      "numbers": "Barlow Condensed"
+    },
+    "radii": {
+      "card": 4,
+      "chip": 2
+    },
+    "shadows": {
+      "card": "0 0 24px rgba(212,255,42,0.30)"
+    },
+    "scoreBarShape": "arrow"
+  },
+  "layoutVariant": {
+    "scorePosition": "bottom",
+    "playerCardStyle": "badge",
+    "boundaryStyle": "split-bar"
+  },
+  "motion": {
+    "entrance": "glitch",
+    "easing": "power4.out",
+    "durationMs": 380
+  }
+}

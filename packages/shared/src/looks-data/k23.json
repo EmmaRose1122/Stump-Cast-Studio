@@ -1,0 +1,41 @@
+{
+  "id": "k23",
+  "name": "Festival Sunset",
+  "plan": "pro",
+  "tokens": {
+    "colors": {
+      "bg": "#18081F",
+      "surface": "#2E103D",
+      "accent": "#FB923C",
+      "accent2": "#EC4899",
+      "warn": "#FBBF24",
+      "text": "#FFF7ED"
+    },
+    "gradients": {
+      "accent": "linear-gradient(90deg, #FB923C, #EC4899)"
+    },
+    "fonts": {
+      "heading": "Space Grotesk",
+      "body": "Inter",
+      "numbers": "Barlow Condensed"
+    },
+    "radii": {
+      "card": 8,
+      "chip": 4
+    },
+    "shadows": {
+      "card": "0 10px 32px rgba(236,72,153,0.35)"
+    },
+    "scoreBarShape": "notched"
+  },
+  "layoutVariant": {
+    "scorePosition": "bottom",
+    "playerCardStyle": "badge-right",
+    "boundaryStyle": "burst"
+  },
+  "motion": {
+    "entrance": "drop",
+    "easing": "power2.out",
+    "durationMs": 480
+  }
+}

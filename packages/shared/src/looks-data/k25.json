@@ -1,0 +1,41 @@
+{
+  "id": "k25",
+  "name": "Mono Mint",
+  "plan": "pro",
+  "tokens": {
+    "colors": {
+      "bg": "#021411",
+      "surface": "#06241F",
+      "accent": "#2DD4BF",
+      "accent2": "#6EE7B7",
+      "warn": "#FBBF24",
+      "text": "#F0FDF4"
+    },
+    "gradients": {
+      "accent": "linear-gradient(90deg, #2DD4BF, #6EE7B7)"
+    },
+    "fonts": {
+      "heading": "Space Grotesk",
+      "body": "Inter",
+      "numbers": "Barlow Condensed"
+    },
+    "radii": {
+      "card": 4,
+      "chip": 2
+    },
+    "shadows": {
+      "card": "0 0 0 1px rgba(45,212,191,0.4)"
+    },
+    "scoreBarShape": "notched"
+  },
+  "layoutVariant": {
+    "scorePosition": "top",
+    "playerCardStyle": "round-badge",
+    "boundaryStyle": "edge-flash"
+  },
+  "motion": {
+    "entrance": "pop",
+    "easing": "back.out(1.5)",
+    "durationMs": 460
+  }
+}

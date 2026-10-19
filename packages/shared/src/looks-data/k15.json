@@ -1,0 +1,41 @@
+{
+  "id": "k15",
+  "name": "Royal Silver",
+  "plan": "pro",
+  "tokens": {
+    "colors": {
+      "bg": "#0F172A",
+      "surface": "#1E293B",
+      "accent": "#94A3B8",
+      "accent2": "#CBD5E1",
+      "warn": "#FBBF24",
+      "text": "#F8FAFC"
+    },
+    "gradients": {
+      "accent": "linear-gradient(90deg, #94A3B8, #CBD5E1)"
+    },
+    "fonts": {
+      "heading": "Space Grotesk",
+      "body": "Inter",
+      "numbers": "Barlow Condensed"
+    },
+    "radii": {
+      "card": 4,
+      "chip": 2
+    },
+    "shadows": {
+      "card": "0 8px 24px rgba(148,163,184,0.25)"
+    },
+    "scoreBarShape": "notched"
+  },
+  "layoutVariant": {
+    "scorePosition": "bottom",
+    "playerCardStyle": "round-badge",
+    "boundaryStyle": "corner-tag"
+  },
+  "motion": {
+    "entrance": "swing",
+    "easing": "power2.out",
+    "durationMs": 520
+  }
+}

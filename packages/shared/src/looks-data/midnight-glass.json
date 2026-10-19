@@ -1,0 +1,41 @@
+{
+  "id": "midnight-glass",
+  "name": "Midnight Glass",
+  "plan": "pro",
+  "tokens": {
+    "colors": {
+      "bg": "#0A0F1F",
+      "surface": "#121A33",
+      "accent": "#7AA2FF",
+      "accent2": "#B794F6",
+      "warn": "#FFD166",
+      "text": "#EAF0FF"
+    },
+    "gradients": {
+      "accent": "linear-gradient(90deg, #7AA2FF, #B794F6)"
+    },
+    "fonts": {
+      "heading": "Space Grotesk",
+      "body": "Inter",
+      "numbers": "Barlow Condensed"
+    },
+    "radii": {
+      "card": 18,
+      "chip": 12
+    },
+    "shadows": {
+      "card": "0 12px 40px rgba(20,30,80,0.55)"
+    },
+    "scoreBarShape": "glass"
+  },
+  "layoutVariant": {
+    "scorePosition": "top",
+    "playerCardStyle": "cutout",
+    "boundaryStyle": "glow-ring"
+  },
+  "motion": {
+    "entrance": "blur",
+    "easing": "power2.out",
+    "durationMs": 600
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "id": "k05",
+  "name": "Neon Lime",
+  "plan": "pro",
+  "tokens": {
+    "colors": {
+      "bg": "#0D1E08",
+      "surface": "#1A380E",
+      "accent": "#84CC16",
+      "accent2": "#A3E635",
+      "warn": "#FBBF24",
+      "text": "#F7FEE7"
+    },
+    "gradients": {
+      "accent": "linear-gradient(90deg, #84CC16, #A3E635)"
+    },
+    "fonts": {
+      "heading": "Space Grotesk",
+      "body": "Inter",
+      "numbers": "Barlow Condensed"
+    },
+    "radii": {
+      "card": 12,
+      "chip": 6
+    },
+    "shadows": {
+      "card": "0 0 20px rgba(132,204,22,0.35)"
+    },
+    "scoreBarShape": "floating"
+  },
+  "layoutVariant": {
+    "scorePosition": "top",
+    "playerCardStyle": "badge-right",
+    "boundaryStyle": "edge-flash"
+  },
+  "motion": {
+    "entrance": "blinds",
+    "easing": "power2.out",
+    "durationMs": 460
+  }
+}

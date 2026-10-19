@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 200" width="300" height="200">
+      <defs>
+        <clipPath id="c"><rect width="300" height="200" rx="20"/></clipPath>
+        <polygon id="star7" points="0,-12 2.7,-3.7 10.4,-6 5.2,0 11.4,4 3.7,5.5 5,13 0,7.2 -5,13 -3.7,5.5 -11.4,4 -5.2,0 -10.4,-6 -2.7,-3.7" fill="#fff"/>
+        <polygon id="star5" points="0,-8 2.4,-2.5 8.3,-2.5 3.5,1 5.3,6.5 0,3.2 -5.3,6.5 -3.5,1 -8.3,-2.5 -2.4,-2.5" fill="#fff"/>
+      </defs>
+      <g clip-path="url(#c)">
+        <rect width="300" height="200" fill="#00008B"/>
+        <!-- Union Jack in canton -->
+        <g>
+          <rect width="150" height="100" fill="#00247D"/>
+          <path d="M0,0 L150,100 M150,0 L0,100" stroke="#fff" stroke-width="20"/>
+          <path d="M0,0 L150,100 M150,0 L0,100" stroke="#CF142B" stroke-width="12"/>
+          <path d="M75,0 V100 M0,50 H150" stroke="#fff" stroke-width="32"/>
+          <path d="M75,0 V100 M0,50 H150" stroke="#CF142B" stroke-width="20"/>
+        </g>
+        <!-- Commonwealth Star -->
+        <use href="#star7" transform="translate(75, 150) scale(1.8)"/>
+        <!-- Southern Cross -->
+        <use href="#star7" transform="translate(225, 160) scale(1.1)"/>
+        <use href="#star7" transform="translate(195, 105) scale(1.1)"/>
+        <use href="#star7" transform="translate(225, 45) scale(1.1)"/>
+        <use href="#star7" transform="translate(258, 85) scale(1.1)"/>
+        <use href="#star5" transform="translate(240, 125) scale(0.9)"/>
+      </g>
+    </svg>

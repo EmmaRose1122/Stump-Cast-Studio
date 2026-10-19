@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 200" width="300" height="200">
+      <defs><clipPath id="c"><rect width="300" height="200" rx="20"/></clipPath></defs>
+      <g clip-path="url(#c)">
+        <rect width="100" height="200" fill="#000000"/>
+        <rect x="100" width="100" height="200" fill="#D32011"/>
+        <rect x="200" width="100" height="200" fill="#007A3D"/>
+        <!-- Emblem -->
+        <circle cx="150" cy="100" r="35" fill="none" stroke="#FFFFFF" stroke-width="4"/>
+        <path d="M135,115 H165 V95 H135 Z" fill="#FFFFFF"/>
+      </g>
+    </svg>

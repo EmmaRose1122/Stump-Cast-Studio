@@ -1,0 +1,38 @@
+# Windows installer (DK-3). Build with: pnpm --filter @stumpcast/desktop package
+# The app folder is assembled by scripts/stage.mjs (server bundle, overlay, admin, desktop, natives).
+appId: app.stumpcast.studio
+productName: StumpCast Studio
+copyright: StumpCast
+directories:
+  # app: the staged folder, passed in by scripts/stage.mjs --pack
+  output: ../../release
+asar: false
+# better-sqlite3 and sharp ship N-API prebuilds (ABI-stable), so no rebuild against Electron is needed.
+npmRebuild: false
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+  artifactName: StumpCast-Studio-Setup-${version}.${ext}
+  icon: build/icons/icon.ico
+nsis:
+  oneClick: false
+  perMachine: false # per-user install, no admin rights needed
+  allowToChangeInstallationDirectory: true
+  deleteAppDataOnUninstall: false # never wipe the user's data in %APPDATA%
+  createDesktopShortcut: true
+  installerIcon: build/icons/icon.ico
+  uninstallerIcon: build/icons/icon.ico
+extraResources:
+  - from: build/splash.html
+    to: splash.html
+  - from: build/icons/icon.png
+    to: icon.png
+protocols:
+  - name: StumpCast
+    schemes: [stumpcast]
+# Update feed read by electron-updater. Replace with the URL where you upload the release files
+# (latest.yml + the Setup exe). Until it exists, update checks fail quietly and are logged.
+publish:
+  - provider: generic
+    url: https://stumpcast.app/updates/

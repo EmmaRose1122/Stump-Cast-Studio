@@ -1,0 +1,80 @@
+{
+  "manifest_version": 3,
+  "name": "StumpCast Studio Connector",
+  "version": "1.0.1",
+  "description": "Reads the cricket match page you already have open and sends the score to StumpCast Studio on this computer.",
+  "host_permissions": [
+    "*://*.cricbuzz.com/*",
+    "*://cricbuzz.com/*",
+    "*://*.crex.com/*",
+    "*://crex.com/*",
+    "*://*.crex.live/*",
+    "*://crex.live/*",
+    "*://*.espncricinfo.com/*",
+    "*://espncricinfo.com/*",
+    "http://127.0.0.1/*",
+    "http://127.0.0.1:*/*",
+    "http://localhost/*",
+    "http://localhost:*/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "*://*.cricbuzz.com/*",
+        "*://cricbuzz.com/*",
+        "*://*.crex.com/*",
+        "*://crex.com/*",
+        "*://*.crex.live/*",
+        "*://crex.live/*",
+        "*://*.espncricinfo.com/*",
+        "*://espncricinfo.com/*"
+      ],
+      "js": [
+        "page-world.js"
+      ],
+      "run_at": "document_start",
+      "world": "MAIN"
+    },
+    {
+      "matches": [
+        "*://*.cricbuzz.com/*",
+        "*://cricbuzz.com/*",
+        "*://*.crex.com/*",
+        "*://crex.com/*",
+        "*://*.crex.live/*",
+        "*://crex.live/*",
+        "*://*.espncricinfo.com/*",
+        "*://espncricinfo.com/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_start"
+    }
+  ],
+  "permissions": [
+    "storage",
+    "alarms",
+    "tabs"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
+  },
+  "action": {
+    "default_title": "StumpCast Studio Connector",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}

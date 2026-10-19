@@ -1,0 +1,232 @@
+/* Broadcast cards -------------------------------------------------------------------------- */
+.zone-card {
+  left: 50%;
+  bottom: 150px;
+  width: 960px;
+  transform: translateX(-50%) scale(var(--card-scale));
+  transform-origin: 50% 100%;
+  pointer-events: none;
+}
+html[data-score-position='bottom'] .zone-card {
+  bottom: auto;
+  top: 150px;
+  transform-origin: 50% 0;
+}
+.zone-card .c-card {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+html[data-score-position='bottom'] .zone-card .c-card {
+  bottom: auto;
+  top: 0;
+}
+
+.c-card {
+  box-sizing: border-box;
+  padding: 18px 28px 22px;
+  background: var(--color-surface);
+  border-top: 5px solid var(--color-accent);
+  border-radius: var(--radius-card, 12px);
+  box-shadow: var(--shadow-card, none);
+  color: var(--color-text);
+  overflow: hidden;
+}
+.cd-head {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.cd-title {
+  font-family: var(--font-heading, sans-serif);
+  font-size: 18px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--color-accent);
+}
+.cd-body {
+  display: grid;
+  gap: 12px;
+}
+.cd-name,
+.cd-big-name {
+  margin: 0;
+  font-family: var(--font-heading, sans-serif);
+  font-weight: 700;
+  font-size: 40px;
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+}
+.cd-big-name {
+  font-size: 56px;
+}
+.cd-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 32px;
+  align-items: flex-end;
+}
+.cd-side {
+  flex: 1 1 0;
+  min-width: 0;
+}
+.cd-vs {
+  font-size: 28px;
+  opacity: 0.6;
+}
+.cd-stat {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.cd-stat-value {
+  font-family: var(--font-numbers, sans-serif);
+  font-size: 52px;
+  font-weight: 700;
+  line-height: 1;
+}
+.cd-big .cd-stat-value {
+  font-size: 84px;
+}
+.cd-stat-label {
+  margin-top: 4px;
+  font-size: 15px;
+  letter-spacing: 0.1em;
+  opacity: 0.7;
+  overflow-wrap: anywhere;
+}
+.cd-note {
+  margin: 0;
+  font-size: 20px;
+  opacity: 0.75;
+  overflow-wrap: anywhere;
+}
+.cd-bar {
+  height: 20px;
+  border-radius: 10px;
+  background: var(--color-accent2, #ff6b57);
+  overflow: hidden;
+}
+.cd-bar-fill {
+  height: 100%;
+  background: var(--color-accent, #19d3c5);
+}
+.cd-pressure {
+  background: rgba(255, 255, 255, 0.12);
+}
+.cd-pressure .cd-bar-fill {
+  background: linear-gradient(90deg, var(--color-accent), var(--color-warn));
+}
+
+/* charts */
+.cd-chart {
+  width: 100%;
+  height: auto;
+}
+.cd-rect {
+  fill: var(--color-accent);
+}
+.cd-axis,
+.cd-value {
+  font-family: var(--font-numbers, sans-serif);
+  font-size: 15px;
+  fill: var(--color-text);
+  opacity: 0.8;
+}
+.cd-wicket {
+  fill: #ff4d57;
+}
+.cd-axisline {
+  stroke: var(--color-text);
+  opacity: 0.3;
+}
+.cd-line {
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.cd-line-0 {
+  stroke: var(--color-accent);
+}
+.cd-line-1 {
+  stroke: var(--color-accent2);
+}
+.cd-legend {
+  font-family: var(--font-numbers, sans-serif);
+  font-size: 26px;
+}
+.cd-legend-0 {
+  color: var(--color-accent);
+}
+.cd-legend-1 {
+  color: var(--color-accent2);
+}
+.cd-wheel {
+  width: 260px;
+  height: 260px;
+  justify-self: center;
+}
+.cd-sector {
+  fill: rgba(255, 255, 255, 0.08);
+  stroke: var(--color-surface);
+  stroke-width: 3;
+}
+.cd-fow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+  margin: 0;
+  padding-left: 0;
+  list-style: none;
+  font-family: var(--font-numbers, sans-serif);
+  font-size: 32px;
+}
+.cd-fow-sub {
+  display: block;
+  font-family: var(--font-body, sans-serif);
+  font-size: 15px;
+  opacity: 0.7;
+}
+.cd-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 26px;
+}
+.cd-table th {
+  text-align: left;
+  font-size: 14px;
+  letter-spacing: 0.1em;
+  opacity: 0.6;
+}
+.cd-table td,
+.cd-table th {
+  padding: 4px 8px 4px 0;
+}
+
+/* gallery (?gallery=1) */
+.gallery {
+  padding: 24px 32px;
+  background: #20362a;
+}
+.gallery-title {
+  font: 600 22px var(--font-heading, sans-serif);
+  margin: 24px 0 12px;
+  color: #fff;
+}
+.gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(560px, 1fr));
+  gap: 16px;
+}
+.gallery .c-card {
+  position: static;
+}
+
+/* card width presets (Settings.cardWidth) */
+[data-card-width='narrow'] .zone-card {
+  width: 760px;
+}
+[data-card-width='wide'] .zone-card {
+  width: 1200px;
+}

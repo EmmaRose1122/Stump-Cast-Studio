@@ -1,0 +1,41 @@
+{
+  "id": "k22",
+  "name": "Mono Ice",
+  "plan": "pro",
+  "tokens": {
+    "colors": {
+      "bg": "#030712",
+      "surface": "#0B1120",
+      "accent": "#7DD3FC",
+      "accent2": "#E0F2FE",
+      "warn": "#FBBF24",
+      "text": "#F0F9FF"
+    },
+    "gradients": {
+      "accent": "linear-gradient(90deg, #7DD3FC, #E0F2FE)"
+    },
+    "fonts": {
+      "heading": "Space Grotesk",
+      "body": "Inter",
+      "numbers": "Barlow Condensed"
+    },
+    "radii": {
+      "card": 4,
+      "chip": 2
+    },
+    "shadows": {
+      "card": "0 0 0 1px rgba(125,211,252,0.35)"
+    },
+    "scoreBarShape": "notched"
+  },
+  "layoutVariant": {
+    "scorePosition": "bottom",
+    "playerCardStyle": "badge-right",
+    "boundaryStyle": "edge-flash"
+  },
+  "motion": {
+    "entrance": "spin",
+    "easing": "power2.out",
+    "durationMs": 540
+  }
+}

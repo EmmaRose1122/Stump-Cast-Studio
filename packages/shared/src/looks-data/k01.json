@@ -1,0 +1,41 @@
+{
+  "id": "k01",
+  "name": "Stadium Gold",
+  "plan": "pro",
+  "tokens": {
+    "colors": {
+      "bg": "#0A0E17",
+      "surface": "#0F172A",
+      "accent": "#F59E0B",
+      "accent2": "#D97706",
+      "warn": "#FBBF24",
+      "text": "#F8FAFC"
+    },
+    "gradients": {
+      "accent": "linear-gradient(90deg, #F59E0B, #D97706)"
+    },
+    "fonts": {
+      "heading": "Space Grotesk",
+      "body": "Inter",
+      "numbers": "Barlow Condensed"
+    },
+    "radii": {
+      "card": 16,
+      "chip": 8
+    },
+    "shadows": {
+      "card": "0 10px 30px rgba(245,158,11,0.25)"
+    },
+    "scoreBarShape": "pill"
+  },
+  "layoutVariant": {
+    "scorePosition": "top",
+    "playerCardStyle": "cutout",
+    "boundaryStyle": "split-bar"
+  },
+  "motion": {
+    "entrance": "slide",
+    "easing": "power2.out",
+    "durationMs": 480
+  }
+}

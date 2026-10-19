@@ -1,0 +1,41 @@
+{
+  "id": "graphite-teal",
+  "name": "Graphite Teal",
+  "plan": "free",
+  "tokens": {
+    "colors": {
+      "bg": "#0E1116",
+      "surface": "#161B22",
+      "accent": "#19D3C5",
+      "accent2": "#FF6B57",
+      "warn": "#FFB020",
+      "text": "#E6EDF3"
+    },
+    "gradients": {
+      "accent": "linear-gradient(90deg, #19D3C5, #FF6B57)"
+    },
+    "fonts": {
+      "heading": "Space Grotesk",
+      "body": "Inter",
+      "numbers": "Barlow Condensed"
+    },
+    "radii": {
+      "card": 12,
+      "chip": 8
+    },
+    "shadows": {
+      "card": "0 8px 24px rgba(0,0,0,0.35)"
+    },
+    "scoreBarShape": "flat"
+  },
+  "layoutVariant": {
+    "scorePosition": "top",
+    "playerCardStyle": "badge",
+    "boundaryStyle": "edge-flash"
+  },
+  "motion": {
+    "entrance": "fade",
+    "easing": "power2.out",
+    "durationMs": 450
+  }
+}

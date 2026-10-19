@@ -1,0 +1,66 @@
+{
+  "source": "cricbuzz",
+  "matchId": "1001",
+  "url": "https://www.cricbuzz.com/live-cricket-scores/1001/ind-vs-pak-live-t20",
+  "capturedAt": 1700000000000,
+  "confidence": 1,
+  "fields": {
+    "title": "India vs Pakistan, Match 1",
+    "status": "India need 42 runs in 24 balls",
+    "venue": "Melbourne Cricket Ground, Melbourne",
+    "teams": [
+      {
+        "name": "India"
+      }
+    ],
+    "innings": [
+      {
+        "team": "145/3",
+        "runs": 145,
+        "wkts": 3,
+        "overs": 16,
+        "balls": 0
+      }
+    ],
+    "batters": [
+      {
+        "name": "Virat Kohli",
+        "runs": 52,
+        "balls": 36,
+        "fours": 5,
+        "sixes": 2,
+        "onStrike": true
+      },
+      {
+        "name": "Hardik Pandya",
+        "runs": 28,
+        "balls": 18,
+        "fours": 2,
+        "sixes": 1
+      }
+    ],
+    "bowler": {
+      "name": "Shaheen Afridi",
+      "overs": 3,
+      "balls": 0,
+      "maidens": 0,
+      "runs": 28,
+      "wkts": 2
+    },
+    "thisOver": [
+      "1",
+      "4",
+      "0",
+      "6",
+      "2",
+      "W"
+    ],
+    "lastBalls": [],
+    "partnership": {
+      "runs": 68,
+      "balls": 42
+    },
+    "crr": 145
+  },
+  "missing": []
+}

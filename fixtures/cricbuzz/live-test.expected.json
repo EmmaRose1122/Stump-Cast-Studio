@@ -1,0 +1,65 @@
+{
+  "source": "cricbuzz",
+  "matchId": "1001",
+  "url": "https://www.cricbuzz.com/live-cricket-scores/1001/ind-vs-pak-live-test",
+  "capturedAt": 1700000000000,
+  "confidence": 1,
+  "fields": {
+    "title": "England vs Australia, 3rd Test",
+    "status": "Day 3: Stumps - Australia lead by 142 runs",
+    "venue": "Headingley, Leeds",
+    "teams": [
+      {
+        "name": "Australia"
+      }
+    ],
+    "innings": [
+      {
+        "team": "224/4",
+        "runs": 224,
+        "wkts": 4,
+        "overs": 68,
+        "balls": 2
+      }
+    ],
+    "batters": [
+      {
+        "name": "Travis Head",
+        "runs": 77,
+        "balls": 112,
+        "fours": 9,
+        "sixes": 1,
+        "onStrike": true
+      },
+      {
+        "name": "Mitchell Marsh",
+        "runs": 32,
+        "balls": 54,
+        "fours": 4,
+        "sixes": 0
+      }
+    ],
+    "bowler": {
+      "name": "Chris Woakes",
+      "overs": 16,
+      "balls": 2,
+      "maidens": 4,
+      "runs": 52,
+      "wkts": 2
+    },
+    "thisOver": [
+      "0",
+      "0",
+      "1",
+      "0",
+      "4",
+      "0"
+    ],
+    "lastBalls": [],
+    "crr": 224,
+    "day": 3,
+    "session": "stumps",
+    "resultText": "Australia lead by 142 runs"
+  },
+  "missing": []
+}

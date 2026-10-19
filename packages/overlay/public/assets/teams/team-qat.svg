@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 300 200" width="300" height="200" role="img" aria-label="Qatar">
+  <defs><clipPath id="tile"><rect width="300" height="200" rx="20"/></clipPath></defs>
+  <g clip-path="url(#tile)"><svg x="0" y="0" width="300" height="200" viewBox="0 0 640 480" preserveAspectRatio="xMidYMid slice">
+  <path fill="#8d1b3d" d="M0 0h640v480H0z"/>
+  <path fill="#fff" d="M0 0v480h158.4l97.8-26.7-97.8-26.6 97.7-26.7-97.7-26.7 97.7-26.6-97.7-26.7 97.8-26.7-97.8-26.6 97.7-26.7-97.7-26.7 97.7-26.6-97.7-26.7 97.8-26.7-97.8-26.6L256.1 80l-97.7-26.7 97.8-26.6L158.3 0z"/>
+</svg></g>
+</svg>

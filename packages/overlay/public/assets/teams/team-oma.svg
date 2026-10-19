@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 200" width="300" height="200">
+      <defs><clipPath id="c"><rect width="300" height="200" rx="20"/></clipPath></defs>
+      <g clip-path="url(#c)">
+        <rect width="300" height="66.7" fill="#FFFFFF"/>
+        <rect y="66.7" width="300" height="66.7" fill="#DB161B"/>
+        <rect y="133.4" width="300" height="66.7" fill="#008000"/>
+        <rect width="70" height="200" fill="#DB161B"/>
+        <!-- Khanjar emblem -->
+        <circle cx="35" cy="35" r="18" fill="none" stroke="#FFFFFF" stroke-width="3"/>
+      </g>
+    </svg>

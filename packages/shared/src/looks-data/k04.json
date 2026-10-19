@@ -1,0 +1,41 @@
+{
+  "id": "k04",
+  "name": "Neon Magenta",
+  "plan": "pro",
+  "tokens": {
+    "colors": {
+      "bg": "#1E082B",
+      "surface": "#3B0764",
+      "accent": "#EC4899",
+      "accent2": "#D946EF",
+      "warn": "#FBBF24",
+      "text": "#FDF2F8"
+    },
+    "gradients": {
+      "accent": "linear-gradient(90deg, #EC4899, #D946EF)"
+    },
+    "fonts": {
+      "heading": "Space Grotesk",
+      "body": "Inter",
+      "numbers": "Barlow Condensed"
+    },
+    "radii": {
+      "card": 8,
+      "chip": 4
+    },
+    "shadows": {
+      "card": "0 0 24px rgba(236,72,153,0.45)"
+    },
+    "scoreBarShape": "arrow"
+  },
+  "layoutVariant": {
+    "scorePosition": "top",
+    "playerCardStyle": "mirrored",
+    "boundaryStyle": "glow-ring"
+  },
+  "motion": {
+    "entrance": "iris",
+    "easing": "power2.inOut",
+    "durationMs": 520
+  }
+}

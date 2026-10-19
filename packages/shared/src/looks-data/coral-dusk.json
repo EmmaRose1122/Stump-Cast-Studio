@@ -1,0 +1,41 @@
+{
+  "id": "coral-dusk",
+  "name": "Coral Dusk",
+  "plan": "free",
+  "tokens": {
+    "colors": {
+      "bg": "#1B1214",
+      "surface": "#2A1B1E",
+      "accent": "#FF6B57",
+      "accent2": "#FFB020",
+      "warn": "#FFB020",
+      "text": "#FFF1EE"
+    },
+    "gradients": {
+      "accent": "linear-gradient(90deg, #FF6B57, #FFB020)"
+    },
+    "fonts": {
+      "heading": "Space Grotesk",
+      "body": "Inter",
+      "numbers": "Barlow Condensed"
+    },
+    "radii": {
+      "card": 28,
+      "chip": 20
+    },
+    "shadows": {
+      "card": "0 10px 28px rgba(0,0,0,0.4)"
+    },
+    "scoreBarShape": "pill"
+  },
+  "layoutVariant": {
+    "scorePosition": "bottom",
+    "playerCardStyle": "badge",
+    "boundaryStyle": "burst"
+  },
+  "motion": {
+    "entrance": "slide",
+    "easing": "power3.out",
+    "durationMs": 500
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "id": "k11",
+  "name": "Street Blaze",
+  "plan": "pro",
+  "tokens": {
+    "colors": {
+      "bg": "#1C0D06",
+      "surface": "#34180C",
+      "accent": "#F97316",
+      "accent2": "#EF4444",
+      "warn": "#FBBF24",
+      "text": "#FFF7ED"
+    },
+    "gradients": {
+      "accent": "linear-gradient(90deg, #F97316, #EF4444)"
+    },
+    "fonts": {
+      "heading": "Space Grotesk",
+      "body": "Inter",
+      "numbers": "Barlow Condensed"
+    },
+    "radii": {
+      "card": 6,
+      "chip": 4
+    },
+    "shadows": {
+      "card": "0 8px 28px rgba(249,115,22,0.35)"
+    },
+    "scoreBarShape": "arrow"
+  },
+  "layoutVariant": {
+    "scorePosition": "bottom",
+    "playerCardStyle": "mirrored",
+    "boundaryStyle": "spark"
+  },
+  "motion": {
+    "entrance": "skew",
+    "easing": "expo.out",
+    "durationMs": 480
+  }
+}

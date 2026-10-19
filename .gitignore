@@ -1,0 +1,11 @@
+node_modules
+dist
+data
+coverage
+*.tsbuildinfo
+.DS_Store
+dist-ext
+dist-tsc
+.secrets
+release
+packages/desktop/build

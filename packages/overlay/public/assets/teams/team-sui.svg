@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 300 200" width="300" height="200" role="img" aria-label="Switzerland">
+  <defs><clipPath id="tile"><rect width="300" height="200" rx="20"/></clipPath></defs>
+  <g clip-path="url(#tile)"><svg x="0" y="0" width="300" height="200" viewBox="0 0 640 480" preserveAspectRatio="xMidYMid slice">
+  <g fill-rule="evenodd" stroke-width="1pt">
+    <path fill="red" d="M0 0h640v480H0z"/>
+    <g fill="#fff">
+      <path d="M170 195h300v90H170z"/>
+      <path d="M275 90h90v300h-90z"/>
+    </g>
+  </g>
+</svg></g>
+</svg>

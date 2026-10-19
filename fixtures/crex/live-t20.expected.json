@@ -1,0 +1,41 @@
+{
+  "source": "crex",
+  "matchId": "1001",
+  "url": "https://crex.live/scoreboard/1001/ind-vs-pak-live-t20",
+  "capturedAt": 1700000000000,
+  "confidence": 1,
+  "fields": {
+    "title": "India vs Pakistan",
+    "status": "In Progress",
+    "venue": "Melbourne Cricket Ground",
+    "teams": [],
+    "innings": [
+      {
+        "team": "",
+        "runs": 145,
+        "wkts": 3,
+        "overs": 16,
+        "balls": 0
+      }
+    ],
+    "batters": [],
+    "bowler": {
+      "name": "Shaheen Afridi",
+      "overs": 3,
+      "balls": 0,
+      "maidens": 0,
+      "runs": 28,
+      "wkts": 2
+    },
+    "thisOver": [
+      "1",
+      "4",
+      "0",
+      "6",
+      "2",
+      "W"
+    ],
+    "lastBalls": []
+  },
+  "missing": []
+}

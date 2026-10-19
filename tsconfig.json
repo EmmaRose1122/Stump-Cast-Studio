@@ -1,0 +1,23 @@
+{
+  "files": [],
+  "references": [
+    {
+      "path": "packages/shared"
+    },
+    {
+      "path": "packages/server"
+    },
+    {
+      "path": "packages/overlay"
+    },
+    {
+      "path": "packages/admin"
+    },
+    {
+      "path": "packages/desktop"
+    },
+    {
+      "path": "packages/extension"
+    }
+  ]
+}

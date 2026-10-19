@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 200" width="300" height="200">
+      <defs><clipPath id="c"><rect width="300" height="200" rx="20"/></clipPath></defs>
+      <g clip-path="url(#c)">
+        <rect width="300" height="200" fill="#FFBE29"/>
+        <rect x="10" y="10" width="50" height="180" fill="#00534E"/>
+        <rect x="65" y="10" width="50" height="180" fill="#EB7400"/>
+        <rect x="120" y="10" width="170" height="180" fill="#8D153A"/>
+        <!-- Golden Lion Silhouette -->
+        <circle cx="195" cy="85" r="20" fill="#FFBE29"/>
+        <rect x="180" y="95" width="45" height="30" rx="8" fill="#FFBE29"/>
+        <path d="M210,80 L235,65 L228,85 Z" fill="#FFBE29"/>
+      </g>
+    </svg>

@@ -1,0 +1,41 @@
+{
+  "id": "k09",
+  "name": "Retro Amber LED",
+  "plan": "pro",
+  "tokens": {
+    "colors": {
+      "bg": "#181105",
+      "surface": "#2D1F0A",
+      "accent": "#F59E0B",
+      "accent2": "#FBBF24",
+      "warn": "#D97706",
+      "text": "#FEF3C7"
+    },
+    "gradients": {
+      "accent": "linear-gradient(90deg, #F59E0B, #FBBF24)"
+    },
+    "fonts": {
+      "heading": "Space Grotesk",
+      "body": "Inter",
+      "numbers": "Barlow Condensed"
+    },
+    "radii": {
+      "card": 4,
+      "chip": 2
+    },
+    "shadows": {
+      "card": "0 6px 18px rgba(245,158,11,0.25)"
+    },
+    "scoreBarShape": "flat"
+  },
+  "layoutVariant": {
+    "scorePosition": "bottom",
+    "playerCardStyle": "mirrored",
+    "boundaryStyle": "spark"
+  },
+  "motion": {
+    "entrance": "flip",
+    "easing": "power2.out",
+    "durationMs": 500
+  }
+}

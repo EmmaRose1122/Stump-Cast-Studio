@@ -1,0 +1,41 @@
+{
+  "source": "crex",
+  "matchId": "1001",
+  "url": "https://crex.live/scoreboard/1001/ind-vs-pak-result",
+  "capturedAt": 1700000000000,
+  "confidence": 1,
+  "fields": {
+    "title": "India vs Pakistan",
+    "status": "India won by 4 wickets",
+    "venue": "Melbourne Cricket Ground",
+    "teams": [],
+    "innings": [
+      {
+        "team": "",
+        "runs": 160,
+        "wkts": 6,
+        "overs": 20,
+        "balls": 0
+      }
+    ],
+    "batters": [],
+    "bowler": {
+      "name": "Haris Rauf",
+      "overs": 4,
+      "balls": 0,
+      "maidens": 0,
+      "runs": 36,
+      "wkts": 2
+    },
+    "thisOver": [
+      "W",
+      "1",
+      "1",
+      "2",
+      "1",
+      "1"
+    ],
+    "lastBalls": []
+  },
+  "missing": []
+}

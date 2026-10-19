@@ -1,0 +1,308 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>StumpCast Studio - Extension Connector</title>
+    <style>
+      :root {
+        --bg-main: #070e1e;
+        --bg-card: #0b1736;
+        --bg-card-sub: #10214a;
+        --border-color: #1e3a78;
+        --border-focus: #3b82f6;
+        --text-main: #ffffff;
+        --text-sub: #93c5fd;
+        --text-muted: #64748b;
+        --accent-red: #ef4444;
+        --accent-blue: #3b82f6;
+        --accent-green: #22c55e;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        margin: 0;
+        padding: 32px 20px;
+        background: var(--bg-main);
+        color: var(--text-main);
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      .container {
+        width: 100%;
+        max-width: 520px;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+      .header {
+        text-align: center;
+        margin-bottom: 8px;
+      }
+      .brand-title {
+        font-size: 24px;
+        font-weight: 900;
+        letter-spacing: -0.02em;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        margin-bottom: 6px;
+      }
+      .badge-brand {
+        background: var(--accent-red);
+        color: #ffffff;
+        font-size: 11px;
+        font-weight: 800;
+        padding: 2px 8px;
+        border-radius: 4px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+      .header-sub {
+        color: var(--text-sub);
+        font-size: 13px;
+        margin: 0;
+      }
+      .card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 16px;
+        padding: 20px;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
+      }
+      .card-title {
+        font-size: 14px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--text-sub);
+        margin: 0 0 14px 0;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .status-pill {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 16px;
+        border-radius: 12px;
+        font-weight: 600;
+        font-size: 14px;
+        background: var(--bg-card-sub);
+        border: 1px solid var(--border-color);
+      }
+      .status-pill[data-state='ok'] {
+        border-color: rgba(34, 197, 94, 0.5);
+        color: #86efac;
+      }
+      .status-pill[data-state='warn'] {
+        border-color: rgba(239, 68, 68, 0.5);
+        color: #fca5a5;
+      }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        font-family: inherit;
+        font-weight: 700;
+        font-size: 14px;
+        padding: 12px 20px;
+        border-radius: 12px;
+        border: 0;
+        cursor: pointer;
+        transition: all 0.15s ease;
+        text-align: center;
+      }
+      .btn-primary {
+        background: linear-gradient(135deg, #2563eb, #1d4ed8);
+        color: #ffffff;
+        box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);
+        width: 100%;
+      }
+      .btn-primary:hover {
+        background: linear-gradient(135deg, #3b82f6, #2563eb);
+        transform: translateY(-1px);
+      }
+      .btn-secondary {
+        background: var(--bg-card-sub);
+        color: var(--text-sub);
+        border: 1px solid var(--border-color);
+      }
+      .btn-secondary:hover {
+        background: #19316b;
+        color: #ffffff;
+      }
+      .btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+      }
+      .btn-danger {
+        background: transparent;
+        color: #f87171;
+        border: 1px solid rgba(239, 68, 68, 0.3);
+        font-size: 12px;
+        padding: 6px 12px;
+        border-radius: 8px;
+      }
+      .btn-danger:hover {
+        background: rgba(239, 68, 68, 0.15);
+      }
+      .message {
+        font-size: 13px;
+        min-height: 18px;
+        margin-top: 10px;
+        text-align: center;
+      }
+      .message.error {
+        color: #f87171;
+      }
+      .message.success {
+        color: #4ade80;
+      }
+      .tabs-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-top: 10px;
+      }
+      .tab-item {
+        background: var(--bg-card-sub);
+        border: 1px solid var(--border-color);
+        border-radius: 10px;
+        padding: 10px 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .tab-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .tab-badge {
+        background: rgba(34, 197, 94, 0.15);
+        color: #4ade80;
+        font-size: 10px;
+        font-weight: 800;
+        padding: 2px 6px;
+        border-radius: 4px;
+        border: 1px solid rgba(34, 197, 94, 0.3);
+      }
+      .tab-id {
+        font-weight: 700;
+        font-size: 13px;
+        color: #ffffff;
+      }
+      .tab-url {
+        font-size: 11px;
+        color: var(--text-muted);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .toggle-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding-top: 12px;
+        border-top: 1px solid var(--border-color);
+        margin-top: 14px;
+        font-size: 13px;
+        color: var(--text-sub);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <div class="brand-title">
+          <span>StumpCast Studio</span>
+          <span class="badge-brand">v1.0.1</span>
+        </div>
+        <p class="header-sub">Live Cricket Broadcast Scraper & Real-Time Ingestion</p>
+      </div>
+
+      <!-- Main Status Card -->
+      <div class="card">
+        <div class="card-title">
+          <span>Connection Status</span>
+          <button id="unpair" type="button" class="btn btn-danger" style="display: none;">Unpair</button>
+        </div>
+        <div id="status" class="status-pill" data-state="warn">
+          <span>Connecting…</span>
+        </div>
+        <div id="message" class="message" role="status" aria-live="polite"></div>
+
+        <div style="margin-top: 16px;">
+          <button id="auto-pair" type="button" class="btn btn-primary">
+            ⚡ 1-Click Auto Connect to Studio
+          </button>
+        </div>
+
+        <!-- Studio Port Switcher & Multi-Port Quick Detection -->
+        <div style="margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border-color);">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+            <span style="font-size: 13px; font-weight: 600; color: var(--text-sub);">Target Studio Port:</span>
+            <div style="display: flex; gap: 6px; align-items: center;">
+              <input id="studio-port-input" type="number" min="1024" max="65535" placeholder="4000" style="width: 84px; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-card-sub); color: #fff; font-family: monospace; font-size: 13px; font-weight: 700; text-align: center;" />
+              <button id="set-port-btn" type="button" class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;">Connect</button>
+            </div>
+          </div>
+          <div id="detected-ports-container" style="display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; align-items: center;"></div>
+        </div>
+
+        <div class="toggle-row">
+          <label for="pause-reading" style="cursor: pointer; display: flex; align-items: center; gap: 8px;">
+            <input id="pause-reading" type="checkbox" style="cursor: pointer;" />
+            <span>Pause live score reading</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Detected Matches Card -->
+      <div class="card">
+        <div class="card-title">
+          <span>Active Match Tabs (<span id="tab-count">0</span>)</span>
+        </div>
+        <div id="tabs-container">
+          <p style="color: var(--text-muted); font-size: 13px; margin: 0; text-align: center;">
+            No live Cricbuzz or Crex tabs detected yet. Open a Cricbuzz live score match in another tab!
+          </p>
+        </div>
+      </div>
+
+      <!-- Quick Match Launchers & Testing Card -->
+      <div class="card">
+        <div class="card-title">
+          <span>Quick Launch Live Match</span>
+        </div>
+        <p style="color: var(--text-sub); font-size: 13px; margin: 0 0 12px 0;">
+          Open a live match page in Chrome to automatically stream real-time scores into StumpCast Studio:
+        </p>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+          <button id="open-cricbuzz" type="button" class="btn btn-secondary" style="flex: 1;">
+            🏏 Open Cricbuzz Live
+          </button>
+          <button id="open-crex" type="button" class="btn btn-secondary" style="flex: 1;">
+            ⚡ Open Crex Live
+          </button>
+        </div>
+        <div style="margin-top: 10px;">
+          <button id="test-send" type="button" class="btn btn-secondary" style="width: 100%; border-color: rgba(34, 197, 94, 0.4); color: #86efac;">
+            🎯 Send Test Match Data to Studio Overlay
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script src="options.js"></script>
+  </body>
+</html>

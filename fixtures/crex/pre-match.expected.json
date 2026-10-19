@@ -1,0 +1,26 @@
+{
+  "source": "crex",
+  "matchId": "1001",
+  "url": "https://crex.live/scoreboard/1001/ind-vs-pak-pre-match",
+  "capturedAt": 1700000000000,
+  "confidence": 1,
+  "fields": {
+    "title": "India vs Pakistan",
+    "status": "Match scheduled",
+    "venue": "Melbourne Cricket Ground",
+    "teams": [],
+    "innings": [
+      {
+        "team": "",
+        "runs": 0,
+        "wkts": 0,
+        "overs": 0,
+        "balls": 0
+      }
+    ],
+    "batters": [],
+    "thisOver": [],
+    "lastBalls": []
+  },
+  "missing": []
+}

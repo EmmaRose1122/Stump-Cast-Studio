@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 200" width="300" height="200">
+      <defs><clipPath id="c"><rect width="300" height="200" rx="20"/></clipPath></defs>
+      <g clip-path="url(#c)">
+        <rect width="300" height="200" fill="#7A003C"/>
+        <!-- Golden shield with palm and wicket -->
+        <circle cx="150" cy="100" r="60" fill="#FFC72C"/>
+        <circle cx="150" cy="100" r="54" fill="#00A3E0"/>
+        <!-- Sun -->
+        <circle cx="150" cy="85" r="24" fill="#FFC72C"/>
+        <!-- Island -->
+        <path d="M105,130 Q150,110 195,130 Z" fill="#007749"/>
+        <!-- Palm trunk -->
+        <path d="M148,85 Q145,105 146,125" stroke="#7A3C00" stroke-width="6" fill="none"/>
+        <circle cx="140" cy="80" r="12" fill="#007749"/>
+        <circle cx="155" cy="78" r="14" fill="#007749"/>
+        <!-- Stumps -->
+        <rect x="142" y="112" width="3" height="18" fill="#FFFFFF"/>
+        <rect x="148" y="112" width="3" height="18" fill="#FFFFFF"/>
+        <rect x="154" y="112" width="3" height="18" fill="#FFFFFF"/>
+        <rect x="140" y="110" width="19" height="3" fill="#FFFFFF"/>
+      </g>
+    </svg>

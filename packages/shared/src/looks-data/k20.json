@@ -1,0 +1,41 @@
+{
+  "id": "k20",
+  "name": "Carbon Orange",
+  "plan": "pro",
+  "tokens": {
+    "colors": {
+      "bg": "#0C0C0E",
+      "surface": "#18181B",
+      "accent": "#F97316",
+      "accent2": "#FB923C",
+      "warn": "#FBBF24",
+      "text": "#F4F4F5"
+    },
+    "gradients": {
+      "accent": "linear-gradient(90deg, #F97316, #FB923C)"
+    },
+    "fonts": {
+      "heading": "Space Grotesk",
+      "body": "Inter",
+      "numbers": "Barlow Condensed"
+    },
+    "radii": {
+      "card": 4,
+      "chip": 2
+    },
+    "shadows": {
+      "card": "0 8px 24px rgba(249,115,22,0.3)"
+    },
+    "scoreBarShape": "slanted"
+  },
+  "layoutVariant": {
+    "scorePosition": "top",
+    "playerCardStyle": "round-badge",
+    "boundaryStyle": "edge-flash"
+  },
+  "motion": {
+    "entrance": "diamond",
+    "easing": "power2.inOut",
+    "durationMs": 500
+  }
+}

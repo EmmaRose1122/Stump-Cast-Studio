@@ -1,0 +1,194 @@
+import {
+  MatchStateSchema,
+  SettingsSchema,
+  type MatchState,
+  type Settings,
+} from '@stumpcast/shared';
+
+export class ApiError extends Error {
+  constructor(
+    readonly status: number,
+    message: string,
+  ) {
+    super(message);
+  }
+}
+
+const json = async (res: Response): Promise<unknown> => {
+  if (!res.ok) throw new ApiError(res.status, `${res.status} ${res.statusText}`);
+  return res.json();
+};
+
+const send = (method: string, url: string, body?: unknown) =>
+  fetch(url, {
+    method,
+    headers: body === undefined ? undefined : { 'content-type': 'application/json' },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  }).then(json);
+
+export interface ProviderStatus {
+  health: 'connected' | 'stale' | 'down';
+  lastHeartbeatAt: number | null;
+  extensionVersion: string | null;
+  selectorsVersion: number | null;
+  matches: { matchId: string; health: string }[];
+  openTabs?: number;
+  lastDegraded?: { site: string; missing: string[]; at: number } | null;
+}
+
+export interface AlarmState {
+  level: 'ok' | 'warn' | 'error';
+  code: string | null;
+  message: string;
+  muted: boolean;
+  since: number | null;
+}
+
+export interface ObsStatus {
+  connected: boolean;
+  host: string | null;
+  port: number | null;
+  connectedAt: number | null;
+  error: string | null;
+}
+
+export const api = {
+  providerStatus: () => fetch('/api/ext/status').then(json) as Promise<ProviderStatus>,
+  alarm: () => fetch('/api/alarm').then(json) as Promise<AlarmState>,
+  obsStatus: () => fetch('/api/obs/status').then(json) as Promise<ObsStatus>,
+  muteAlarm: (minutes = 15) => send('POST', '/api/alarm/mute', { minutes }) as Promise<AlarmState>,
+  unmuteAlarm: () => send('DELETE', '/api/alarm/mute') as Promise<AlarmState>,
+
+  /** Undelayed states, as shown in the operator preview. */
+  matches: async (): Promise<MatchState[]> => {
+    const list = (await fetch('/api/state?preview=1').then(json)) as unknown[];
+    return list.flatMap((m) => {
+      const r = MatchStateSchema.safeParse(m);
+      return r.success ? [r.data] : [];
+    });
+  },
+
+  settings: async (): Promise<Settings> =>
+    SettingsSchema.parse(await fetch('/api/settings').then(json)),
+  saveSettings: async (s: Settings): Promise<Settings> =>
+    SettingsSchema.parse(await send('PUT', '/api/settings', s)),
+
+  showCard: (cardId: string, durationSec = 8) =>
+    send('POST', `/api/cards/${encodeURIComponent(cardId)}/show`, { durationSec }),
+  hideCard: () => send('POST', '/api/cards/hide', {}),
+  clearMatches: () => send('DELETE', '/api/matches'),
+  deleteMatch: (id: string) => send('DELETE', `/api/matches/${encodeURIComponent(id)}`),
+};
+
+// ---- manual scoring (B1) ---------------------------------------------------------------
+
+export interface ManualPlayer {
+  id: string;
+  name: string;
+}
+
+export interface ManualDetail {
+  id: string;
+  title: string;
+  format: 'T20' | 'ODI' | 'TEST' | 'OTHER';
+  oversLimit: number | null;
+  teams: { id: string; name: string; short: string }[];
+  toss: { winnerTeamId: string; decision: 'bat' | 'bowl' } | null;
+  battingTeamId: string;
+  awaiting: ('striker' | 'nonStriker' | 'bowler')[];
+  freeHit: boolean;
+  result: string | null;
+  inningsComplete: boolean;
+  inningsNumber: number;
+  striker: string | null;
+  nonStriker: string | null;
+  bowler: string | null;
+  lastOverBowler: string | null;
+  overBalls: number;
+  runs: number;
+  wkts: number;
+  overs: number;
+  balls: number;
+  crr: number;
+  availableBatters: ManualPlayer[];
+  yetToBat: ManualPlayer[];
+  bowlers: ManualPlayer[];
+  bowlerOptions: ManualPlayer[];
+  commandCount: number;
+  players: { teamId: string; players: ManualPlayer[] }[];
+}
+
+export interface ManualSummary {
+  id: string;
+  title: string;
+  format: string;
+  result: string | null;
+  commandCount: number;
+}
+
+export interface ManualSetupInput {
+  title?: string;
+  format: 'T20' | 'ODI' | 'TEST' | 'OTHER';
+  overs?: number;
+  venue?: string;
+  teams: [
+    { name: string; short?: string; players: string[] },
+    { name: string; short?: string; players: string[] },
+  ];
+}
+
+export interface EventRow {
+  id: string;
+  matchId: string;
+  type: string;
+  payload: Record<string, unknown> | null;
+  at: number;
+}
+
+const manualSend = async (url: string, body: unknown): Promise<ManualDetail> => {
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(body ?? {}),
+  });
+  const data = (await res.json()) as ManualDetail & { error?: string };
+  if (!res.ok) throw new ApiError(res.status, data.error ?? `${res.status} ${res.statusText}`);
+  return data;
+};
+
+export const manualApi = {
+  list: () => fetch('/api/manual/matches').then(json) as Promise<ManualSummary[]>,
+  get: (id: string) =>
+    fetch(`/api/manual/${encodeURIComponent(id)}`).then(json) as Promise<ManualDetail>,
+  create: (setup: ManualSetupInput) => manualSend('/api/manual/matches', setup),
+  command: (id: string, type: string, body: object = {}) =>
+    manualSend(`/api/manual/${encodeURIComponent(id)}/${type}`, body),
+  undo: (id: string) => manualSend(`/api/manual/${encodeURIComponent(id)}/undo`, {}),
+  remove: (id: string) =>
+    fetch(`/api/manual/${encodeURIComponent(id)}`, { method: 'DELETE' }).then(json),
+};
+
+export const eventsApi = {
+  recent: (limit = 50) => fetch(`/api/events?limit=${limit}`).then(json) as Promise<EventRow[]>,
+};
+
+export interface SelectorsStatus {
+  version: number;
+  updatedAt: number;
+  source: 'bundled' | 'remote';
+  hasUpdate: boolean;
+  lastCheckedAt?: number;
+}
+
+export const selectorsApi = {
+  status: () => fetch('/api/ext/selectors/status').then(json) as Promise<SelectorsStatus>,
+  check: (url?: string) =>
+    send('POST', '/api/ext/selectors/check', { url }) as Promise<{
+      ok: boolean;
+      updated: boolean;
+      version: number;
+      message: string;
+    }>,
+  rollback: () =>
+    send('POST', '/api/ext/selectors/rollback', {}) as Promise<{ ok: boolean; version: number }>,
+};

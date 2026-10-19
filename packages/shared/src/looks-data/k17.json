@@ -1,0 +1,41 @@
+{
+  "id": "k17",
+  "name": "Glass Rose",
+  "plan": "pro",
+  "tokens": {
+    "colors": {
+      "bg": "#1F0810",
+      "surface": "#38121F",
+      "accent": "#FB7185",
+      "accent2": "#FDA4AF",
+      "warn": "#FBBF24",
+      "text": "#FFF1F2"
+    },
+    "gradients": {
+      "accent": "linear-gradient(90deg, #FB7185, #FDA4AF)"
+    },
+    "fonts": {
+      "heading": "Space Grotesk",
+      "body": "Inter",
+      "numbers": "Barlow Condensed"
+    },
+    "radii": {
+      "card": 16,
+      "chip": 8
+    },
+    "shadows": {
+      "card": "0 12px 36px rgba(251,113,133,0.35)"
+    },
+    "scoreBarShape": "glass"
+  },
+  "layoutVariant": {
+    "scorePosition": "bottom",
+    "playerCardStyle": "round-badge",
+    "boundaryStyle": "corner-tag"
+  },
+  "motion": {
+    "entrance": "zoom-out",
+    "easing": "power3.out",
+    "durationMs": 520
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "id": "k08",
+  "name": "Broadcast Teal",
+  "plan": "pro",
+  "tokens": {
+    "colors": {
+      "bg": "#041F1E",
+      "surface": "#0F3A38",
+      "accent": "#14B8A6",
+      "accent2": "#2DD4BF",
+      "warn": "#FBBF24",
+      "text": "#F0FDFA"
+    },
+    "gradients": {
+      "accent": "linear-gradient(90deg, #14B8A6, #2DD4BF)"
+    },
+    "fonts": {
+      "heading": "Space Grotesk",
+      "body": "Inter",
+      "numbers": "Barlow Condensed"
+    },
+    "radii": {
+      "card": 12,
+      "chip": 6
+    },
+    "shadows": {
+      "card": "0 8px 26px rgba(20,184,166,0.3)"
+    },
+    "scoreBarShape": "floating"
+  },
+  "layoutVariant": {
+    "scorePosition": "bottom",
+    "playerCardStyle": "cutout",
+    "boundaryStyle": "banner-sweep"
+  },
+  "motion": {
+    "entrance": "curtain",
+    "easing": "power3.inOut",
+    "durationMs": 550
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "id": "k03",
+  "name": "Neon Cyan",
+  "plan": "pro",
+  "tokens": {
+    "colors": {
+      "bg": "#031726",
+      "surface": "#082F49",
+      "accent": "#06B6D4",
+      "accent2": "#38BDF8",
+      "warn": "#FBBF24",
+      "text": "#F0F9FF"
+    },
+    "gradients": {
+      "accent": "linear-gradient(90deg, #06B6D4, #38BDF8)"
+    },
+    "fonts": {
+      "heading": "Space Grotesk",
+      "body": "Inter",
+      "numbers": "Barlow Condensed"
+    },
+    "radii": {
+      "card": 12,
+      "chip": 6
+    },
+    "shadows": {
+      "card": "0 0 24px rgba(6,182,212,0.4)"
+    },
+    "scoreBarShape": "pill"
+  },
+  "layoutVariant": {
+    "scorePosition": "bottom",
+    "playerCardStyle": "round-badge",
+    "boundaryStyle": "split-bar"
+  },
+  "motion": {
+    "entrance": "glitch",
+    "easing": "power2.out",
+    "durationMs": 450
+  }
+}

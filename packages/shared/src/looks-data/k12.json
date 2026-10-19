@@ -1,0 +1,41 @@
+{
+  "id": "k12",
+  "name": "Street Pink",
+  "plan": "pro",
+  "tokens": {
+    "colors": {
+      "bg": "#1C060F",
+      "surface": "#360F20",
+      "accent": "#F43F5E",
+      "accent2": "#FB7185",
+      "warn": "#FBBF24",
+      "text": "#FFF1F2"
+    },
+    "gradients": {
+      "accent": "linear-gradient(90deg, #F43F5E, #FB7185)"
+    },
+    "fonts": {
+      "heading": "Space Grotesk",
+      "body": "Inter",
+      "numbers": "Barlow Condensed"
+    },
+    "radii": {
+      "card": 8,
+      "chip": 4
+    },
+    "shadows": {
+      "card": "0 8px 26px rgba(244,63,94,0.35)"
+    },
+    "scoreBarShape": "arrow"
+  },
+  "layoutVariant": {
+    "scorePosition": "bottom",
+    "playerCardStyle": "badge-right",
+    "boundaryStyle": "glow-ring"
+  },
+  "motion": {
+    "entrance": "pop",
+    "easing": "back.out(1.5)",
+    "durationMs": 460
+  }
+}

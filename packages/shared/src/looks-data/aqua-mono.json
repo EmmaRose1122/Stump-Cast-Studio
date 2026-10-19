@@ -1,0 +1,41 @@
+{
+  "id": "aqua-mono",
+  "name": "Aqua Mono",
+  "plan": "pro",
+  "tokens": {
+    "colors": {
+      "bg": "#06161A",
+      "surface": "#0B2328",
+      "accent": "#3FE0E0",
+      "accent2": "#A5F3F3",
+      "warn": "#FFD166",
+      "text": "#E6FFFF"
+    },
+    "gradients": {
+      "accent": "linear-gradient(90deg, #3FE0E0, #A5F3F3)"
+    },
+    "fonts": {
+      "heading": "Space Grotesk",
+      "body": "Inter",
+      "numbers": "Barlow Condensed"
+    },
+    "radii": {
+      "card": 0,
+      "chip": 0
+    },
+    "shadows": {
+      "card": "none"
+    },
+    "scoreBarShape": "mono"
+  },
+  "layoutVariant": {
+    "scorePosition": "top",
+    "playerCardStyle": "badge",
+    "boundaryStyle": "corner-tag"
+  },
+  "motion": {
+    "entrance": "flip",
+    "easing": "power2.out",
+    "durationMs": 520
+  }
+}

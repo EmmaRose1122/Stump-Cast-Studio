@@ -1,0 +1,43 @@
+{
+  "source": "crex",
+  "matchId": "1001",
+  "url": "https://crex.live/scoreboard/1001/ind-vs-pak-live-test",
+  "capturedAt": 1700000000000,
+  "confidence": 1,
+  "fields": {
+    "title": "England vs Australia",
+    "status": "Day 3 Stumps",
+    "venue": "Headingley",
+    "teams": [],
+    "innings": [
+      {
+        "team": "",
+        "runs": 224,
+        "wkts": 4,
+        "overs": 68,
+        "balls": 2
+      }
+    ],
+    "batters": [],
+    "bowler": {
+      "name": "Chris Woakes",
+      "overs": 16,
+      "balls": 2,
+      "maidens": 0,
+      "runs": 52,
+      "wkts": 2
+    },
+    "thisOver": [
+      "0",
+      "0",
+      "1",
+      "0",
+      "4",
+      "0"
+    ],
+    "lastBalls": [],
+    "day": 3,
+    "session": "stumps"
+  },
+  "missing": []
+}

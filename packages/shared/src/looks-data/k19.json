@@ -1,0 +1,41 @@
+{
+  "id": "k19",
+  "name": "Carbon Red",
+  "plan": "pro",
+  "tokens": {
+    "colors": {
+      "bg": "#0C0C0E",
+      "surface": "#18181B",
+      "accent": "#EF4444",
+      "accent2": "#F87171",
+      "warn": "#FBBF24",
+      "text": "#F4F4F5"
+    },
+    "gradients": {
+      "accent": "linear-gradient(90deg, #EF4444, #F87171)"
+    },
+    "fonts": {
+      "heading": "Space Grotesk",
+      "body": "Inter",
+      "numbers": "Barlow Condensed"
+    },
+    "radii": {
+      "card": 4,
+      "chip": 2
+    },
+    "shadows": {
+      "card": "0 8px 24px rgba(239,68,68,0.3)"
+    },
+    "scoreBarShape": "slanted"
+  },
+  "layoutVariant": {
+    "scorePosition": "bottom",
+    "playerCardStyle": "cutout",
+    "boundaryStyle": "spark"
+  },
+  "motion": {
+    "entrance": "stretch",
+    "easing": "power3.out",
+    "durationMs": 500
+  }
+}

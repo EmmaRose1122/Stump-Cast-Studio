@@ -1,0 +1,41 @@
+{
+  "source": "crex",
+  "matchId": "1001",
+  "url": "https://crex.live/scoreboard/1001/ind-vs-pak-innings-break",
+  "capturedAt": 1700000000000,
+  "confidence": 1,
+  "fields": {
+    "title": "South Africa vs New Zealand",
+    "status": "Innings Break",
+    "venue": "SuperSport Park",
+    "teams": [],
+    "innings": [
+      {
+        "team": "",
+        "runs": 312,
+        "wkts": 6,
+        "overs": 50,
+        "balls": 0
+      }
+    ],
+    "batters": [],
+    "bowler": {
+      "name": "Trent Boult",
+      "overs": 10,
+      "balls": 0,
+      "maidens": 0,
+      "runs": 62,
+      "wkts": 3
+    },
+    "thisOver": [
+      "1",
+      "2",
+      "4",
+      "6",
+      "1",
+      "2"
+    ],
+    "lastBalls": []
+  },
+  "missing": []
+}

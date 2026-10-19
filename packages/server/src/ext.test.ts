@@ -1,0 +1,466 @@
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import WebSocket from 'ws';
+import { RawUpdateSchema, type RawUpdate } from '@stumpcast/shared';
+import { buildApp, type StumpCastApp } from './app';
+import { loadConfig } from './config';
+import { ExtensionProvider, HEARTBEAT_TIMEOUT_MS, STALE_AFTER_MS } from './ext/provider';
+
+let dir: string;
+const apps: StumpCastApp[] = [];
+
+beforeEach(() => {
+  dir = fs.mkdtempSync(path.join(os.tmpdir(), 'stumpcast-ext-'));
+});
+afterEach(async () => {
+  while (apps.length) await apps.pop()!.stop();
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
+const update = (matchId: string, runs = 10): RawUpdate =>
+  RawUpdateSchema.parse({
+    source: 'cricbuzz',
+    matchId,
+    url: `https://www.example.invalid/${matchId}`,
+    capturedAt: 1,
+    confidence: 1,
+    fields: {
+      title: `Match ${matchId}`,
+      innings: [{ team: 'A', runs, wkts: 0, overs: 1, balls: 0 }],
+    },
+  });
+
+const boot = async () => {
+  const app = await buildApp(
+    loadConfig({}, { dataDir: dir, port: 0, overlayDir: '', adminDir: '' }),
+  );
+  apps.push(app);
+  const port = await app.start();
+  const base = `http://127.0.0.1:${port}`;
+  const post = (p: string, body: unknown, token?: string) =>
+    fetch(base + p, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        ...(token ? { authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify(body),
+    });
+  const acceptTerms = () => post('/api/ext/terms/accept', {});
+  const pair = async () => {
+    await acceptTerms();
+    const { code } = (await (await post('/api/ext/pair-code', {})).json()) as { code: string };
+    const res = await post('/api/ext/pair', { code });
+    return { res, code, token: ((await res.json()) as { token?: string }).token };
+  };
+  return { app, port, post, pair };
+};
+
+type Msg = { type: string; command?: string };
+
+const openSocket = (port: number) =>
+  new Promise<{ ws: WebSocket; inbox: Msg[] }>((resolve, reject) => {
+    const ws = new WebSocket(`ws://127.0.0.1:${port}/ext`);
+    const inbox: Msg[] = [];
+    ws.on('message', (d) => inbox.push(JSON.parse(d.toString()) as Msg));
+    ws.on('open', () => resolve({ ws, inbox }));
+    ws.on('error', reject);
+  });
+
+const waitFor = async (cond: () => boolean, ms = 2000) => {
+  const end = Date.now() + ms;
+  while (!cond()) {
+    if (Date.now() > end) throw new Error('timeout');
+    await new Promise((r) => setTimeout(r, 10));
+  }
+};
+
+describe('extension pairing and ingest', () => {
+  it('requires and persists source-site notice acceptance before issuing a pairing code', async () => {
+    const { post, port } = await boot();
+    expect((await post('/api/ext/pair-code', {})).status).toBe(428);
+    const accepted = (await (await post('/api/ext/terms/accept', {})).json()) as {
+      acceptedAt: number;
+    };
+    expect(accepted.acceptedAt).toBeGreaterThan(0);
+    expect(await (await fetch(`http://127.0.0.1:${port}/api/settings`)).json()).toMatchObject({
+      sourceTermsAcceptedAt: accepted.acceptedAt,
+    });
+    expect((await post('/api/ext/pair-code', {})).status).toBe(200);
+  });
+
+  it('pairs with a code once, rejecting reuse and malformed codes', async () => {
+    const { pair, post } = await boot();
+    const first = await pair();
+    expect(first.res.status).toBe(200);
+    expect(first.token).toBeTruthy();
+    expect((await post('/api/ext/pair', { code: first.code })).status).toBe(401);
+    expect((await post('/api/ext/pair', { code: 'abc' })).status).toBe(400);
+  });
+
+  it('invalidates the code after 5 wrong attempts', async () => {
+    const { post } = await boot();
+    await post('/api/ext/terms/accept', {});
+    const { code } = (await (await post('/api/ext/pair-code', {})).json()) as { code: string };
+    const wrong = code === '000000' ? '111111' : '000000';
+    for (let i = 0; i < 5; i++) {
+      expect((await post('/api/ext/pair', { code: wrong })).status).toBe(401);
+    }
+    expect((await post('/api/ext/pair', { code })).status).toBe(401);
+  });
+
+  it('rejects ingest with a wrong or missing token, accepts a valid one', async () => {
+    const { app, pair, post } = await boot();
+    const { token } = await pair();
+    const msg = { type: 'update', update: update('m1') };
+    expect((await post('/api/ext/ingest', msg)).status).toBe(401);
+    expect((await post('/api/ext/ingest', msg, 'not-the-token')).status).toBe(401);
+    expect((await post('/api/ext/ingest', msg, token)).status).toBe(200);
+    expect(await app.extension.snapshot('m1')).toMatchObject({ matchId: 'm1' });
+  });
+
+  it('lists two simultaneous matches', async () => {
+    const { app, pair, post, port } = await boot();
+    const { token } = await pair();
+    await post('/api/ext/ingest', { type: 'update', update: update('m1') }, token);
+    await post('/api/ext/ingest', { type: 'update', update: update('m2') }, token);
+    const list = (await (await fetch(`http://127.0.0.1:${port}/api/ext/matches`)).json()) as {
+      matchId: string;
+    }[];
+    expect(list.map((m) => m.matchId).sort()).toEqual(['m1', 'm2']);
+    expect((await app.extension.listMatches()).length).toBe(2);
+  });
+
+  it('keeps tokens valid across a server restart', async () => {
+    const first = await boot();
+    const { token } = await first.pair();
+    await first.app.stop();
+    apps.pop();
+    const second = await boot();
+    // A valid token is accepted (200); an unknown one is not.
+    const res = await second.post('/api/ext/ingest', { type: 'ping' }, token);
+    expect(res.status).toBe(200);
+    expect((await second.post('/api/ext/ingest', { type: 'ping' }, 'other')).status).toBe(401);
+  });
+});
+
+describe('extension websocket', () => {
+  it('closes with 4401 when the first message is not a valid auth', async () => {
+    const { port } = await boot();
+    const { ws } = await openSocket(port);
+    const closed = new Promise<number>((r) => ws.on('close', (code) => r(code)));
+    ws.send(JSON.stringify({ type: 'auth', token: 'bad' }));
+    expect(await closed).toBe(4401);
+  });
+
+  it('accepts updates and delivers commands after auth', async () => {
+    const { app, port, pair, post } = await boot();
+    const { token } = await pair();
+    const { ws, inbox } = await openSocket(port);
+    ws.send(JSON.stringify({ type: 'auth', token }));
+    await waitFor(() => inbox.some((m) => m.type === 'authed'));
+
+    ws.send(JSON.stringify({ type: 'update', update: update('m9', 55) }));
+    await waitFor(() => app.extension.status().matches.length === 1);
+
+    ws.send(JSON.stringify({ type: 'ping' }));
+    await waitFor(() => inbox.some((m) => m.type === 'pong'));
+
+    const res = await post('/api/ext/command', {
+      command: 'openMatch',
+      url: 'https://www.example.invalid/m1',
+    });
+    expect(((await res.json()) as { delivered: boolean }).delivered).toBe(true);
+    await waitFor(() => inbox.some((m) => m.type === 'command' && m.command === 'openMatch'));
+    ws.close();
+  });
+});
+
+describe('ExtensionProvider health', () => {
+  const hb = (tabs: { matchId: string; lastUpdateAt: number }[]) => ({
+    type: 'heartbeat' as const,
+    extensionVersion: '0.0.1',
+    selectorsVersion: 1,
+    tabs: tabs.map((t) => ({
+      matchId: t.matchId,
+      url: 'https://www.example.invalid/x',
+      lastUpdateAt: t.lastUpdateAt,
+      confidence: 1,
+    })),
+  });
+
+  it('is down without heartbeats, connected with fresh ones, stale when a tab goes quiet', () => {
+    let t = 1_000_000;
+    const p = new ExtensionProvider(() => t);
+    expect(p.health()).toBe('down');
+
+    p.recordHeartbeat(hb([{ matchId: 'm1', lastUpdateAt: t }]));
+    expect(p.health()).toBe('connected');
+
+    t += STALE_AFTER_MS + 1;
+    p.recordHeartbeat(hb([{ matchId: 'm1', lastUpdateAt: t - STALE_AFTER_MS - 1 }]));
+    expect(p.health()).toBe('stale');
+    expect(p.matchHealth('m1')).toBe('stale');
+
+    t += HEARTBEAT_TIMEOUT_MS + 1;
+    expect(p.health()).toBe('down');
+  });
+
+  it('a fresh update clears stale for that match', () => {
+    const t = 5_000_000;
+    const p = new ExtensionProvider(() => t);
+    p.recordHeartbeat(hb([{ matchId: 'm1', lastUpdateAt: t - 60_000 }]));
+    expect(p.health()).toBe('stale');
+    p.ingest(update('m1'));
+    expect(p.matchHealth('m1')).toBe('connected');
+  });
+
+  it('notifies subscribers until they unsubscribe', () => {
+    const p = new ExtensionProvider();
+    const seen: unknown[] = [];
+    const off = p.subscribe('m1', (r) => seen.push(r));
+    p.ingest(update('m1'));
+    off();
+    p.ingest(update('m1', 20));
+    expect(seen).toHaveLength(1);
+  });
+});
+
+describe('engine wiring', () => {
+  it('turns an ingested update into a MatchState on /api/state and the state channel', async () => {
+    const { app, port, pair, post } = await boot();
+    const { token } = await pair();
+    const got: unknown[] = [];
+    const sub = new WebSocket(`ws://127.0.0.1:${port}/ws`);
+    await new Promise((r) => sub.on('open', r));
+    sub.on('message', (d) => got.push(JSON.parse(d.toString())));
+    sub.send(JSON.stringify({ type: 'subscribe', channels: ['state'] }));
+    await waitFor(() => got.length > 0);
+
+    await post('/api/ext/ingest', { type: 'update', update: update('m1', 42) }, token);
+    await waitFor(() => got.length > 1);
+    expect(got.at(-1)).toMatchObject({
+      type: 'message',
+      channel: 'state',
+      payload: { id: 'm1', score: { runs: 42 } },
+    });
+    const state = await (await fetch(`http://127.0.0.1:${port}/api/state/m1`)).json();
+    expect(state).toMatchObject({ id: 'm1', score: { runs: 42 } });
+    expect((await fetch(`http://127.0.0.1:${port}/api/state/nope`)).status).toBe(404);
+    expect(app.engine.allStates()).toHaveLength(1);
+    sub.close();
+  });
+});
+
+describe('event wiring', () => {
+  it('publishes and stores a FOUR once, and skips events after a reconnect snapshot', async () => {
+    const { app, port, pair, post } = await boot();
+    const { token } = await pair();
+    const mk = (runs: number, balls: number, last: string[]): RawUpdate =>
+      RawUpdateSchema.parse({
+        source: 'cricbuzz',
+        matchId: 'm1',
+        url: 'https://www.example.invalid/m1',
+        capturedAt: 1,
+        confidence: 1,
+        fields: {
+          title: 'A v B T20',
+          innings: [{ team: 'A', runs, wkts: 0, overs: 2, balls }],
+          lastBalls: last,
+          thisOver: last,
+        },
+      });
+    const send = (u: RawUpdate) => post('/api/ext/ingest', { type: 'update', update: u }, token);
+
+    await send(mk(10, 1, ['1']));
+    await send(mk(14, 2, ['1', '4']));
+    await send(mk(14, 2, ['1', '4'])); // duplicate delivery
+    let events = (await (await fetch(`http://127.0.0.1:${port}/api/events`)).json()) as {
+      type: string;
+    }[];
+    expect(events.map((e) => e.type)).toEqual(['FOUR']);
+
+    // Reconnect: next state is a baseline even though it contains a six.
+    const { ws, inbox } = await openSocket(port);
+    ws.send(JSON.stringify({ type: 'auth', token }));
+    await waitFor(() => inbox.some((m) => m.type === 'authed'));
+    await send(mk(20, 3, ['1', '4', '6']));
+    events = (await (await fetch(`http://127.0.0.1:${port}/api/events`)).json()) as {
+      type: string;
+    }[];
+    expect(events.map((e) => e.type)).toEqual(['FOUR']);
+    expect(app.engine.getState('m1')?.score.runs).toBe(20);
+    ws.close();
+  });
+});
+
+describe('sync delay and watchdog over HTTP/WS', () => {
+  const mk = (runs: number, balls: number): RawUpdate =>
+    RawUpdateSchema.parse({
+      source: 'cricbuzz',
+      matchId: 'm1',
+      url: 'https://www.example.invalid/m1',
+      capturedAt: 1,
+      confidence: 1,
+      fields: { title: 'A v B T20', innings: [{ team: 'A', runs, wkts: 0, overs: 3, balls }] },
+    });
+
+  it('preview sockets get data at once; live sockets and /api/state wait for the delay', async () => {
+    const { app, port, pair, post } = await boot();
+    const { token } = await pair();
+    const base = `http://127.0.0.1:${port}`;
+    const put = await fetch(`${base}/api/settings/sync-delay`, {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ syncDelaySec: 1 }),
+    });
+    expect(((await put.json()) as { syncDelaySec: number }).syncDelaySec).toBe(1);
+
+    const open = (q: string) =>
+      new Promise<{ ws: WebSocket; got: unknown[] }>((resolve) => {
+        const ws = new WebSocket(`ws://127.0.0.1:${port}/ws${q}`);
+        const got: unknown[] = [];
+        ws.on('message', (d) => got.push(JSON.parse(d.toString())));
+        ws.on('open', () => {
+          ws.send(JSON.stringify({ type: 'subscribe', channels: ['state'] }));
+          resolve({ ws, got });
+        });
+      });
+    const live = await open('');
+    const preview = await open('?preview=1');
+    await waitFor(() => live.got.length > 0 && preview.got.length > 0); // acks
+
+    await post('/api/ext/ingest', { type: 'update', update: mk(10, 1) }, token);
+    await waitFor(() => preview.got.length > 1, 500);
+    expect(live.got).toHaveLength(1); // only the ack so far
+    expect(await (await fetch(`${base}/api/state`)).json()).toEqual([]);
+    expect(((await (await fetch(`${base}/api/state?preview=1`)).json()) as unknown[]).length).toBe(
+      1,
+    );
+
+    await waitFor(() => live.got.length > 1, 3000);
+    expect(((await (await fetch(`${base}/api/state`)).json()) as unknown[]).length).toBe(1);
+    expect(app.delay.delaySec).toBe(1);
+    live.ws.close();
+    preview.ws.close();
+  });
+
+  it('rejects an out-of-range delay', async () => {
+    const { port } = await boot();
+    const res = await fetch(`http://127.0.0.1:${port}/api/settings/sync-delay`, {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ syncDelaySec: 120 }),
+    });
+    expect(res.status).toBe(400);
+  });
+
+  it('exposes and mutes the alarm', async () => {
+    const { port, post } = await boot();
+    const base = `http://127.0.0.1:${port}`;
+    const a = (await (await fetch(`${base}/api/alarm`)).json()) as {
+      level: string;
+      muted: boolean;
+    };
+    expect(a).toMatchObject({ level: 'ok', muted: false });
+    const m = (await (await post('/api/alarm/mute', { minutes: 10 })).json()) as { muted: boolean };
+    expect(m.muted).toBe(true);
+    const u = (await (await fetch(`${base}/api/alarm/mute`, { method: 'DELETE' })).json()) as {
+      muted: boolean;
+    };
+    expect(u.muted).toBe(false);
+  });
+});
+
+describe('cards and director over HTTP', () => {
+  it('POST /api/cards/:id/show broadcasts a card command and hide clears it', async () => {
+    const { port, post } = await boot();
+    const got: { channel?: string; payload?: { action?: string; cardId?: string } }[] = [];
+    const ws = new WebSocket(`ws://127.0.0.1:${port}/ws`);
+    await new Promise((r) => ws.on('open', r));
+    ws.on('message', (d) => got.push(JSON.parse(d.toString())));
+    ws.send(JSON.stringify({ type: 'subscribe', channels: ['cards'] }));
+    await waitFor(() => got.length > 0);
+
+    const res = await post('/api/cards/manhattan/show', { durationSec: 0 });
+    expect(res.status).toBe(200);
+    await waitFor(() => got.some((m) => m.payload?.action === 'show'));
+    expect(got.find((m) => m.payload?.action === 'show')!.payload).toMatchObject({
+      cardId: 'manhattan',
+      source: 'operator',
+    });
+
+    await post('/api/cards/hide', {});
+    await waitFor(() => got.some((m) => m.payload?.action === 'hide'));
+    ws.close();
+  });
+
+  it('rejects an invalid card id', async () => {
+    const { post } = await boot();
+    expect((await post('/api/cards/Not%20Valid!/show', {})).status).toBe(400);
+  });
+
+  it('exposes and updates the director, persisting the mode', async () => {
+    const first = await boot();
+    const base = `http://127.0.0.1:${first.port}`;
+    const initial = (await (await fetch(`${base}/api/director`)).json()) as {
+      config: { mode: string; rules: unknown[] };
+    };
+    expect(initial.config.mode).toBe('manual');
+    expect(initial.config.rules.length).toBeGreaterThan(0); // sensible defaults
+
+    const put = await fetch(`${base}/api/director`, {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ mode: 'smart' }),
+    });
+    expect(((await put.json()) as { mode: string }).mode).toBe('smart');
+
+    const bad = await fetch(`${base}/api/director`, {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ mode: 'chaotic' }),
+    });
+    expect(bad.status).toBe(400);
+
+    await first.app.stop();
+    apps.pop();
+    const second = await boot();
+    const again = (await (await fetch(`http://127.0.0.1:${second.port}/api/director`)).json()) as {
+      config: { mode: string };
+    };
+    expect(again.config.mode).toBe('smart');
+  });
+
+  it('a released FOUR/OVER_END event drives a card in smart mode', async () => {
+    const { app, port, pair, post } = await boot();
+    const { token } = await pair();
+    await fetch(`http://127.0.0.1:${port}/api/director`, {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ mode: 'smart' }),
+    });
+    const mk = (runs: number, overs: number, balls: number, last: string[]): RawUpdate =>
+      RawUpdateSchema.parse({
+        source: 'cricbuzz',
+        matchId: 'm1',
+        url: 'https://www.example.invalid/m1',
+        capturedAt: 1,
+        confidence: 1,
+        fields: {
+          title: 'A v B T20',
+          innings: [{ team: 'A', runs, wkts: 0, overs, balls }],
+          lastBalls: last,
+          thisOver: last,
+        },
+      });
+    const send = (u: RawUpdate) => post('/api/ext/ingest', { type: 'update', update: u }, token);
+    await send(mk(20, 2, 5, ['1', '1', '1', '1', '1']));
+    await send(mk(21, 3, 0, ['1', '1', '1', '1', '1', '1']));
+    await waitFor(() => app.director.state.onAir !== null || app.director.state.queued.length > 0);
+    const s = app.director.state;
+    expect([s.onAir?.cardId, ...s.queued]).toContain('manhattan');
+  });
+});

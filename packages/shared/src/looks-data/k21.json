@@ -1,0 +1,41 @@
+{
+  "id": "k21",
+  "name": "Mono Gold",
+  "plan": "pro",
+  "tokens": {
+    "colors": {
+      "bg": "#050505",
+      "surface": "#121212",
+      "accent": "#EAB308",
+      "accent2": "#FEF08A",
+      "warn": "#F97316",
+      "text": "#FAFAFA"
+    },
+    "gradients": {
+      "accent": "linear-gradient(90deg, #EAB308, #FEF08A)"
+    },
+    "fonts": {
+      "heading": "Space Grotesk",
+      "body": "Inter",
+      "numbers": "Barlow Condensed"
+    },
+    "radii": {
+      "card": 4,
+      "chip": 2
+    },
+    "shadows": {
+      "card": "0 0 0 1px rgba(234,179,8,0.4)"
+    },
+    "scoreBarShape": "slanted"
+  },
+  "layoutVariant": {
+    "scorePosition": "bottom",
+    "playerCardStyle": "cutout",
+    "boundaryStyle": "gold-flare"
+  },
+  "motion": {
+    "entrance": "zoom",
+    "easing": "back.out(1.4)",
+    "durationMs": 480
+  }
+}
