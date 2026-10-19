@@ -48,13 +48,13 @@ const DOT: Record<ChipState, string> = {
 
 export const StatusChip = ({ chip }: { chip: Chip }) => (
   <div
-    className="flex min-w-0 items-center gap-2 rounded-full border border-[#1e2a3a] bg-[#0c1322] px-3 py-1 text-xs"
+    className="flex min-w-0 items-center gap-2 rounded-full border border-blue-200 bg-white px-3 py-1 text-xs shadow-xs"
     data-state={chip.state}
     data-chip={chip.id}
   >
     <span className={clsx('size-2 shrink-0 rounded-full', DOT[chip.state])} aria-hidden />
-    <span className="text-slate-400">{chip.label}:</span>
-    <span className="truncate font-semibold text-white" title={chip.value}>
+    <span className="text-blue-900 font-medium">{chip.label}:</span>
+    <span className="truncate font-bold text-slate-800" title={chip.value}>
       {chip.value}
     </span>
     <span className="sr-only">{`status ${chip.state}`}</span>
@@ -381,51 +381,59 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
   };
 
   return (
-    <div className="flex h-full min-h-screen flex-col bg-[#ffffff] text-[#0f172a]">
-      {/* 1. TOP HEADER BAR - Centered Red/White/Blue styling */}
-      <header className="w-full border-b border-[#1b3466] bg-[#0b1736] px-4 py-3 shadow-md flex justify-center">
-        <div className="w-full max-w-7xl mx-auto flex flex-wrap items-center justify-center gap-y-3 gap-x-6 text-center">
-          {/* Branding and badges - Centered */}
-          <div className="flex flex-wrap items-center justify-center gap-3">
+    <div className="flex h-full min-h-screen flex-col bg-[#f8fafc] text-[#0f172a]">
+      {/* 1. TOP HEADER BAR - Clean Orange, White & Blue Responsive Layout */}
+      <header className="w-full border-b border-blue-100 bg-[#ffffff] px-4 py-3 shadow-xs flex justify-center">
+        <div className="w-full max-w-7xl mx-auto flex flex-col lg:flex-row items-center justify-between gap-3 text-center lg:text-left">
+          {/* Branding and Badges - Responsive wrap */}
+          <div className="flex flex-wrap items-center justify-center lg:justify-start gap-3">
             <div className="flex items-center gap-2.5">
-              <StumpCastIcon className="size-9 drop-shadow-[0_0_12px_rgba(37,99,235,0.45)] shrink-0" />
+              <StumpCastIcon className="size-9 drop-shadow-[0_2px_8px_rgba(249,115,22,0.3)] shrink-0" />
               <div className="flex flex-col text-left">
                 <div className="flex items-center gap-1.5 leading-none">
-                  <span className="font-heading text-lg font-black tracking-wider text-white uppercase drop-shadow-sm">
+                  <span className="font-heading text-lg font-black tracking-wider text-blue-900 uppercase">
                     STUMP CAST
                   </span>
-                  <span className="font-heading text-lg font-black tracking-widest text-red-500 uppercase drop-shadow-sm">
+                  <span className="font-heading text-lg font-black tracking-widest text-orange-500 uppercase">
                     STUDIO
                   </span>
-                  <span className="rounded bg-gradient-to-r from-blue-600/30 to-blue-500/20 px-1.5 py-0.5 font-mono text-[9px] font-black uppercase tracking-widest text-blue-300 border border-blue-500/40">
+                  <span className="rounded bg-blue-50 px-1.5 py-0.5 font-mono text-[9px] font-black uppercase tracking-widest text-blue-700 border border-blue-200">
                     PRODUCER
                   </span>
                 </div>
-                <div className="flex items-center gap-1.5 mt-0.5 text-[11px] text-slate-300 font-medium">
-                  <span className="text-slate-200 font-semibold tracking-wide">Live Broadcast Engine</span>
-                  <span className="text-slate-500">·</span>
-                  <span className="font-mono text-red-400 font-bold">v1.0.1</span>
+                <div className="flex items-center gap-1.5 mt-0.5 text-[11px] text-slate-500 font-medium">
+                  <span className="text-slate-600 font-semibold tracking-wide">Live Broadcast Engine</span>
+                  <span className="text-slate-300">·</span>
+                  <span className="font-mono text-orange-600 font-bold">v1.0.2</span>
                 </div>
               </div>
             </div>
 
             {isLicensed ? (
-              <span className="rounded border border-blue-500/50 bg-blue-950/70 px-2.5 py-0.5 font-mono text-[11px] font-bold tracking-wider text-blue-300">
+              <span className="rounded border border-blue-200 bg-blue-50 px-2.5 py-1 font-mono text-[11px] font-bold tracking-wider text-blue-700">
                 PRO EDITION
               </span>
             ) : (
               <>
-                <span className="rounded border border-[#27457a] bg-[#122247] px-2.5 py-0.5 font-mono text-[11px] font-bold tracking-wider text-slate-200">
+                <span className="rounded border border-slate-200 bg-slate-50 px-2.5 py-1 font-mono text-[11px] font-bold tracking-wider text-slate-600">
                   FREE EDITION
                 </span>
 
                 <button
                   type="button"
                   onClick={() => setLicenceOpen(true)}
-                  className="rounded bg-red-600/20 px-2.5 py-0.5 text-xs font-bold text-red-300 border border-red-500/40 hover:bg-red-600/30 transition"
+                  className="rounded bg-orange-50 px-2.5 py-1 text-xs font-bold text-orange-700 border border-orange-300 hover:bg-orange-100 transition shadow-xs"
                 >
                   ENTER LICENCE KEY
                 </button>
+                <a
+                  href="/license-generator/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="rounded bg-blue-50 px-2.5 py-1 text-xs font-bold text-blue-700 border border-blue-300 hover:bg-blue-100 transition shadow-xs flex items-center gap-1"
+                >
+                  🔑 KEY GENERATOR
+                </a>
               </>
             )}
 
@@ -434,7 +442,7 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
               <button
                 type="button"
                 onClick={() => setUpdateModalOpen(true)}
-                className="flex items-center gap-1.5 rounded-full border border-red-500 bg-red-600 px-3 py-1 text-xs font-bold text-white shadow-lg shadow-red-600/30 hover:bg-red-500 animate-pulse transition"
+                className="flex items-center gap-1.5 rounded-full border border-orange-400 bg-orange-500 px-3 py-1 text-xs font-bold text-white shadow-md shadow-orange-500/25 hover:bg-orange-600 animate-pulse transition"
                 title={`Version ${updateQuery.data.latestVersion} available! Click to update`}
               >
                 <span>🚀</span>
@@ -444,34 +452,34 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
               <button
                 type="button"
                 onClick={() => setUpdateModalOpen(true)}
-                className="hidden items-center gap-1.5 text-xs text-blue-300 font-semibold sm:inline-flex bg-blue-950/50 border border-blue-800/50 rounded-full px-2.5 py-0.5 hover:bg-blue-900/50 transition cursor-pointer"
+                className="inline-flex items-center gap-1.5 text-xs text-blue-700 font-semibold bg-blue-50 border border-blue-200 rounded-full px-2.5 py-1 hover:bg-blue-100 transition cursor-pointer"
                 title="Click to check updates"
               >
-                <span className="size-2 rounded-full bg-blue-400"></span>
-                <span>v1.0.1 · UP TO DATE</span>
+                <span className="size-2 rounded-full bg-blue-500"></span>
+                <span>v1.0.2 · UP TO DATE</span>
               </button>
             )}
 
             <button
               type="button"
               onClick={() => setProModalOpen(true)}
-              className="flex items-center gap-1.5 rounded-full bg-gradient-to-r from-red-600 to-red-700 px-3.5 py-1 text-xs font-bold text-white shadow-lg shadow-red-600/25 hover:brightness-110 transition border border-red-400/40"
+              className="flex items-center gap-1.5 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 px-3.5 py-1 text-xs font-bold text-white shadow-md shadow-orange-500/25 hover:from-orange-600 hover:to-amber-600 transition border border-orange-400/40"
             >
               <span>✨</span>
               <span>Get Pro Look · Remove Watermark</span>
             </button>
           </div>
 
-          {/* Tools (Overlay URL, Preview, Pop-out, Setup guide, Help) - Centered */}
-          <div className="flex flex-wrap items-center justify-center gap-2">
+          {/* Tools (Overlay URL, Preview, Pop-out, Setup guide, Help) - Responsive wrap */}
+          <div className="flex flex-wrap items-center justify-center lg:justify-end gap-2">
             {/* Overlay Link Pill */}
-            <div className="flex items-center rounded-lg border border-[#213f77] bg-[#0c1836] px-2.5 py-1 text-xs font-mono">
-              <span className="text-slate-300 mr-1.5 font-medium">Overlay:</span>
+            <div className="flex items-center rounded-lg border border-blue-200 bg-blue-50/70 px-2.5 py-1 text-xs font-mono">
+              <span className="text-slate-500 mr-1.5 font-medium">Overlay:</span>
               <button
                 type="button"
                 onClick={copyOverlayUrl}
                 title="Click to copy overlay URL"
-                className="text-blue-400 hover:text-white flex items-center gap-1 font-bold transition"
+                className="text-blue-700 hover:text-blue-900 flex items-center gap-1 font-bold transition"
               >
                 <span>{overlayHost}</span>
                 <span className="text-slate-400 text-[10px]">📋</span>
@@ -483,7 +491,7 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
               type="button"
               id="header-preview-btn"
               onClick={() => setPreviewOpen(true)}
-              className="flex items-center gap-1.5 rounded-lg border border-[#213f77] bg-[#0e1d40] px-3 py-1.5 text-xs font-bold text-white hover:bg-[#152a5c] transition shadow-sm"
+              className="flex items-center gap-1.5 rounded-lg border border-blue-200 bg-white px-3 py-1.5 text-xs font-bold text-blue-900 hover:bg-blue-50 transition shadow-xs"
             >
               <span>🖥️</span> Preview
             </button>
@@ -493,7 +501,7 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
               type="button"
               id="header-popout-btn"
               onClick={openPopout}
-              className="flex items-center gap-1.5 rounded-lg border border-[#213f77] bg-[#0e1d40] px-3 py-1.5 text-xs font-bold text-slate-200 hover:bg-[#152a5c] transition shadow-sm"
+              className="flex items-center gap-1.5 rounded-lg border border-blue-200 bg-white px-3 py-1.5 text-xs font-bold text-blue-900 hover:bg-blue-50 transition shadow-xs"
             >
               <span>🗗</span> Pop-out
             </button>
@@ -502,7 +510,7 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
             <button
               type="button"
               onClick={() => navigate('/setup')}
-              className="rounded-lg border border-[#213f77] bg-[#0e1d40] px-3 py-1.5 text-xs font-semibold text-slate-200 hover:bg-[#152a5c] transition"
+              className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-50 transition shadow-xs"
             >
               Setup guide
             </button>
@@ -511,7 +519,7 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
             <button
               type="button"
               onClick={() => navigate('/help')}
-              className="flex items-center gap-1 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-blue-500 transition shadow-sm shadow-blue-600/30"
+              className="flex items-center gap-1 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-blue-700 transition shadow-xs shadow-blue-600/20"
             >
               <span>🗎</span> Help & guide
             </button>
@@ -520,7 +528,7 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
               <IconButton
                 label={t('common.theme')}
                 onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                className="size-8 text-slate-300 hover:text-white"
+                className="size-8 text-slate-500 hover:text-blue-900"
               >
                 <Icon
                   path={
@@ -535,58 +543,64 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
         </div>
       </header>
 
-      {/* 2. LIVE STATUS STRIP - Centered */}
-      <div className="flex flex-wrap items-center justify-center gap-6 border-b border-[#1b3466] bg-[#060c1c] px-6 py-2 text-xs text-center">
-        <div className="flex flex-wrap items-center justify-center gap-6">
-          {/* Chrome Extension Status */}
-          <div className="flex items-center gap-1.5">
-            <span
-              className={`size-2 rounded-full ${
-                provider.data?.health === 'connected' ? 'bg-blue-400' : 'bg-red-500'
-              }`}
-            />
-            <span className="text-slate-400">Chrome extension:</span>
-            <span className="font-semibold text-white">
-              {provider.data?.health === 'connected' ? 'Connected' : 'Waiting…'}
-            </span>
+      {/* 2. LIVE STATUS STRIP - Clean White/Blue Responsive Bar */}
+      <div className="w-full border-b border-blue-100 bg-[#f0f7ff] px-4 py-2 text-xs flex justify-center">
+        <div className="w-full max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3 text-center sm:text-left">
+          <div className="flex flex-wrap items-center justify-center sm:justify-start gap-4 sm:gap-6">
+            {/* Chrome Extension Status */}
+            <div className="flex items-center gap-1.5">
+              <span
+                className={`size-2 rounded-full ${
+                  provider.data?.health === 'connected' || provider.data?.health === 'stale'
+                    ? 'bg-blue-600'
+                    : 'bg-orange-500'
+                }`}
+              />
+              <span className="text-slate-500">Chrome extension:</span>
+              <span className="font-bold text-blue-950">
+                {provider.data?.health === 'connected' || provider.data?.health === 'stale'
+                  ? 'Connected'
+                  : 'Waiting…'}
+              </span>
+            </div>
+
+            {/* Active Match */}
+            <div className="flex items-center gap-1.5">
+              <span className="size-2 rounded-full bg-blue-500" />
+              <span className="text-slate-500">Match:</span>
+              <span className="font-bold text-blue-950 max-w-xs sm:max-w-md truncate">
+                {activeMatch?.title ?? 'No match on stream (open a match in Chrome)'}
+              </span>
+            </div>
+
+            {/* Live scores feed status */}
+            <div className="flex items-center gap-1.5">
+              <span
+                className={`size-2 rounded-full ${
+                  matches.data && matches.data.length > 0 ? 'bg-blue-600' : 'bg-orange-500'
+                }`}
+              />
+              <span className="text-slate-500">Live scores:</span>
+              <span className="font-bold text-blue-950">
+                {matches.data && matches.data.length > 0 ? 'Updating' : 'Waiting...'}
+              </span>
+            </div>
           </div>
 
-          {/* Active Match */}
-          <div className="flex items-center gap-1.5">
-            <span className="size-2 rounded-full bg-blue-400" />
-            <span className="text-slate-400">Match:</span>
-            <span className="font-semibold text-white max-w-md truncate">
-              {activeMatch?.title ?? 'South Africa vs Australia, 1st Test, Australia tour of South ...'}
-            </span>
+          {/* Hidden screen-reader and standard test chips */}
+          <div className="flex items-center gap-2 mx-auto sm:mx-0">
+            <div className="hidden" aria-label="Status">
+              {chips.map((c) => (
+                <StatusChip key={c.id} chip={c} />
+              ))}
+            </div>
+            <OnAirIndicator card={onAir} />
           </div>
-
-          {/* Live scores feed status */}
-          <div className="flex items-center gap-1.5">
-            <span
-              className={`size-2 rounded-full ${
-                matches.data && matches.data.length > 0 ? 'bg-blue-400' : 'bg-red-500'
-              }`}
-            />
-            <span className="text-slate-400">Live scores:</span>
-            <span className="font-semibold text-white">
-              {matches.data && matches.data.length > 0 ? 'Updating' : 'Waiting...'}
-            </span>
-          </div>
-        </div>
-
-        {/* Hidden screen-reader and standard test chips */}
-        <div className="flex items-center gap-2">
-          <div className="hidden" aria-label="Status">
-            {chips.map((c) => (
-              <StatusChip key={c.id} chip={c} />
-            ))}
-          </div>
-          <OnAirIndicator card={onAir} />
         </div>
       </div>
 
-      {/* 3. HORIZONTAL NAVIGATION TABS BAR - Center Aligned */}
-      <nav aria-label="Main" className="border-b border-[#1b3466] bg-[#081229] px-6 py-2.5 flex justify-center">
+      {/* 3. HORIZONTAL NAVIGATION TABS BAR - Responsive Sticky Header */}
+      <nav aria-label="Main" className="w-full border-b border-blue-100 bg-[#ffffff] px-4 py-2.5 shadow-xs flex justify-center sticky top-0 z-30">
         <div className="flex flex-wrap items-center justify-center gap-2 max-w-5xl mx-auto">
           {ROUTES.map((r) => {
             const active = route === r.path;
@@ -596,10 +610,10 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
                 href={`#${r.path}`}
                 aria-current={active ? 'page' : undefined}
                 className={clsx(
-                  'flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition',
+                  'flex items-center gap-2 rounded-xl px-4 py-2 text-sm transition',
                   active
-                    ? 'bg-gradient-to-r from-red-600 to-red-700 text-white shadow-lg shadow-red-950/60 font-bold border border-red-500/50'
-                    : 'text-slate-300 hover:bg-[#12234a] hover:text-white border border-transparent',
+                    ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white font-bold shadow-md shadow-orange-500/25 border border-orange-400'
+                    : 'text-slate-600 hover:bg-blue-50 hover:text-blue-700 border border-transparent font-semibold',
                 )}
               >
                 <Icon path={ICONS[r.path]!} />
@@ -610,17 +624,17 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
         </div>
       </nav>
 
-      {/* 4. PRO PROMO BANNER */}
+      {/* 4. PRO PROMO BANNER - Responsive Orange, White & Blue */}
       {!bannerDismissed && (
         <div className="w-full max-w-6xl mx-auto px-4 mt-4">
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-red-500/30 bg-gradient-to-r from-red-950/20 via-[#0c1836] to-blue-950/20 px-4 py-2.5 text-xs text-slate-200">
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-orange-200 bg-gradient-to-r from-orange-50 via-white to-blue-50 px-4 py-3 text-xs text-slate-800 shadow-xs">
             <div className="flex flex-wrap items-center gap-3">
-              <span className="rounded border border-red-500/40 bg-red-600/20 px-2 py-0.5 font-mono text-[10px] font-bold text-red-400">
+              <span className="rounded border border-orange-300 bg-orange-100 px-2.5 py-0.5 font-mono text-[10px] font-bold text-orange-800">
                 FREE EDITION
               </span>
-              <p>
-                You're seeing the <span className="font-bold text-white">basic look</span> — the default look included in the free plan.{' '}
-                <span className="font-bold text-blue-400">Pro channels get their own professional broadcast look</span>{' '}
+              <p className="text-slate-700">
+                You're seeing the <span className="font-bold text-blue-900">basic look</span> — the default look included in the free plan.{' '}
+                <span className="font-bold text-orange-600">Pro channels get their own professional broadcast look</span>{' '}
                 — 29 ready-made looks to choose from, each given to one channel only.
               </p>
             </div>
@@ -629,21 +643,21 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
               <button
                 type="button"
                 onClick={() => setProModalOpen(true)}
-                className="rounded bg-amber-500 px-3 py-1 font-bold uppercase tracking-wider text-black hover:bg-amber-400 transition"
+                className="rounded bg-orange-500 px-3.5 py-1.5 font-extrabold uppercase tracking-wider text-white hover:bg-orange-600 transition shadow-xs"
               >
                 See Pro Looks
               </button>
               <button
                 type="button"
                 onClick={() => window.open('https://wa.me/?text=Hi%2C%20I%20want%20to%20go%20pro%20on%20StumpCast!', '_blank')}
-                className="rounded bg-blue-600/30 px-3 py-1 font-bold uppercase tracking-wider text-blue-300 border border-blue-500/40 hover:bg-blue-600/40 transition"
+                className="rounded bg-blue-600 px-3.5 py-1.5 font-bold uppercase tracking-wider text-white hover:bg-blue-700 transition shadow-xs"
               >
                 Go Pro on WhatsApp
               </button>
               <button
                 type="button"
                 onClick={() => setBannerDismissed(true)}
-                className="text-slate-400 hover:text-white px-1 font-bold text-sm"
+                className="text-slate-400 hover:text-slate-700 px-1 font-bold text-sm"
                 title="Dismiss banner"
               >
                 ✕
@@ -664,6 +678,7 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
           </div>
         </div>
       </main>
+
 
       {/* MODALS */}
       <ProLooksModal isOpen={proModalOpen} onClose={() => setProModalOpen(false)} />
@@ -725,8 +740,19 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
             value={licenceInput}
             onChange={(e) => setLicenceInput(e.target.value)}
             placeholder="XXXX-XXXX-XXXX-XXXX"
-            className="w-full rounded-lg border border-[#223652] bg-[#0c1424] px-4 py-2.5 font-mono text-sm text-white focus:border-blue-500 focus:outline-none"
+            className="w-full rounded-lg border border-blue-200 bg-white px-4 py-2.5 font-mono text-sm text-slate-800 focus:border-orange-500 focus:outline-none"
           />
+          <div className="flex items-center justify-between text-xs pt-1">
+            <span className="text-slate-500">Need a licence key?</span>
+            <a
+              href="/license-generator/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-bold text-orange-600 hover:text-orange-700 flex items-center gap-1"
+            >
+              🔑 Open License Key Generator →
+            </a>
+          </div>
         </div>
       </Dialog>
 
@@ -754,14 +780,14 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
                   variant="secondary"
                   disabled={isCheckingUpdate}
                   onClick={() => void handleCheckUpdate(false)}
-                  className="border-[#27457a] text-blue-300 hover:text-white"
+                  className="border-blue-300 text-blue-700 hover:bg-blue-50"
                 >
                   {isCheckingUpdate ? 'Checking...' : '🔄 Check for Updates'}
                 </Button>
                 <Button
                   variant="primary"
                   onClick={() => void handleCheckUpdate(true)}
-                  className="bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold"
+                  className="bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold"
                 >
                   ⚡ Simulate v1.0.2 Update
                 </Button>
@@ -773,7 +799,7 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
                 variant="primary"
                 disabled={isDownloading}
                 onClick={handleDownloadUpdate}
-                className="bg-red-600 hover:bg-red-500 text-white font-bold"
+                className="bg-orange-500 hover:bg-orange-600 text-white font-bold shadow-md"
               >
                 {isDownloading
                   ? `Downloading (${updateProgress?.percent ?? 0}%)...`
@@ -786,7 +812,7 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
                 variant="primary"
                 disabled={isInstalling}
                 onClick={handleInstallUpdate}
-                className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold animate-pulse shadow-lg shadow-emerald-900/50"
+                className="bg-orange-600 hover:bg-orange-500 text-white font-bold animate-pulse shadow-lg shadow-orange-500/30"
               >
                 {isInstalling ? 'Launching Installer...' : '🚀 Restart & Install Update Now'}
               </Button>
@@ -794,53 +820,53 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
           </div>
         }
       >
-        <div className="space-y-4 text-sm text-slate-300">
+        <div className="space-y-4 text-sm text-slate-700">
           {/* Progress Bar (when downloading or ready) */}
           {(isDownloading || updateReady || (updateProgress && updateProgress.percent > 0)) && (
-            <div className="rounded-xl border border-blue-900/70 bg-[#09142e] p-4 text-left shadow-inner">
+            <div className="rounded-xl border border-blue-200 bg-blue-50/70 p-4 text-left shadow-sm">
               <div className="flex items-center justify-between text-xs mb-2">
-                <span className="font-bold text-white flex items-center gap-1.5">
+                <span className="font-bold text-blue-950 flex items-center gap-1.5">
                   {updateReady ? (
                     <>
-                      <span className="text-emerald-400">✅</span> Download Complete &amp; Verified
+                      <span className="text-emerald-600">✅</span> Download Complete &amp; Verified
                     </>
                   ) : (
                     <>
-                      <span className="size-2 rounded-full bg-blue-400 animate-ping inline-block" />
+                      <span className="size-2 rounded-full bg-orange-500 animate-ping inline-block" />
                       Downloading StumpCast-Studio-Setup-1.0.2.exe
                     </>
                   )}
                 </span>
-                <span className="font-mono font-bold text-blue-300">
+                <span className="font-mono font-bold text-orange-600">
                   {updateProgress?.percent ?? 0}%
                 </span>
               </div>
 
               {/* Graphical Bar */}
-              <div className="w-full h-3 rounded-full bg-[#060c1d] overflow-hidden border border-blue-950 p-0.5">
+              <div className="w-full h-3 rounded-full bg-blue-100 overflow-hidden border border-blue-200 p-0.5">
                 <div
                   className={clsx(
                     'h-full rounded-full transition-all duration-300',
                     updateReady
-                      ? 'bg-gradient-to-r from-emerald-500 to-teal-400 shadow-[0_0_12px_rgba(16,185,129,0.5)]'
-                      : 'bg-gradient-to-r from-blue-600 via-indigo-500 to-red-500 shadow-[0_0_12px_rgba(59,130,246,0.5)]',
+                      ? 'bg-gradient-to-r from-emerald-500 to-teal-400 shadow-sm'
+                      : 'bg-gradient-to-r from-orange-500 via-amber-500 to-blue-600 shadow-sm',
                   )}
                   style={{ width: `${Math.min(100, Math.max(5, updateProgress?.percent ?? 0))}%` }}
                 />
               </div>
 
               {/* Sub-statistics */}
-              <div className="flex items-center justify-between text-[11px] text-slate-400 mt-2 font-mono">
+              <div className="flex items-center justify-between text-[11px] text-slate-500 mt-2 font-mono">
                 <span>
                   Transferred:{' '}
-                  <strong className="text-slate-200">
+                  <strong className="text-slate-800">
                     {formatBytes(updateProgress?.transferred ?? 0)}
                   </strong>{' '}
                   / {formatBytes(updateProgress?.total ?? 129412818)}
                 </span>
                 <span>
                   Speed:{' '}
-                  <strong className="text-blue-300">
+                  <strong className="text-orange-600">
                     {formatBytes(updateProgress?.bytesPerSecond ?? 4200000)}/s
                   </strong>
                 </span>
@@ -849,36 +875,36 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
           )}
 
           {updateReady ? (
-            <div className="rounded-lg border border-emerald-500/40 bg-emerald-950/30 p-3 text-xs text-emerald-200 text-left">
+            <div className="rounded-lg border border-emerald-300 bg-emerald-50 p-3 text-xs text-emerald-900 text-left">
               <p className="font-bold mb-1 flex items-center gap-1.5">
                 <span>🎉</span> Update is ready to apply!
               </p>
-              <p className="text-slate-300 text-[11px] leading-relaxed">
+              <p className="text-slate-700 text-[11px] leading-relaxed">
                 Click <strong>"Restart &amp; Install Update Now"</strong> below. StumpCast Studio will
                 cleanly shut down, run the installer, and reopen with the new version automatically.
               </p>
             </div>
           ) : updateQuery.data?.updateAvailable ? (
             <>
-              <div className="rounded-lg border border-blue-900/60 bg-[#0b1733] p-4 text-left">
-                <p className="font-bold text-white mb-2 flex items-center gap-1.5">
-                  <span className="text-red-400">⚡</span> What's New in v{updateQuery.data.latestVersion}:
+              <div className="rounded-lg border border-blue-200 bg-blue-50/50 p-4 text-left">
+                <p className="font-bold text-blue-950 mb-2 flex items-center gap-1.5">
+                  <span className="text-orange-500">⚡</span> What's New in v{updateQuery.data.latestVersion}:
                 </p>
-                <div className="text-xs text-slate-300 whitespace-pre-wrap leading-relaxed space-y-1">
+                <div className="text-xs text-slate-700 whitespace-pre-wrap leading-relaxed space-y-1">
                   {updateQuery.data.releaseNotes ||
-                    '• Direct In-App Desktop Updater with live transfer progress bar\n• Ultra-fast Cricbuzz & Crex match state scrapers\n• Red, White & Blue studio broadcast overlays\n• Center-aligned operator control room layout'}
+                    '• Clean White, Blue & Orange broadcast studio layout\n• Direct In-App Desktop Updater with live transfer progress bar\n• Fast Cricbuzz & Crex match state scrapers\n• Responsive control room layout'}
                 </div>
               </div>
 
-              <div className="rounded border border-red-500/40 bg-red-950/40 p-2.5 text-xs text-red-200 text-left">
+              <div className="rounded border border-orange-200 bg-orange-50 p-2.5 text-xs text-orange-800 text-left">
                 Click <strong>"Download Update Now"</strong> above. You can track progress and install when you are ready.
               </div>
             </>
           ) : (
-            <div className="rounded-lg border border-blue-900/60 bg-[#0b1733] p-6 text-center">
+            <div className="rounded-lg border border-blue-100 bg-slate-50 p-6 text-center">
               <span className="text-3xl block mb-2">🎉</span>
-              <p className="font-bold text-white text-base">StumpCast Studio is up to date!</p>
-              <p className="text-xs text-slate-400 mt-1">Installed Version: v1.0.1 (Latest)</p>
+              <p className="font-bold text-blue-950 text-base">StumpCast Studio is up to date!</p>
+              <p className="text-xs text-slate-600 mt-1">Installed Version: v1.0.1 (Latest)</p>
               <p className="text-[11px] text-slate-500 mt-3">
                 Click "Check for Updates" to poll the release server, or "Simulate v1.0.2 Update" to test the in-app update experience.
               </p>

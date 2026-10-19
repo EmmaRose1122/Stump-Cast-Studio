@@ -23,6 +23,8 @@ body {
 .zone {
   position: absolute;
   box-sizing: border-box;
+  overflow: hidden;
+  contain: layout style;
 }
 
 /* Score bar ---------------------------------------------------------------------------------- */
@@ -730,6 +732,20 @@ html[data-score-position='bottom'] #stage[data-layout='classic'][data-compositio
   height: 124px !important;
   transform: none !important;
   z-index: 25 !important;
+  overflow: hidden !important;
+  contain: layout style !important;
+}
+[data-layout='arena'] .zone-left,
+#stage[data-layout='arena'] .zone-left,
+#stage[data-layout='arena'][data-composition] .zone-left,
+[data-layout='arena'] .zone-right,
+#stage[data-layout='arena'] .zone-right,
+#stage[data-layout='arena'][data-composition] .zone-right,
+[data-layout='arena'] .zone-bottom,
+#stage[data-layout='arena'] .zone-bottom,
+#stage[data-layout='arena'][data-composition] .zone-bottom {
+  overflow: hidden !important;
+  contain: layout style !important;
 }
 /* In arena layout, the scorebar is strictly top-mounted matching broadcast master */
 [data-layout='arena'] .c-scorebar,
@@ -1136,6 +1152,8 @@ html[data-score-position='bottom'] #stage[data-layout='arena'][data-composition]
   gap: 12px;
   transform: scale(var(--side-scale, var(--card-scale)));
   transform-origin: 0 0;
+  overflow: hidden;
+  contain: layout style;
 }
 [data-layout='arena'] .zone-right {
   right: 48px;
@@ -1146,6 +1164,8 @@ html[data-score-position='bottom'] #stage[data-layout='arena'][data-composition]
   gap: 10px;
   transform: scale(var(--side-scale, var(--card-scale)));
   transform-origin: 100% 0;
+  overflow: hidden;
+  contain: layout style;
 }
 [data-layout='arena'] .c-batters,
 [data-layout='arena'] .c-bowler {
@@ -4458,3 +4478,123 @@ html[data-score-bar='flat'] .c-scorebar,
 
 
 
+
+/* Upgrade Popup ------------------------------------------------------------------------------ */
+
+.c-upgrade-popup {
+  position: absolute;
+  inset: 0;
+  z-index: 9999;
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+
+.c-upgrade-popup.visible {
+  display: flex;
+}
+
+.upgrade-popup-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+}
+
+.upgrade-popup-box {
+  position: relative;
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  border: 2px solid #f97316;
+  border-radius: 20px;
+  padding: 40px 36px;
+  max-width: 480px;
+  width: 90%;
+  text-align: center;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.5), 0 0 40px rgba(249, 115, 22, 0.15);
+  animation: popupEntrance 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes popupEntrance {
+  from {
+    opacity: 0;
+    transform: scale(0.9) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.upgrade-popup-icon {
+  font-size: 48px;
+  margin-bottom: 12px;
+}
+
+.upgrade-popup-title {
+  font-family: var(--font-heading, 'Space Grotesk', sans-serif);
+  font-size: 22px;
+  font-weight: 800;
+  color: #f97316;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.upgrade-popup-text {
+  font-size: 14px;
+  color: #94a3b8;
+  line-height: 1.6;
+  margin-bottom: 24px;
+}
+
+.upgrade-popup-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.upgrade-popup-btn {
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s;
+  font-family: var(--font-sans, 'Inter', sans-serif);
+}
+
+.upgrade-popup-btn-primary {
+  background: #f97316;
+  color: #fff;
+}
+
+.upgrade-popup-btn-primary:hover {
+  background: #ea580c;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(249, 115, 22, 0.3);
+}
+
+.upgrade-popup-btn-close {
+  background: transparent;
+  color: #64748b;
+  border: 1px solid #334155;
+}
+
+.upgrade-popup-btn-close:hover {
+  background: #1e293b;
+  color: #94a3b8;
+}
+
+.upgrade-popup-note {
+  font-size: 11px;
+  color: #475569;
+  line-height: 1.5;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .upgrade-popup-box {
+    animation: none;
+  }
+}

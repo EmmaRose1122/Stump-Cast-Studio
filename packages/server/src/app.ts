@@ -47,10 +47,10 @@ import { SelectorService } from './ext/selectors';
 import { OBSLink } from './obs/OBSLink';
 import { registerObsRoutes } from './obs/routes';
 import { WsHub } from './ws/hub';
-import { verifyLicenceToken } from './licence/licence';
+import { signLicenceToken, verifyLicenceToken, type LicencePayload } from './licence/licence';
 
 const SETTINGS_KEY = 'app';
-export const APP_VERSION = '1.0.1';
+export const APP_VERSION = '1.0.2';
 
 export interface StumpCastApp {
   fastify: FastifyInstance;
@@ -163,15 +163,49 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
     let updateAvailable = false;
     let downloadUrl = '';
 
+    // Check local release/latest.yml first
+    const latestYmlCandidates = [
+      path.resolve(process.cwd(), 'release', 'latest.yml'),
+      path.resolve(import.meta.dirname, '..', '..', '..', 'release', 'latest.yml'),
+      path.resolve(import.meta.dirname, '..', '..', 'release', 'latest.yml'),
+      'C:\\Users\\IK\\Downloads\\StumpCast Studio\\stumpcast\\release\\latest.yml',
+      path.join(process.env.USERPROFILE || '', 'Downloads', 'StumpCast Studio', 'stumpcast', 'release', 'latest.yml'),
+    ];
+    const latestYmlPath = latestYmlCandidates.find((f) => fs.existsSync(f));
+    if (latestYmlPath) {
+      try {
+        const content = fs.readFileSync(latestYmlPath, 'utf8');
+        const verMatch = content.match(/version:\s*([0-9.]+)/i);
+        if (verMatch && verMatch[1]) {
+          const fileVer = verMatch[1].trim();
+          latestVersion = fileVer;
+          downloadUrl = '/api/app/update-download-file';
+          releaseNotes =
+            '• Complete White, Royal Blue & Cricket Orange broadcast design\n• Ultra-fast Cricbuzz & Crex match state scrapers\n• Fixed button contrast & responsive broadcast layout\n• Direct in-app update installer to version ' + fileVer;
+          const [curMajor = 0, curMinor = 0, curPatch = 0] = APP_VERSION.split('.').map(Number);
+          const [latMajor = 0, latMinor = 0, latPatch = 0] = fileVer.split('.').map(Number);
+          if (
+            latMajor > curMajor ||
+            (latMajor === curMajor && latMinor > curMinor) ||
+            (latMajor === curMajor && latMinor === curMinor && latPatch > curPatch)
+          ) {
+            updateAvailable = true;
+          }
+        }
+      } catch {
+        /* ignore */
+      }
+    }
+
     if (query?.simulate === '1' || simulatedUpdate || process.env.STUMPCAST_UPDATE_SIMULATE === '1') {
       return {
         currentVersion: APP_VERSION,
         latestVersion: '1.0.2',
         updateAvailable: true,
         releaseNotes:
-          '• Direct In-App Desktop Updater with live transfer progress bar\n• Ultra-fast Cricbuzz & Crex match state scrapers\n• Red, White & Blue studio broadcast overlays\n• Center-aligned operator control room layout\n• Automatic background installer updates',
+          '• Direct In-App Desktop Updater with live transfer progress bar\n• Ultra-fast Cricbuzz & Crex match state scrapers\n• White, Royal Blue & Cricket Orange studio broadcast look\n• Responsive operator control room layout\n• Automatic background installer updates',
         downloadUrl: '/api/app/update-download-file',
-        fileSize: 129412818,
+        fileSize: 140364848,
       };
     }
 
@@ -179,7 +213,7 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
       const checkUrl =
         query?.url ||
         process.env.STUMPCAST_UPDATE_URL ||
-        'https://api.github.com/repos/stumpcast/studio/releases/latest';
+        'https://api.github.com/repos/EmmaRose1122/Stump-Cast-Studio/releases/latest';
 
       const res = await fetch(checkUrl, {
         headers: { 'User-Agent': 'StumpCast-Studio' },
@@ -199,11 +233,11 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
           latestVersion = data.latestVersion;
           releaseNotes = data.releaseNotes ?? '';
           updateAvailable = Boolean(data.updateAvailable);
-          downloadUrl = data.assets?.[0]?.browser_download_url ?? '';
+          downloadUrl = data.assets?.[0]?.browser_download_url ?? '/api/app/update-download-file';
         } else if (data.tag_name) {
           latestVersion = data.tag_name.replace(/^v/, '');
           releaseNotes = data.body ?? '';
-          downloadUrl = data.assets?.[0]?.browser_download_url ?? data.html_url ?? '';
+          downloadUrl = data.assets?.[0]?.browser_download_url ?? data.html_url ?? '/api/app/update-download-file';
           const [curMajor = 0, curMinor = 0, curPatch = 0] = APP_VERSION.split('.').map(Number);
           const [latMajor = 0, latMinor = 0, latPatch = 0] = latestVersion.split('.').map(Number);
           if (
@@ -228,6 +262,41 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
     };
   });
 
+  fastify.get('/api/app/update-download-file', async (_req, reply) => {
+    const candidates = [
+      path.resolve(process.cwd(), 'release', 'StumpCast-Studio-Setup-1.0.2.exe'),
+      path.resolve(import.meta.dirname, '..', '..', '..', 'release', 'StumpCast-Studio-Setup-1.0.2.exe'),
+      'C:\\Users\\IK\\Downloads\\StumpCast Studio\\stumpcast\\release\\StumpCast-Studio-Setup-1.0.2.exe',
+      path.join(process.env.USERPROFILE || '', 'Downloads', 'StumpCast Studio', 'stumpcast', 'release', 'StumpCast-Studio-Setup-1.0.2.exe'),
+      path.resolve(process.cwd(), 'release', 'StumpCast-Studio-Setup-1.0.1.exe'),
+      path.resolve(import.meta.dirname, '..', '..', '..', 'release', 'StumpCast-Studio-Setup-1.0.1.exe'),
+      path.resolve(process.cwd(), 'release', 'StumpCast-Studio-Setup-0.0.0.exe'),
+      path.resolve(import.meta.dirname, '..', '..', '..', 'release', 'StumpCast-Studio-Setup-0.0.0.exe'),
+    ];
+    const target = candidates.find((f) => fs.existsSync(f));
+    if (!target) {
+      return reply.code(404).send({ error: 'Installer executable not found' });
+    }
+    const stat = fs.statSync(target);
+    reply.header('Content-Type', 'application/vnd.microsoft.portable-executable');
+    reply.header('Content-Disposition', `attachment; filename="${path.basename(target)}"`);
+    reply.header('Content-Length', stat.size);
+    return reply.send(fs.createReadStream(target));
+  });
+
+  fastify.get('/latest.yml', async (_req, reply) => {
+    const candidates = [
+      path.resolve(process.cwd(), 'release', 'latest.yml'),
+      path.resolve(import.meta.dirname, '..', '..', '..', 'release', 'latest.yml'),
+      'C:\\Users\\IK\\Downloads\\StumpCast Studio\\stumpcast\\release\\latest.yml',
+      path.join(process.env.USERPROFILE || '', 'Downloads', 'StumpCast Studio', 'stumpcast', 'release', 'latest.yml'),
+    ];
+    const target = candidates.find((f) => fs.existsSync(f));
+    if (!target) return reply.code(404).send({ error: 'latest.yml not found' });
+    reply.header('Content-Type', 'text/yaml');
+    return reply.send(fs.readFileSync(target, 'utf8'));
+  });
+
   fastify.post('/api/app/update-simulate', async (req) => {
     const body = (req.body as { active?: boolean } | undefined) ?? {};
     simulatedUpdate = body.active !== undefined ? body.active : !simulatedUpdate;
@@ -245,7 +314,7 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
       status: 'downloading',
       percent: 0,
       transferred: 0,
-      total: 129412818,
+      total: 140364848,
       bytesPerSecond: 4200000,
       error: null,
       installerPath: null,
@@ -378,7 +447,28 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
       delay.push({ state: s, events });
     },
   });
-  extension.onUpdate((u) => engine.process(u));
+
+  extension.onUpdate((u) => {
+    engine.process(u);
+    // When a real match update arrives, auto-purge any old mock seed match from memory and DB
+    if (u.matchId !== '147920' && u.matchId !== 'seed-match') {
+      engine.deleteMatch('147920');
+      engine.deleteMatch('seed-match');
+      extension.deleteMatch('147920');
+      extension.deleteMatch('seed-match');
+      db.delete(schema.matches).where(eq(schema.matches.id, '147920')).run();
+      db.delete(schema.matches).where(eq(schema.matches.id, 'seed-match')).run();
+    }
+    const s = loadSettings();
+    if (!s.onStreamMatchId || s.onStreamMatchId === '147920' || s.onStreamMatchId === 'seed-match') {
+      const next = { ...s, onStreamMatchId: u.matchId };
+      db.insert(schema.settings)
+        .values({ key: SETTINGS_KEY, value: next })
+        .onConflictDoUpdate({ target: schema.settings.key, set: { value: next } })
+        .run();
+      hub.broadcast('layout', 'settings', next);
+    }
+  });
 
   // Optional backup source: operator-scored matches share the same engine and overlay pipeline.
   const manual = new ManualProvider(sqlite);
@@ -421,6 +511,7 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
 
   fastify.delete('/api/matches', async () => {
     engine.clear();
+    extension.clear();
     published.clear();
     db.delete(schema.matches).run();
     db.delete(schema.snapshots).run();
@@ -435,6 +526,7 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
   fastify.delete<{ Params: { id: string } }>('/api/matches/:id', async (req) => {
     const id = req.params.id;
     engine.deleteMatch(id);
+    extension.deleteMatch(id);
     published.delete(id);
     db.delete(schema.matches).where(eq(schema.matches.id, id)).run();
     db.delete(schema.snapshots).where(eq(schema.snapshots.matchId, id)).run();
@@ -503,6 +595,55 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
   };
 
   // ---- licence routes ----
+  const privateKeyHex = (() => {
+    const candidates = [
+      process.env.STUMPCAST_LICENCE_PRIVATE_KEY_FILE,
+      config.licencePrivateKey,
+      path.resolve(import.meta.dirname, '..', '..', '.secrets', 'licence-private.key'),
+      path.resolve(import.meta.dirname, '..', '..', '..', '.secrets', 'licence-private.key'),
+      path.resolve(process.cwd(), '.secrets', 'licence-private.key'),
+      'C:\\Users\\IK\\Downloads\\StumpCast Studio\\stumpcast\\.secrets\\licence-private.key',
+      path.join(process.env.USERPROFILE || '', 'Downloads', 'StumpCast Studio', 'stumpcast', '.secrets', 'licence-private.key'),
+      path.join(process.env.LOCALAPPDATA || '', 'Programs', 'StumpCast Studio', 'resources', 'app', '.secrets', 'licence-private.key'),
+      path.join(process.env.LOCALAPPDATA || '', 'Programs', 'StumpCast Studio', '.secrets', 'licence-private.key'),
+    ].filter(Boolean) as string[];
+
+    for (const keyPath of candidates) {
+      try {
+        if (fs.existsSync(keyPath)) {
+          return fs.readFileSync(keyPath, 'utf8').trim();
+        }
+      } catch {
+        /* try next */
+      }
+    }
+    return null;
+  })();
+
+  fastify.post('/api/licence/generate', async (req, reply) => {
+    if (!privateKeyHex) {
+      return reply.code(503).send({ error: 'Licence private key not found on server' });
+    }
+    const body = z.object({
+      channel: z.string().min(1).max(100),
+      plan: z.enum(['monthly', 'yearly', 'lifetime']),
+      days: z.number().int().min(1).max(36500).optional(),
+    }).safeParse(req.body);
+    if (!body.success) return reply.code(400).send({ error: 'Invalid licence request' });
+
+    const { channel, plan, days: reqDays } = body.data;
+    const iat = Math.floor(Date.now() / 1000);
+    const defaultDays = plan === 'monthly' ? 31 : 366;
+    const days = reqDays ?? defaultDays;
+
+    const payload: LicencePayload = plan === 'lifetime'
+      ? { v: 1, channel, plan, iat }
+      : { v: 1, channel, plan, iat, exp: iat + days * 86400 };
+
+    const token = signLicenceToken(payload, privateKeyHex);
+    return { token, channel, plan, days, expiresAt: payload.exp ? payload.exp * 1000 : null };
+  });
+
   fastify.get('/api/licence', async () => {
     const row = db.select().from(schema.licence).get();
     return {
@@ -838,15 +979,18 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
     sourceTermsAccepted: () => loadSettings().sourceTermsAcceptedAt !== null,
   });
 
-  // Static bundles are optional so the API works before overlay/admin are built.
   const serve = async (root: string, prefix: string, decorateReply: boolean) => {
     if (!fs.existsSync(root)) return;
-    await fastify.register(fastifyStatic, { root, prefix, decorateReply });
+    await fastify.register(fastifyStatic, { root, prefix, decorateReply, wildcard: true });
   };
   await serve(config.overlayDir, '/overlay/', true);
   await serve(config.adminDir, '/admin/', false);
+  await serve(config.licenseAdminDir, '/license-admin/', false);
+  await serve(config.licenseAdminDir, '/license-generator/', false);
   fastify.get('/overlay', async (_req, reply) => reply.redirect('/overlay/'));
   fastify.get('/admin', async (_req, reply) => reply.redirect('/admin/'));
+  fastify.get('/license-admin', async (_req, reply) => reply.redirect('/license-admin/'));
+  fastify.get('/license-generator', async (_req, reply) => reply.redirect('/license-generator/'));
   const assetsDir = path.join(config.dataDir, 'assets');
   fs.mkdirSync(assetsDir, { recursive: true });
 
@@ -906,9 +1050,6 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
           await fastify.listen({ host: config.host, port });
           const addr = fastify.server.address();
           state.port = typeof addr === 'object' && addr ? addr.port : port;
-          if (!process.env.VITEST && engine.allStates().length === 0) {
-            extension.ingest({ ...SAMPLE_MATCH_UPDATE, capturedAt: Date.now() });
-          }
           watchdog.start();
           return state.port;
         } catch (err) {

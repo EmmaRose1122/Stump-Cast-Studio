@@ -269,8 +269,8 @@ export const SoundsPage = () => {
   return (
     <div className="w-full max-w-6xl mx-auto flex flex-col items-center space-y-6">
       {/* Celebrations Bar */}
-      <div className="w-full flex items-center justify-between gap-3 rounded-xl border border-[#213f77] bg-[#0c1836] px-4 py-2.5">
-        <span className="text-xs font-bold uppercase tracking-wider text-slate-300">CELEBRATIONS:</span>
+      <div className="w-full flex items-center justify-between gap-3 rounded-xl border border-blue-200 bg-white px-4 py-2.5 shadow-sm">
+        <span className="text-xs font-bold uppercase tracking-wider text-blue-950">CELEBRATIONS:</span>
         <button
           onClick={() => {
             if (settings.data) {
@@ -284,64 +284,64 @@ export const SoundsPage = () => {
             }
           }}
           className={clsx(
-            'flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold transition',
+            'flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold transition shadow-xs',
             autoSoundsOn
-              ? 'bg-blue-600/30 border border-blue-400 text-blue-200'
-              : 'bg-surface-2 border border-border text-muted',
+              ? 'bg-orange-50 border border-orange-300 text-orange-700'
+              : 'bg-white border border-blue-200 text-slate-500 hover:bg-blue-50',
           )}
         >
-          <span className={clsx('size-2 rounded-full', autoSoundsOn ? 'bg-blue-400' : 'bg-muted')} />
+          <span className={clsx('size-2 rounded-full', autoSoundsOn ? 'bg-orange-500' : 'bg-slate-400')} />
           🏟️ Auto Sounds {autoSoundsOn ? 'ON' : 'OFF'}
         </button>
       </div>
 
       {/* Crowd Bar */}
-      <div className="w-full flex flex-wrap items-center justify-center sm:justify-start gap-3 rounded-xl border border-[#213f77] bg-[#0c1836] px-4 py-2.5">
-        <span className="text-xs font-bold uppercase tracking-wider text-slate-300">CROWD:</span>
+      <div className="w-full flex flex-wrap items-center justify-center sm:justify-start gap-3 rounded-xl border border-blue-200 bg-white px-4 py-2.5 shadow-sm">
+        <span className="text-xs font-bold uppercase tracking-wider text-blue-950">CROWD:</span>
         <button
           onClick={() => handleInstantCrowd('cheer')}
-          className="flex items-center gap-1.5 rounded-lg border border-[#213f77] bg-[#0e1d40] px-3 py-1 text-xs font-bold text-white transition hover:bg-[#152a5c]"
+          className="flex items-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-3 py-1 text-xs font-bold text-rose-700 transition hover:bg-rose-100 shadow-xs"
         >
           📣 Cheer
         </button>
         <button
           onClick={() => handleInstantCrowd('clap')}
-          className="flex items-center gap-1.5 rounded-lg border border-[#213f77] bg-[#0e1d40] px-3 py-1 text-xs font-bold text-white transition hover:bg-[#152a5c]"
+          className="flex items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-bold text-amber-800 transition hover:bg-amber-100 shadow-xs"
         >
           👏 Clap
         </button>
         <button
           onClick={() => handleInstantCrowd('four')}
-          className="flex items-center gap-1.5 rounded-lg border border-[#213f77] bg-[#0e1d40] px-3 py-1 text-xs font-bold text-white transition hover:bg-[#152a5c]"
+          className="flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-bold text-blue-800 transition hover:bg-blue-100 shadow-xs"
         >
           📯 Four
         </button>
         <button
           onClick={() => control.mutate(soundsApi.stopAll)}
-          className="flex items-center gap-1.5 rounded-lg border border-red-500/50 bg-red-600/20 px-3 py-1 text-xs font-bold text-red-300 transition hover:bg-red-600/30"
+          className="flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-1 text-xs font-bold text-red-700 transition hover:bg-red-100 shadow-xs"
         >
           🔴 Mute
         </button>
       </div>
 
       {/* STADIUM CROWD AUDIO STATION */}
-      <div className="w-full rounded-xl border border-[#213f77] bg-[#0c1836] p-5 shadow-lg">
+      <div className="w-full rounded-xl border border-blue-200 bg-white p-5 shadow-sm">
         {/* Header */}
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <span className="flex size-10 items-center justify-center rounded-xl bg-blue-600/20 text-xl border border-blue-500/30">
+            <span className="flex size-10 items-center justify-center rounded-xl bg-orange-100 text-xl border border-orange-200 text-orange-600">
               🔊
             </span>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="font-heading text-base font-bold uppercase tracking-wider text-white">
+                <h2 className="font-heading text-base font-bold uppercase tracking-wider text-blue-950">
                   STADIUM CROWD AUDIO STATION
                 </h2>
-                <span className="rounded-full bg-blue-600/20 border border-blue-500/40 px-2.5 py-0.5 text-[10px] font-bold text-blue-300 uppercase tracking-wider">
+                <span className="rounded-full bg-orange-100 border border-orange-300 px-2.5 py-0.5 text-[10px] font-bold text-orange-700 uppercase tracking-wider">
                   ● LOOP ACTIVE ({loopCount} IN LOOP)
                 </span>
               </div>
-              <p className="text-xs text-muted">
+              <p className="text-xs text-slate-500">
                 Multi-track stadium engine: loop up to 10 sounds continuously or fire instant crowd punches on stream.
               </p>
             </div>
@@ -372,14 +372,14 @@ export const SoundsPage = () => {
         </div>
 
         {/* Master Crowd Volume */}
-        <div className="mt-5 rounded-xl border border-border/60 bg-[#111a28] p-4">
+        <div className="mt-5 rounded-xl border border-blue-200 bg-white p-4 shadow-sm">
           <div className="flex items-center justify-between text-xs">
             <div className="flex items-center gap-2">
-              <span className="font-bold text-amber-400 uppercase tracking-wider">
+              <span className="font-bold text-blue-950 uppercase tracking-wider">
                 🎚️ MASTER CROWD VOLUME: {master}%
               </span>
             </div>
-            <span className="text-muted">
+            <span className="text-slate-500 font-medium">
               Capacity: {slots.length} / 10 slots filled
             </span>
           </div>
@@ -403,18 +403,18 @@ export const SoundsPage = () => {
                   });
                 }
               }}
-              className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-surface-2 accent-amber-500"
+              className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-blue-100 accent-orange-500"
             />
           </div>
         </div>
 
         {/* Audio Tracks Rack */}
         <div className="mt-6">
-          <div className="flex items-center justify-between border-b border-border/50 pb-2">
-            <span className="text-xs font-bold uppercase tracking-wider text-muted">
+          <div className="flex items-center justify-between border-b border-blue-100 pb-2">
+            <span className="text-xs font-bold uppercase tracking-wider text-blue-950">
               AUDIO TRACKS RACK (PERSISTENT ACROSS RELOADS)
             </span>
-            <span className="text-xs font-bold text-cyan-400 uppercase tracking-wider">
+            <span className="text-xs font-bold text-orange-600 uppercase tracking-wider">
               ⚡ CLICK "PLAY INSTANT" FOR INSTANT CROWD PUNCH
             </span>
           </div>
@@ -423,22 +423,23 @@ export const SoundsPage = () => {
             {slots.map((s, idx) => (
               <div
                 key={s.id}
-                className="flex items-center justify-between rounded-xl border border-border/80 bg-[#111a28] p-3 transition hover:border-border"
+                className="flex items-center justify-between rounded-xl border border-blue-100 bg-[#f8fafc] p-3 transition hover:border-orange-400 hover:shadow-xs"
               >
                 <div className="flex items-center gap-3 min-w-0">
-                  <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-surface-2 text-xs font-bold text-amber-400">
+                  <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-orange-100 text-xs font-bold text-orange-700">
                     #{idx + 1}
                   </span>
                   <div className="min-w-0">
-                    <h4 className="text-xs font-bold text-white truncate">{s.title}</h4>
-                    <div className="flex items-center gap-2 mt-0.5 text-[10px] text-muted">
+                    <h4 className="text-xs font-bold text-slate-900 truncate">{s.title}</h4>
+                    <div className="flex items-center gap-2 mt-0.5 text-[10px] text-slate-500">
                       <span className="truncate">{s.file.replace('sounds/', '')}</span>
                       <span>•</span>
-                      <label className="flex items-center gap-1 cursor-pointer text-emerald-400">
+                      <label className="flex items-center gap-1 cursor-pointer text-emerald-700 font-medium">
                         <input
                           type="checkbox"
                           checked={s.includeInLoop}
                           onChange={(e) => update.mutate({ id: s.id, includeInLoop: e.target.checked })}
+                          className="accent-emerald-600"
                         />
                         Include in Loop
                       </label>
@@ -454,13 +455,13 @@ export const SoundsPage = () => {
                       }
                       void soundsApi.play(s.id).catch(onError);
                     }}
-                    className="flex items-center gap-1 rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-bold text-black uppercase hover:bg-amber-400 transition"
+                    className="flex items-center gap-1 rounded-lg bg-orange-500 px-3 py-1.5 text-xs font-bold text-white uppercase hover:bg-orange-600 transition shadow-xs"
                   >
                     💥 INSTANT
                   </button>
                   <button
                     onClick={() => setToDelete(s.id)}
-                    className="flex size-7 items-center justify-center rounded-lg border border-border text-muted hover:border-red-500/50 hover:text-red-400 transition"
+                    className="flex size-7 items-center justify-center rounded-lg border border-blue-200 text-slate-400 hover:border-red-400 hover:text-red-600 transition bg-white"
                     title="Delete track"
                   >
                     🗑️
@@ -470,7 +471,7 @@ export const SoundsPage = () => {
             ))}
 
             {slots.length === 0 && (
-              <div className="col-span-2 rounded-xl border border-dashed border-border p-6 text-center text-xs text-muted">
+              <div className="col-span-2 rounded-xl border border-dashed border-blue-200 p-6 text-center text-xs text-slate-500 bg-white">
                 No custom sounds loaded yet. Add a track below or load quick presets.
               </div>
             )}
@@ -478,22 +479,22 @@ export const SoundsPage = () => {
         </div>
 
         {/* Add Audio Track Box */}
-        <div className="mt-6 rounded-xl border border-border/60 bg-[#111a28] p-4">
+        <div className="mt-6 rounded-xl border border-blue-200 bg-white p-4 shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <span className="text-xs font-bold text-white uppercase tracking-wider">
+            <span className="text-xs font-bold text-slate-900 uppercase tracking-wider">
               + ADD AUDIO TRACK ({Math.max(0, 10 - slots.length)} SLOTS REMAINING)
             </span>
             <div className="flex items-center gap-2 text-xs">
-              <span className="text-muted">Quick Presets:</span>
+              <span className="text-slate-500">Quick Presets:</span>
               <button
                 onClick={() => handleQuickAdd('Stadium Murmur')}
-                className="rounded-lg border border-border bg-surface-2 px-2.5 py-1 text-xs text-white hover:bg-surface"
+                className="rounded-lg border border-blue-200 bg-white px-2.5 py-1 text-xs font-semibold text-blue-900 hover:bg-blue-50 shadow-xs"
               >
                 + Stadium Murmur
               </button>
               <button
                 onClick={() => handleQuickAdd('Roar Cheer')}
-                className="rounded-lg border border-border bg-surface-2 px-2.5 py-1 text-xs text-white hover:bg-surface"
+                className="rounded-lg border border-blue-200 bg-white px-2.5 py-1 text-xs font-semibold text-blue-900 hover:bg-blue-50 shadow-xs"
               >
                 + Roar Cheer
               </button>
@@ -505,7 +506,7 @@ export const SoundsPage = () => {
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Track Title (e.g. 6s Boundary Beat, Team Chant)..."
-              className="flex-1 min-w-[240px] rounded-lg border border-border bg-[#0b1320] px-3 py-1.5 text-xs text-white"
+              className="flex-1 min-w-[240px] rounded-lg border border-blue-200 bg-white px-3 py-1.5 text-xs text-slate-800 focus:border-orange-500 focus:outline-none"
             />
             <input
               ref={fileInput}
@@ -522,11 +523,11 @@ export const SoundsPage = () => {
             />
             <button
               onClick={() => fileInput.current?.click()}
-              className="rounded-lg bg-amber-500 px-3.5 py-1.5 text-xs font-bold text-black uppercase hover:bg-amber-400"
+              className="rounded-lg bg-white border border-blue-200 px-3.5 py-1.5 text-xs font-semibold text-blue-900 uppercase hover:bg-blue-50 shadow-xs"
             >
               Choose File
             </button>
-            <span className="text-xs text-muted truncate max-w-[140px]">
+            <span className="text-xs text-slate-500 truncate max-w-[140px]">
               {file ? file.name : 'No file chosen'}
             </span>
             {file && (
@@ -537,7 +538,7 @@ export const SoundsPage = () => {
                   }
                 }}
                 disabled={upload.isPending}
-                className="rounded-lg bg-emerald-600 px-3.5 py-1.5 text-xs font-bold text-white uppercase hover:bg-emerald-500"
+                className="rounded-lg bg-orange-500 px-3.5 py-1.5 text-xs font-bold text-white uppercase hover:bg-orange-600 shadow-sm"
               >
                 Upload Track
               </button>
@@ -547,35 +548,35 @@ export const SoundsPage = () => {
       </div>
 
       {/* LIVE CRICKET COMMENTARY & TTS ENGINE (E3) */}
-      <div className="w-full rounded-xl border border-[#213f77] bg-[#0c1836] p-5 shadow-lg">
-        <div className="flex flex-wrap items-center justify-between border-b border-border/50 pb-3 gap-3">
+      <div className="w-full rounded-xl border border-blue-200 bg-white p-5 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between border-b border-blue-100 pb-3 gap-3">
           <div className="flex items-center gap-2">
             <span className="text-xl">🎙️</span>
             <div>
-              <h2 className="font-heading text-sm font-bold uppercase tracking-wider text-blue-400">
+              <h2 className="font-heading text-sm font-bold uppercase tracking-wider text-blue-950">
                 LIVE CRICKET COMMENTARY &amp; TTS ENGINE (E3)
               </h2>
-              <p className="text-xs text-muted">
+              <p className="text-xs text-slate-500">
                 Synthesizes realistic, natural cricket commentary for OBS overlays and stream audio.
               </p>
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <label className="flex items-center gap-2 text-xs font-semibold text-white cursor-pointer">
+            <label className="flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer">
               <input
                 type="checkbox"
                 checked={commConfig?.enabled ?? true}
                 onChange={(e) => updateCommConfig.mutate({ enabled: e.target.checked })}
-                className="size-4 rounded accent-blue-500"
+                className="size-4 rounded accent-orange-500"
               />
               Commentary Active
             </label>
-            <label className="flex items-center gap-2 text-xs font-semibold text-white cursor-pointer">
+            <label className="flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer">
               <input
                 type="checkbox"
                 checked={commConfig?.autoEvents ?? true}
                 onChange={(e) => updateCommConfig.mutate({ autoEvents: e.target.checked })}
-                className="size-4 rounded accent-red-600"
+                className="size-4 rounded accent-orange-500"
               />
               Auto-Speak Match Events (4s, 6s, Wkts)
             </label>
@@ -668,14 +669,14 @@ export const SoundsPage = () => {
               }
             }}
             placeholder="Type custom live commentary to speak over stream..."
-            className="flex-1 min-w-[280px] rounded-lg border border-border bg-[#111a28] px-3 py-2 text-xs text-white"
+            className="flex-1 min-w-[280px] rounded-lg border border-blue-200 bg-white px-3 py-2 text-xs text-slate-800 focus:border-orange-500 focus:outline-none"
           />
           <button
             onClick={() => {
               if (customCommentary.trim()) speakText.mutate({ text: customCommentary });
             }}
             disabled={!customCommentary.trim() || speakText.isPending}
-            className="flex items-center gap-1.5 rounded-lg bg-amber-500 px-4 py-2 text-xs font-bold text-black uppercase hover:bg-amber-400 disabled:opacity-50 transition"
+            className="flex items-center gap-1.5 rounded-lg bg-orange-500 px-4 py-2 text-xs font-bold text-white uppercase hover:bg-orange-600 disabled:opacity-50 transition shadow-sm"
           >
             <span>🎙️</span> SPEAK LIVE (TTS)
           </button>
@@ -683,20 +684,20 @@ export const SoundsPage = () => {
 
         {/* Spoken Commentary History Log */}
         {commHistory.length > 0 && (
-          <div className="mt-4 rounded-lg border border-border/40 bg-[#070d17] p-3">
-            <span className="text-[11px] font-bold text-muted uppercase tracking-wider">
+          <div className="mt-4 rounded-lg border border-blue-100 bg-[#f8fafc] p-3">
+            <span className="text-[11px] font-bold text-blue-950 uppercase tracking-wider">
               Recent Spoken Commentary Feed
             </span>
             <div className="mt-2 space-y-1.5 max-h-36 overflow-y-auto">
               {commHistory.slice(0, 6).map((item) => (
-                <div key={item.id} className="flex items-center justify-between text-xs border-b border-border/20 pb-1">
+                <div key={item.id} className="flex items-center justify-between text-xs border-b border-blue-100 pb-1">
                   <div className="flex items-center gap-2">
-                    <span className="rounded bg-amber-950/60 border border-amber-600/40 px-1.5 py-0.5 text-[10px] font-bold text-amber-300 uppercase">
+                    <span className="rounded bg-orange-100 border border-orange-200 px-1.5 py-0.5 text-[10px] font-bold text-orange-800 uppercase">
                       {item.eventType ?? 'LIVE'}
                     </span>
-                    <span className="text-white/90">{item.text}</span>
+                    <span className="text-slate-800 font-medium">{item.text}</span>
                   </div>
-                  <span className="text-[10px] text-muted">
+                  <span className="text-[10px] text-slate-500">
                     {new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                   </span>
                 </div>

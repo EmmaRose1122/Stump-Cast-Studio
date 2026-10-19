@@ -632,27 +632,27 @@ export const ProLooksModal = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-md">
-      <div className="relative flex max-h-[92vh] w-full max-w-6xl flex-col rounded-2xl border border-[#1e293b] bg-[#090d16] text-[#e2e8f0] shadow-2xl overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+      <div className="relative flex max-h-[92vh] w-full max-w-6xl flex-col rounded-2xl border border-blue-200 bg-white text-slate-800 shadow-2xl overflow-hidden">
         {/* Header */}
-        <div className="flex flex-col gap-3 border-b border-[#1e293b] p-6 pb-4">
+        <div className="flex flex-col gap-3 border-b border-blue-100 p-6 pb-4 bg-slate-50">
           <div className="flex items-start justify-between">
             <div>
               <div className="flex items-center gap-2.5">
-                <h2 className="font-heading text-2xl font-black uppercase tracking-wider text-white">
+                <h2 className="font-heading text-2xl font-black uppercase tracking-wider text-slate-900">
                   CHOOSE YOUR PRO LOOK
                 </h2>
                 {isLicensed ? (
-                  <span className="rounded bg-emerald-500/20 px-2 py-0.5 text-xs font-bold uppercase tracking-wider text-emerald-400 border border-emerald-500/40">
+                  <span className="rounded bg-emerald-50 px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider text-emerald-700 border border-emerald-300">
                     PRO LICENCE ACTIVE
                   </span>
                 ) : (
-                  <span className="rounded bg-amber-500/20 px-2 py-0.5 text-xs font-bold uppercase tracking-wider text-amber-400 border border-amber-500/40">
+                  <span className="rounded bg-orange-50 px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider text-orange-700 border border-orange-300">
                     FREE PLAN
                   </span>
                 )}
               </div>
-              <p className="mt-1 max-w-3xl text-sm leading-relaxed text-slate-300">
+              <p className="mt-1 max-w-3xl text-sm leading-relaxed text-slate-600">
                 Each look has its own style, score position, player cards, animations, 4/6/wicket graphics
                 and auto-producer. Seamlessly integrates with Arena + Video, Full Screen, Strip, and Classic layouts.
               </p>
@@ -660,7 +660,7 @@ export const ProLooksModal = ({
             <button
               type="button"
               onClick={onClose}
-              className="flex items-center gap-1 rounded-lg bg-[#162132] px-3 py-1.5 text-sm font-semibold text-slate-300 border border-[#23354d] hover:bg-[#203047] transition"
+              className="flex items-center gap-1 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 border border-blue-200 hover:bg-blue-50 transition cursor-pointer shadow-sm"
             >
               Close ✕
             </button>
@@ -668,16 +668,16 @@ export const ProLooksModal = ({
 
           {/* Licence Status Banner */}
           {isLicensed ? (
-            <div className="flex items-center gap-2 rounded-lg bg-emerald-950/60 border border-emerald-500/40 px-3.5 py-2 text-xs font-medium text-emerald-300">
-              <span className="size-2 rounded-full bg-emerald-400 animate-pulse" />
+            <div className="flex items-center gap-2 rounded-lg bg-emerald-50 border border-emerald-200 px-3.5 py-2 text-xs font-medium text-emerald-800">
+              <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
               <span>
                 <b>Pro Licence Verified:</b> All 29 Pro Broadcast Looks are fully unlocked and ready to activate permanently on your broadcast overlay.
               </span>
             </div>
           ) : (
-            <div className="flex flex-col gap-2 rounded-lg bg-amber-950/50 border border-amber-500/40 p-3 text-xs">
+            <div className="flex flex-col gap-2 rounded-lg bg-orange-50/60 border border-orange-200 p-3 text-xs">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="flex items-center gap-2 text-amber-200">
+                <div className="flex items-center gap-2 text-orange-900">
                   <span className="text-base">🔑</span>
                   <span>
                     <b>Free Plan:</b> By default you have access to the default look (Ink &amp; Gold). Pro users with a licence key unlock all 29 bespoke looks permanently on-air.
@@ -687,7 +687,7 @@ export const ProLooksModal = ({
                   <button
                     type="button"
                     onClick={() => setShowKeyInput(!showKeyInput)}
-                    className="rounded bg-amber-500 px-3 py-1 font-bold text-black hover:bg-amber-400 transition"
+                    className="rounded bg-orange-500 px-3 py-1 font-bold text-white hover:bg-orange-600 transition shadow-sm cursor-pointer"
                   >
                     {showKeyInput ? 'Hide Key Input' : 'Enter Licence Key'}
                   </button>
@@ -695,19 +695,19 @@ export const ProLooksModal = ({
               </div>
 
               {showKeyInput && (
-                <div className="mt-1 flex flex-wrap items-center gap-2 rounded-lg bg-[#0c1424] p-2 border border-amber-500/30">
+                <div className="mt-1 flex flex-wrap items-center gap-2 rounded-lg bg-white p-2 border border-orange-300">
                   <input
                     type="text"
                     value={keyInput}
                     onChange={(e) => setKeyInput(e.target.value)}
                     placeholder="Enter Pro Licence Key (e.g. SC-PRO-XXXX-XXXX)"
-                    className="flex-1 min-w-[200px] rounded border border-[#223652] bg-[#070b13] px-3 py-1.5 font-mono text-xs text-white focus:border-emerald-500 focus:outline-none"
+                    className="flex-1 min-w-[200px] rounded border border-blue-200 bg-white px-3 py-1.5 font-mono text-xs text-slate-900 focus:border-orange-500 focus:outline-none"
                   />
                   <button
                     type="button"
                     disabled={isActivatingKey || !keyInput.trim()}
                     onClick={handleActivateLicence}
-                    className="rounded bg-emerald-600 px-4 py-1.5 text-xs font-bold uppercase text-white hover:bg-emerald-500 transition disabled:opacity-50"
+                    className="rounded bg-orange-500 px-4 py-1.5 text-xs font-bold uppercase text-white hover:bg-orange-600 transition disabled:opacity-50 shadow-sm cursor-pointer"
                   >
                     {isActivatingKey ? 'Activating…' : 'Activate Licence'}
                   </button>
@@ -717,8 +717,8 @@ export const ProLooksModal = ({
           )}
         </div>
 
-        {/* Scrollable Look Grid matching Screenshots 203637, 203652, 203709, 203716 */}
-        <div className="flex-1 overflow-y-auto p-6">
+        {/* Scrollable Look Grid */}
+        <div className="flex-1 overflow-y-auto p-6 bg-slate-50/50">
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {PRO_LOOKS_CATALOG.map((look) => {
               const _isScoreBottom = look.tags.some((t) => t.includes('scores at the bottom'));
@@ -728,10 +728,10 @@ export const ProLooksModal = ({
               return (
                 <div
                   key={look.id}
-                  className={`group flex flex-col rounded-xl border p-3 transition ${
+                  className={`group flex flex-col rounded-xl border p-3 transition shadow-sm ${
                     isActive
-                      ? 'border-emerald-400 bg-[#0e1b25] shadow-[0_0_20px_rgba(16,185,129,0.3)]'
-                      : 'border-[#1b283d] bg-[#0f1726] hover:border-[#38bdf8] hover:shadow-xl'
+                      ? 'border-2 border-orange-500 bg-orange-50/50 shadow-md ring-1 ring-orange-400'
+                      : 'border-blue-200 bg-white hover:border-blue-400 hover:shadow-md'
                   }`}
                 >
                   {/* Authentic Broadcast Pro Look Mini Preview */}
@@ -740,11 +740,11 @@ export const ProLooksModal = ({
                   {/* Title & Tags */}
                   <div className="mt-3 flex-1">
                     <div className="flex items-center justify-between">
-                      <h3 className="font-heading text-base font-bold text-white group-hover:text-amber-400 transition">
+                      <h3 className="font-heading text-base font-bold text-slate-900 group-hover:text-blue-600 transition">
                         {look.name}
                       </h3>
                       <span
-                        className="size-3 rounded-full border border-white/30"
+                        className="size-3 rounded-full border border-slate-300"
                         style={{ backgroundColor: look.themeColor }}
                       />
                     </div>
@@ -752,7 +752,7 @@ export const ProLooksModal = ({
                       {look.tags.map((tag) => (
                         <span
                           key={tag}
-                          className="rounded-full bg-[#162132] px-2 py-0.5 text-[10px] font-medium text-slate-300 border border-[#23354d]"
+                          className="rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-medium text-blue-900 border border-blue-200"
                         >
                           {tag}
                         </span>
@@ -766,12 +766,12 @@ export const ProLooksModal = ({
                       type="button"
                       disabled={isApplying}
                       onClick={() => applyLook(look.id, look.badge)}
-                      className={`w-full rounded-lg py-1.5 text-xs font-bold uppercase tracking-wider transition ${
+                      className={`w-full rounded-lg py-1.5 text-xs font-bold uppercase tracking-wider transition cursor-pointer ${
                         isActive
-                          ? 'bg-emerald-600/30 text-emerald-300 border border-emerald-500/50 cursor-default'
+                          ? 'bg-orange-500 text-white shadow-sm cursor-default'
                           : isLicensed
-                            ? 'bg-emerald-600 text-white hover:bg-emerald-500 border border-emerald-400 shadow-md shadow-emerald-950'
-                            : 'bg-[#1b2b42] text-white hover:bg-[#253a59] border border-[#2d466c]'
+                            ? 'bg-orange-500 text-white hover:bg-orange-600 shadow-sm'
+                            : 'bg-white text-blue-900 hover:bg-blue-50 border border-blue-300'
                       }`}
                     >
                       {isActive
@@ -786,7 +786,7 @@ export const ProLooksModal = ({
                       <button
                         type="button"
                         onClick={() => openWhatsApp(look.badge)}
-                        className="w-full rounded-lg bg-emerald-600 py-1.5 text-xs font-bold uppercase tracking-wider text-white hover:bg-emerald-500 transition shadow-md shadow-emerald-950"
+                        className="w-full rounded-lg bg-emerald-600 py-1.5 text-xs font-bold uppercase tracking-wider text-white hover:bg-emerald-500 transition shadow-sm cursor-pointer"
                       >
                         Choose {look.badge} on WhatsApp
                       </button>

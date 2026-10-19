@@ -70,14 +70,18 @@
         selectors: [
           ".cb-text-toss",
           ".cb-toss",
+          ".text-cbItmBkgDark div",
+          ".text-sm.text-cbTxtSec",
           "#miniscore-branding-container .text-cbPreview",
           ".text-cbPreview"
-        ]
+        ],
+        regex: "(?:.*?[Tt]oss:\\s*)?([^\\n\\r]+)"
       },
       team1: {
         selectors: [
           '#miniscore-branding-container [class*="flex-row"]:first-child .mr-2',
           '[id^="sticky-m"] [class*="flex-row"]:first-child .mr-2',
+          "#miniscore-branding-container .text-base .mr-2",
           '#miniscore-branding-container [class*="flex-row"]:first-child > div:first-child',
           ".cb-hm-rwt .cb-hm-rwt-title",
           ".cb-col-50.cb-font-16"
@@ -85,6 +89,7 @@
       },
       team2: {
         selectors: [
+          "#miniscore-branding-container .text-xl .mr-2",
           '#miniscore-branding-container [class*="flex-row"]:nth-child(2) .mr-2',
           '[id^="sticky-m"] [class*="flex-row"]:nth-child(2) .mr-2',
           '#miniscore-branding-container [class*="flex-row"]:nth-child(2) > div:first-child',
@@ -94,10 +99,11 @@
       },
       battingTeam: {
         selectors: [
+          "#miniscore-branding-container .text-xl .mr-2",
+          "#sticky-mscore .font-bold.text-lg",
+          "#miniscore-branding-container .text-xl > div:first-child",
           '#miniscore-branding-container [class*="flex-row"]:last-child .mr-2',
           '[id^="sticky-m"] [class*="flex-row"]:last-child .mr-2',
-          "#miniscore-branding-container .text-xl > div:first-child",
-          "#sticky-mscore .font-bold.text-lg",
           ".cb-min-bat-rw .cb-font-20",
           ".cb-min-bat-rw span:first-child",
           ".cb-min-bat-rw"
@@ -112,6 +118,7 @@
       },
       "inn1.score": {
         selectors: [
+          "#miniscore-branding-container .text-base span.mr-2:first-child",
           "#miniscore-branding-container .text-base > div:last-child",
           "#miniscore-branding-container .text-base .flex",
           '#miniscore-branding-container [class*="flex-row"]:first-child:not(:last-child) .flex',
@@ -121,6 +128,8 @@
       },
       "inn1.overs": {
         selectors: [
+          "#miniscore-branding-container .text-base span.mr-2:last-child",
+          "#miniscore-branding-container .text-base span:last-child",
           "#miniscore-branding-container .text-base span.ml-1",
           "#miniscore-branding-container .text-base > div:nth-child(2) > div",
           '#miniscore-branding-container [class*="flex-row"]:first-child:not(:last-child) span.ml-1',
@@ -130,21 +139,30 @@
       },
       "inn2.team": {
         selectors: [
+          "#miniscore-branding-container .text-xl > div:first-child",
+          "#miniscore-branding-container .text-xl .mr-2",
           '#miniscore-branding-container [class*="flex-row"]:nth-child(2) .mr-2',
           '[id^="sticky-m"] [class*="flex-row"]:nth-child(2) .mr-2'
         ]
       },
       "inn2.score": {
         selectors: [
+          "#miniscore-branding-container .text-xl span.mr-2:first-child",
+          '#miniscore-branding-container [class*="flex-row"]:nth-child(2) .text-xl span.mr-2:first-child',
           '#miniscore-branding-container [class*="flex-row"]:nth-child(2) .text-xl > div:nth-child(2)',
           '#miniscore-branding-container [class*="flex-row"]:nth-child(2) .flex',
           '#miniscore-branding-container [class*="flex-row"]:nth-child(2) div:last-child',
           '[id^="sticky-m"] [class*="flex-row"]:nth-child(2) .text-3xl',
-          '[id^="sticky-m"] [class*="flex-row"]:nth-child(2) div:last-child'
+          '[id^="sticky-m"] [class*="flex-row"]:nth-child(2) div:last-child',
+          "#miniscore-branding-container .text-xl > div:nth-child(2)"
         ]
       },
       "inn2.overs": {
         selectors: [
+          "#miniscore-branding-container .text-xl span.mr-2:last-child",
+          "#miniscore-branding-container .text-xl span:last-child",
+          "#sticky-mscore .text-cbTxtSec",
+          '#miniscore-branding-container [class*="flex-row"]:nth-child(2) .text-xl span.mr-2:last-child',
           '#miniscore-branding-container [class*="flex-row"]:nth-child(2) .text-xl > div:nth-child(2) > div',
           '#miniscore-branding-container [class*="flex-row"]:nth-child(2) .font-bold.text-lg',
           '#miniscore-branding-container [class*="flex-row"]:nth-child(2) .ml-1:not(.text-cbTxtSec)',
@@ -156,12 +174,13 @@
       },
       score: {
         selectors: [
+          "#miniscore-branding-container .text-xl span.mr-2:first-child",
+          "#miniscore-branding-container .text-xl > div:nth-child(2) > span:first-child",
           "#miniscore-branding-container .text-xl > div:nth-child(2)",
           "#miniscore-branding-container .text-xl > .flex",
           "#miniscore-branding-container .text-xl .flex:has(span)",
           "#sticky-mscore .text-3xl",
           '#miniscore-branding-container [class*="flex-row"]:last-child div:nth-child(2)',
-          "#miniscore-branding-container .text-xl > div:nth-child(2) > span:first-child",
           ".cb-min-bat-rw .cb-font-20.text-bold",
           ".cb-min-bat-rw .cb-font-20",
           ".cb-min-bat-rw span",
@@ -172,12 +191,14 @@
       },
       overs: {
         selectors: [
+          "#miniscore-branding-container .text-xl span.mr-2:last-child",
+          "#miniscore-branding-container .text-xl span:last-child",
+          "#sticky-mscore .text-cbTxtSec",
+          "#sticky-mscore .text-3xl .text-cbTxtSec",
+          "#miniscore-branding-container .text-xl .text-cbTxtSec",
+          "#miniscore-branding-container .text-xl > div:nth-child(2) > span:nth-child(2)",
           "#miniscore-branding-container .text-xl > div:nth-child(2) > div",
           "#miniscore-branding-container .text-xl .font-bold.text-lg",
-          "#miniscore-branding-container .text-xl .ml-1:not(.text-cbTxtSec)",
-          "#sticky-mscore .text-3xl .text-cbTxtSec",
-          "#sticky-mscore .text-cbTxtSec",
-          "#miniscore-branding-container .text-xl > div:nth-child(2) > span:nth-child(2)",
           '#miniscore-branding-container [class*="flex-row"]:last-child span.ml-1',
           "#miniscore-branding-container span.ml-1",
           ".cb-min-bat-rw span:last-child",
@@ -309,10 +330,35 @@
         selectors: ["p.text-\\[\\#666\\]", ".text-\\[\\#666\\]", ".cb-min-rec", "span.cb-min-rec", "div.cb-min-rec"]
       },
       partnership: {
-        selectors: [".cb-col-100:has(.cb-min-itm)", ".cb-font-12"]
+        selectors: [
+          ".text-cbItmBkgDark div",
+          ".text-sm.text-cbTxtSec",
+          ".cb-col-100:has(.cb-min-itm)",
+          ".cb-font-12"
+        ],
+        regex: "(?:Partnership:?\\s*)(\\d+\\s*(?:\\(\\s*\\d+\\s*\\))?)"
       },
       crr: {
-        selectors: ["#miniscore-branding-container .text-xl span:last-child", ".cb-col-100:has(span.cb-font-12)", ".cb-min-bat-rw"]
+        selectors: [
+          "#miniscore-branding-container .text-cbTxtSec.ml-1",
+          "#miniscore-branding-container .text-xl span:last-child",
+          ".cb-col-100:has(span.cb-font-12)",
+          ".cb-min-bat-rw"
+        ]
+      },
+      rrr: {
+        selectors: [
+          ".text-cbTxtSec",
+          "#miniscore-branding-container .text-cbTxtSec"
+        ],
+        regex: "(?:REQ|RRR):?\\s*([\\d.]+)"
+      },
+      target: {
+        selectors: [
+          ".text-cbTxtSec",
+          "#miniscore-branding-container .text-cbTxtSec"
+        ],
+        regex: "(?:Target|TAR):?\\s*(\\d+)"
       }
     },
     minConfidenceFields: ["score", "overs"]
@@ -7071,7 +7117,7 @@
     const allOut = /^\s*(\d{1,4})\s*(?:all out|ao|a\/o)\s*$/i.exec(input);
     if (allOut) return { runs: Number(allOut[1]), wkts: 10 };
     if (options?.allowBare) {
-      const bare = /^(?:[A-Za-z]+\s+)?(\d{1,4})$/.exec(input.trim());
+      const bare = /^(?:[A-Za-z]+\s+)?(\d{1,4})(?:\s*\(.*?\))?$/.exec(input.trim());
       if (bare) return { runs: Number(bare[1]), wkts: 10 };
     }
     return void 0;
@@ -7244,15 +7290,22 @@
     const hasNumbered = slots.some((s) => text(s.score) !== void 0);
     const active = hasNumbered ? slots : [{ team: "battingTeam", score: "score", overs: "overs" }];
     for (const slot of active) {
-      const score = parseScore(text(slot.score)) ?? (isTest || hasNumbered ? parseScore(text(slot.score), { allowBare: true }) : void 0);
-      const overs = slot.overs ? parseOvers(text(slot.overs)) : void 0;
+      const rawScore = text(slot.score);
+      const score = parseScore(rawScore) ?? (isTest || hasNumbered ? parseScore(rawScore, { allowBare: true }) : void 0);
+      let overs = slot.overs ? parseOvers(text(slot.overs)) : void 0;
+      if (!overs && rawScore) {
+        const oversFromScore = /\(\s*(\d{1,3}(?:\.\d)?)\s*(?:ov(?:ers?)?|ovs?)?\s*\)/i.exec(rawScore);
+        if (oversFromScore?.[1]) {
+          overs = parseOvers(oversFromScore[1]);
+        }
+      }
       if (overs && overs.overs <= maxOvers) {
-        pass(slot.overs, true);
+        if (slot.overs) pass(slot.overs, true);
         pass("overs", true);
       }
       if (!score) continue;
       innings2.push({
-        team: slot.team && text(slot.team) || text("team1") || "",
+        team: slot.team && text(slot.team) || text("battingTeam") || text("team1") || "",
         runs: score.runs,
         wkts: score.wkts,
         overs: overs?.overs ?? 0,
@@ -7271,7 +7324,8 @@
     const isPreMatch = /(?:opt|toss|preview|starts|delayed|yet to start)/i.test(rawStatus) || /(?:opt|toss|won the toss)/i.test(rawToss) || Boolean(rawToss);
     if (innings2.length === 0 && (isPreMatch || !text("score") && !text("overs")) && (rawTitle || team1Name)) {
       const tossWinner = rawToss ? team1Name && rawToss.toLowerCase().includes(team1Name.toLowerCase()) ? team1Name : team2Name && rawToss.toLowerCase().includes(team2Name.toLowerCase()) ? team2Name : void 0 : void 0;
-      const teamName = site === "crex" ? text("battingTeam") || "" : text("battingTeam") || tossWinner || team1Name || "Batting";
+      const statusWinner = rawStatus ? team1Name && new RegExp(`\\b${team1Name}\\b`, "i").test(rawStatus) ? team1Name : team2Name && new RegExp(`\\b${team2Name}\\b`, "i").test(rawStatus) ? team2Name : void 0 : void 0;
+      const teamName = site === "crex" ? text("battingTeam") || "" : tossWinner || statusWinner || text("battingTeam") || team1Name || "Batting";
       innings2.push({
         team: teamName,
         runs: 0,

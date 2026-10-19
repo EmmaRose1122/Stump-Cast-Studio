@@ -178,6 +178,68 @@ describe('extension websocket', () => {
   });
 });
 
+describe('OnAirHero /ingest protocol', () => {
+  it('connects to /ingest and handles hello, match_meta and match_update', async () => {
+    const { app, port } = await boot();
+    const ws = new WebSocket(`ws://127.0.0.1:${port}/ingest`);
+    const inbox: any[] = [];
+    ws.on('message', (d) => inbox.push(JSON.parse(d.toString())));
+    await new Promise((resolve) => ws.on('open', resolve));
+
+    ws.send(JSON.stringify({ type: 'hello', payload: { version: '1.2.0' } }));
+    await waitFor(() => inbox.some((m) => m.type === 'hello_ack'));
+    expect(inbox.some((m) => m.type === 'request_meta')).toBe(true);
+
+    ws.send(
+      JSON.stringify({
+        type: 'match_meta',
+        payload: { matchId: '12345', title: 'Oman vs Nepal', url: 'https://cricbuzz.com/12345' },
+      }),
+    );
+    await waitFor(() => inbox.some((m) => m.type === 'meta_ack'));
+    expect(inbox.some((m) => m.type === 'on_air')).toBe(true);
+
+    ws.send(
+      JSON.stringify({
+        type: 'match_update',
+        payload: {
+          matchId: '12345',
+          title: 'Oman vs Nepal, 1st Match',
+          innings: [{ teamCode: 'NEP', runs: 280, wickets: 10, overs: 50 }],
+          batting: { teamCode: 'OMAN', runs: 30, wickets: 0, overs: 8.4 },
+          batters: [
+            { name: 'Hasnain Ul Wahab *', runs: 13, balls: 23, fours: 2, sixes: 0, isStriker: true },
+          ],
+          bowler: { name: 'Lalit Rajbanshi *', overs: 0.4, maidens: 0, runs: 3, wickets: 0 },
+          recentBalls: ['2', '0', '0', '1'],
+        },
+      }),
+    );
+
+    await waitFor(() => app.extension.status().matches.some((m) => m.matchId === '12345'));
+    expect(app.extension.status().health).toBe('connected');
+    ws.close();
+  });
+
+  it('accepts zero-friction HTTP POST /ingest updates', async () => {
+    const { app, port } = await boot();
+    const res = await fetch(`http://127.0.0.1:${port}/ingest`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        matchId: '99999',
+        title: 'India vs Pakistan',
+        innings: [{ teamCode: 'IND', runs: 180, wickets: 4, overs: 20 }],
+      }),
+    });
+    expect(res.status).toBe(200);
+    const data = (await res.json()) as { ok: boolean; matchId: string };
+    expect(data.ok).toBe(true);
+    expect(data.matchId).toBe('99999');
+    expect(app.extension.status().matches.some((m) => m.matchId === '99999')).toBe(true);
+  });
+});
+
 describe('ExtensionProvider health', () => {
   const hb = (tabs: { matchId: string; lastUpdateAt: number }[]) => ({
     type: 'heartbeat' as const,

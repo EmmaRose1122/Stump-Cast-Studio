@@ -40,6 +40,18 @@ export class ExtensionProvider implements MatchProvider {
     for (const cb of this.updateListeners) cb(update);
   }
 
+  deleteMatch(matchId: string): void {
+    this.latest.delete(matchId);
+    this.receivedAt.delete(matchId);
+    this.subs.delete(matchId);
+  }
+
+  clear(): void {
+    this.latest.clear();
+    this.receivedAt.clear();
+    this.subs.clear();
+  }
+
   /** Receive every update from every match (used to feed the match engine). */
   onUpdate(cb: (u: RawUpdate) => void): Unsubscribe {
     this.updateListeners.add(cb);

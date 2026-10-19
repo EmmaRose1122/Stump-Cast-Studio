@@ -601,24 +601,24 @@ export const VideoPage = () => {
       {/* ====================================================================================
           LIVE BROADCAST STAGE MONITOR (REAL-TIME BROADCAST PREVIEW)
           ==================================================================================== */}
-      <div className="w-full rounded-2xl border border-border bg-[#070d18] p-5 shadow-2xl">
+      <div className="w-full rounded-2xl border border-blue-200 bg-white p-5 shadow-sm">
         {/* Monitor Header Toolbar */}
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 pb-3">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-blue-100 pb-3">
           <div className="flex items-center gap-2.5">
             <span className="relative flex size-3">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
               <span className="relative inline-flex rounded-full size-3 bg-emerald-500" />
             </span>
-            <h2 className="font-heading text-sm font-bold tracking-wider text-white uppercase">
+            <h2 className="font-heading text-sm font-bold tracking-wider text-slate-900 uppercase">
               LIVE BROADCAST STAGE MONITOR
             </h2>
-            <span className="rounded bg-slate-800/80 px-2 py-0.5 text-[10px] font-bold text-cyan-400 border border-cyan-500/30 font-mono">
+            <span className="rounded bg-blue-50 px-2 py-0.5 text-[10px] font-bold text-blue-900 border border-blue-200 font-mono">
               1080P · 60 FPS
             </span>
-            <span className="hidden sm:inline-block rounded bg-purple-500/20 px-2 py-0.5 text-[10px] font-bold text-purple-300 border border-purple-500/30 uppercase">
+            <span className="hidden sm:inline-block rounded bg-orange-50 px-2 py-0.5 text-[10px] font-bold text-orange-800 border border-orange-200 uppercase">
               THEME: {activeThemeObj.name}
             </span>
-            <span className="hidden sm:inline-block rounded bg-emerald-500/20 px-2 py-0.5 text-[10px] font-bold text-emerald-300 border border-emerald-500/30 uppercase">
+            <span className="hidden sm:inline-block rounded bg-blue-50 px-2 py-0.5 text-[10px] font-bold text-blue-900 border border-blue-200 uppercase">
               VENUE: {activeStadiumObj.title}
             </span>
           </div>
@@ -629,7 +629,7 @@ export const VideoPage = () => {
                 navigator.clipboard.writeText(`${window.location.protocol}//${window.location.hostname}:4000/overlay/`);
                 toast({ title: 'OBS Browser Source URL copied to clipboard', kind: 'success' });
               }}
-              className="rounded-lg border border-border/80 bg-[#111a28] px-3 py-1 text-xs font-semibold text-slate-300 hover:text-white hover:border-slate-500 transition flex items-center gap-1.5"
+              className="rounded-lg border border-blue-200 bg-white px-3 py-1 text-xs font-semibold text-blue-900 hover:bg-blue-50 transition flex items-center gap-1.5 shadow-xs"
             >
               <span>📋</span> Copy OBS URL
             </button>
@@ -637,7 +637,7 @@ export const VideoPage = () => {
               href="/overlay?fixture=rsa-aus"
               target="_blank"
               rel="noreferrer"
-              className="rounded-lg bg-emerald-600 px-3.5 py-1 text-xs font-bold text-white hover:bg-emerald-500 transition flex items-center gap-1.5"
+              className="rounded-lg bg-orange-500 px-3.5 py-1 text-xs font-bold text-white hover:bg-orange-600 transition flex items-center gap-1.5 shadow-sm"
             >
               <span>↗</span> Pop-Out Live Feed
             </a>
@@ -887,14 +887,14 @@ export const VideoPage = () => {
       </div>
 
       {/* OVERLAY LAYOUT */}
-      <div className="w-full rounded-xl border border-border bg-[#0b1320] p-5 shadow-lg">
+      <div className="w-full rounded-xl border border-blue-200 bg-white p-5 shadow-sm">
         <div className="flex items-center gap-2">
-          <span className="text-cyan-400 text-lg">🖼️</span>
+          <span className="text-blue-600 text-lg">🖼️</span>
           <div>
-            <h2 className="font-heading text-base font-bold uppercase tracking-wider text-white">
+            <h2 className="font-heading text-base font-bold uppercase tracking-wider text-slate-900">
               OVERLAY LAYOUT
             </h2>
-            <p className="text-xs text-muted">
+            <p className="text-xs text-slate-600">
               Arena (graphics + live video &amp; streamer cams), full-screen graphics, a slim TV lower-third over your own video, or the previous layout.
             </p>
           </div>
@@ -930,23 +930,23 @@ export const VideoPage = () => {
               className={clsx(
                 'rounded-xl border p-4 text-left transition',
                 currentLayout === l.id
-                  ? 'border-emerald-500 bg-[#0d221c] shadow-[0_0_12px_rgba(16,185,129,0.2)]'
-                  : 'border-border/80 bg-[#111a28] hover:border-border',
+                  ? 'border-orange-500 bg-orange-50/60 shadow-xs ring-1 ring-orange-500'
+                  : 'border-blue-100 bg-[#f8fafc] hover:border-orange-300',
               )}
             >
               <div className="flex items-center gap-2">
-                <span className={clsx('size-2 rounded-full', currentLayout === l.id ? 'bg-emerald-400' : 'bg-transparent border border-muted')} />
-                <span className="font-heading text-sm font-bold text-white">{l.title}</span>
+                <span className={clsx('size-2 rounded-full', currentLayout === l.id ? 'bg-orange-500' : 'bg-transparent border border-slate-400')} />
+                <span className="font-heading text-sm font-bold text-slate-900">{l.title}</span>
               </div>
-              <p className="mt-1 text-xs text-muted">{l.desc}</p>
+              <p className="mt-1 text-xs text-slate-500">{l.desc}</p>
             </button>
           ))}
         </div>
 
         {/* On-air screen pills */}
-        <div className="mt-5 border-t border-border/50 pt-4">
-          <div className="text-xs font-semibold text-muted">
-            On-air screen — <span className="text-cyan-400 font-bold">AUTO</span> picks it from the match (now: <span className="text-white font-bold">{currentOnAirScreen}</span>)
+        <div className="mt-5 border-t border-blue-100 pt-4">
+          <div className="text-xs font-semibold text-slate-600">
+            On-air screen — <span className="text-orange-600 font-bold">AUTO</span> picks it from the match (now: <span className="text-slate-900 font-bold">{currentOnAirScreen}</span>)
           </div>
           <div className="mt-2 flex flex-wrap gap-2">
             {['AUTO', 'PRE-MATCH', 'LIVE', 'INN. BREAK', 'BREAK', 'RESULT'].map((screen) => (
@@ -962,8 +962,8 @@ export const VideoPage = () => {
                 className={clsx(
                   'rounded-lg px-4 py-1.5 text-xs font-bold uppercase transition',
                   currentOnAirScreen === screen
-                    ? 'border border-amber-500 bg-amber-500/20 text-amber-300 shadow-sm'
-                    : 'border border-border/80 bg-[#111a28] text-muted hover:text-white',
+                    ? 'border border-orange-500 bg-orange-500 text-white shadow-xs'
+                    : 'border border-blue-200 bg-white text-blue-900 hover:bg-blue-50',
                 )}
               >
                 {screen}
@@ -973,9 +973,9 @@ export const VideoPage = () => {
         </div>
 
         {/* Pre-match show pills & timings */}
-        <div className="mt-4 border-t border-border/50 pt-4">
-          <div className="text-xs font-semibold text-muted">
-            Pre-match show — <span className="text-cyan-400 font-bold">AUTO</span> rotates by the timings below; tap a scene to show it now
+        <div className="mt-4 border-t border-blue-100 pt-4">
+          <div className="text-xs font-semibold text-slate-600">
+            Pre-match show — <span className="text-orange-600 font-bold">AUTO</span> rotates by the timings below; tap a scene to show it now
           </div>
           <div className="mt-2 flex flex-wrap gap-2">
             {['AUTO', 'CLOCK / CAPTAINS', 'TOSS', 'TEAM 1 SQUAD', 'TEAM 2 SQUAD'].map((scene) => (
@@ -994,8 +994,8 @@ export const VideoPage = () => {
                 className={clsx(
                   'rounded-lg px-4 py-1.5 text-xs font-bold uppercase transition',
                   currentPreMatchScene === scene
-                    ? 'border border-amber-500 bg-amber-500/20 text-amber-300 shadow-sm'
-                    : 'border border-border/80 bg-[#111a28] text-muted hover:text-white',
+                    ? 'border border-orange-500 bg-orange-500 text-white shadow-xs'
+                    : 'border border-blue-200 bg-white text-blue-900 hover:bg-blue-50',
                 )}
               >
                 {scene}
@@ -1005,7 +1005,7 @@ export const VideoPage = () => {
 
           <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
             <div>
-              <label className="text-[11px] text-muted block mb-1">Clock / captains (sec)</label>
+              <label className="text-[11px] text-slate-600 block mb-1">Clock / captains (sec)</label>
               <input
                 value={clockDraft}
                 onChange={(e) => setClockDraft(e.target.value)}
@@ -1017,11 +1017,11 @@ export const VideoPage = () => {
                     });
                   }
                 }}
-                className="w-full rounded-lg border border-border bg-[#111a28] px-3 py-1.5 text-xs text-white"
+                className="w-full rounded-lg border border-blue-200 bg-white px-3 py-1.5 text-xs text-slate-800 focus:border-orange-500 focus:outline-none"
               />
             </div>
             <div>
-              <label className="text-[11px] text-muted block mb-1">Toss (sec)</label>
+              <label className="text-[11px] text-slate-600 block mb-1">Toss (sec)</label>
               <input
                 value={tossDraft}
                 onChange={(e) => setTossDraft(e.target.value)}
@@ -1033,11 +1033,11 @@ export const VideoPage = () => {
                     });
                   }
                 }}
-                className="w-full rounded-lg border border-border bg-[#111a28] px-3 py-1.5 text-xs text-white"
+                className="w-full rounded-lg border border-blue-200 bg-white px-3 py-1.5 text-xs text-slate-800 focus:border-orange-500 focus:outline-none"
               />
             </div>
             <div>
-              <label className="text-[11px] text-muted block mb-1">Team 1 squad (sec)</label>
+              <label className="text-[11px] text-slate-600 block mb-1">Team 1 squad (sec)</label>
               <input
                 value={squad1Draft}
                 onChange={(e) => setSquad1Draft(e.target.value)}
@@ -1049,11 +1049,11 @@ export const VideoPage = () => {
                     });
                   }
                 }}
-                className="w-full rounded-lg border border-border bg-[#111a28] px-3 py-1.5 text-xs text-white"
+                className="w-full rounded-lg border border-blue-200 bg-white px-3 py-1.5 text-xs text-slate-800 focus:border-orange-500 focus:outline-none"
               />
             </div>
             <div>
-              <label className="text-[11px] text-muted block mb-1">Team 2 squad (sec)</label>
+              <label className="text-[11px] text-slate-600 block mb-1">Team 2 squad (sec)</label>
               <input
                 value={squad2Draft}
                 onChange={(e) => setSquad2Draft(e.target.value)}
@@ -1065,14 +1065,14 @@ export const VideoPage = () => {
                     });
                   }
                 }}
-                className="w-full rounded-lg border border-border bg-[#111a28] px-3 py-1.5 text-xs text-white"
+                className="w-full rounded-lg border border-blue-200 bg-white px-3 py-1.5 text-xs text-slate-800 focus:border-orange-500 focus:outline-none"
               />
             </div>
           </div>
 
           <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
-              <label className="text-[11px] text-muted block mb-1">Match length (overs) — only if not detected</label>
+              <label className="text-[11px] text-slate-600 block mb-1">Match length (overs) — only if not detected</label>
               <input
                 value={oversDraft}
                 onChange={(e) => setOversDraft(e.target.value)}
@@ -1088,11 +1088,11 @@ export const VideoPage = () => {
                     });
                   }
                 }}
-                className="w-full rounded-lg border border-border bg-[#111a28] px-3 py-1.5 text-xs text-white"
+                className="w-full rounded-lg border border-blue-200 bg-white px-3 py-1.5 text-xs text-slate-800 focus:border-orange-500 focus:outline-none"
               />
             </div>
             <div>
-              <label className="text-[11px] text-muted block mb-1">Venue / stadium — only if not detected</label>
+              <label className="text-[11px] text-slate-600 block mb-1">Venue / stadium — only if not detected</label>
               <input
                 value={venueDraft}
                 onChange={(e) => setVenueDraft(e.target.value)}
@@ -1104,7 +1104,7 @@ export const VideoPage = () => {
                     });
                   }
                 }}
-                className="w-full rounded-lg border border-border bg-[#111a28] px-3 py-1.5 text-xs text-white"
+                className="w-full rounded-lg border border-blue-200 bg-white px-3 py-1.5 text-xs text-slate-800 focus:border-orange-500 focus:outline-none"
               />
             </div>
           </div>
@@ -1114,19 +1114,19 @@ export const VideoPage = () => {
       {/* ====================================================================================
           LIVE TELEVISION COLOR SCHEME / THEMES (REAL-TIME REACTIVE)
           ==================================================================================== */}
-      <div className="w-full rounded-xl border border-border bg-[#0b1320] p-5 shadow-lg">
+      <div className="w-full rounded-xl border border-blue-200 bg-white p-5 shadow-sm">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="text-pink-400 text-lg">🎨</span>
-            <h2 className="font-heading text-base font-bold uppercase tracking-wider text-white">
+            <span className="text-orange-500 text-lg">🎨</span>
+            <h2 className="font-heading text-base font-bold uppercase tracking-wider text-slate-900">
               LIVE TELEVISION COLOR SCHEME / THEMES
             </h2>
-            <span className="rounded bg-blue-500/20 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-blue-400 border border-blue-500/40">
+            <span className="rounded bg-blue-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-blue-900 border border-blue-200">
               ACTIVE: {activeThemeObj.name}
             </span>
           </div>
         </div>
-        <p className="mt-1 text-xs text-muted">
+        <p className="mt-1 text-xs text-slate-600">
           Instant real-time broadcast color palettes. Clicking any theme applies immediately across the live broadcast monitor and OBS overlay.
         </p>
 
@@ -1144,36 +1144,36 @@ export const VideoPage = () => {
                 className={clsx(
                   'group relative rounded-xl border p-4 text-left transition-all duration-200 cursor-pointer',
                   isSelected
-                    ? 'border-amber-400 bg-[#162238] shadow-[0_0_16px_rgba(245,158,11,0.35)] ring-2 ring-amber-400/80 scale-[1.02]'
-                    : 'border-border/80 bg-[#111a28] hover:border-slate-500 hover:bg-[#152033]',
+                    ? 'border-orange-500 bg-orange-50/60 shadow-md ring-2 ring-orange-500 scale-[1.02]'
+                    : 'border-blue-100 bg-[#f8fafc] hover:border-orange-300 hover:bg-white',
                 )}
               >
                 {/* Color swatch bar */}
-                <div className="flex h-3.5 w-full overflow-hidden rounded-md border border-black/40 shadow-inner">
+                <div className="flex h-3.5 w-full overflow-hidden rounded-md border border-slate-300 shadow-inner">
                   {theme.swatches.map((color, i) => (
                     <div key={i} className="flex-1" style={{ backgroundColor: color }} />
                   ))}
                 </div>
 
                 <div className="mt-3 flex items-center justify-between">
-                  <span className="font-heading text-xs font-bold text-white">{theme.name}</span>
+                  <span className="font-heading text-xs font-bold text-slate-900">{theme.name}</span>
                   {isSelected ? (
-                    <span className="rounded bg-amber-400 px-1.5 py-0.2 text-[9px] font-bold text-black uppercase shadow-sm">
+                    <span className="rounded bg-orange-500 px-1.5 py-0.2 text-[9px] font-bold text-white uppercase shadow-sm">
                       ON AIR
                     </span>
                   ) : theme.live ? (
-                    <span className="rounded bg-blue-500/30 px-1.5 py-0.2 text-[9px] font-bold text-blue-300 uppercase border border-blue-500/30">
+                    <span className="rounded bg-blue-100 px-1.5 py-0.2 text-[9px] font-bold text-blue-800 uppercase border border-blue-200">
                       PRESET
                     </span>
                   ) : null}
                 </div>
-                <p className="text-[11px] text-muted mt-0.5">{theme.desc}</p>
-                <div className="mt-2.5 flex items-center justify-between text-[10px] text-muted">
+                <p className="text-[11px] text-slate-500 mt-0.5">{theme.desc}</p>
+                <div className="mt-2.5 flex items-center justify-between text-[10px] text-slate-500">
                   <div className="flex items-center gap-1.5">
-                    <span className="size-2.5 rounded-full border border-white/20 shadow-sm" style={{ backgroundColor: theme.accent }} />
-                    <span className="text-slate-300 font-medium">Accent Glow</span>
+                    <span className="size-2.5 rounded-full border border-black/10 shadow-sm" style={{ backgroundColor: theme.accent }} />
+                    <span className="text-slate-700 font-medium">Accent Glow</span>
                   </div>
-                  <span className="font-mono text-slate-400 text-[9px]">{theme.border}</span>
+                  <span className="font-mono text-slate-500 text-[9px]">{theme.border}</span>
                 </div>
               </button>
             );
@@ -1184,17 +1184,17 @@ export const VideoPage = () => {
       {/* ====================================================================================
           STADIUM BACKGROUND RENDERS & AMBIANCE (REAL-TIME REACTIVE)
           ==================================================================================== */}
-      <div className="w-full rounded-xl border border-border bg-[#0b1320] p-5 shadow-lg">
+      <div className="w-full rounded-xl border border-blue-200 bg-white p-5 shadow-sm">
         <div className="flex items-center gap-2">
-          <span className="text-yellow-400 text-lg">🏟️</span>
-          <h2 className="font-heading text-base font-bold uppercase tracking-wider text-white">
+          <span className="text-orange-500 text-lg">🏟️</span>
+          <h2 className="font-heading text-base font-bold uppercase tracking-wider text-slate-900">
             STADIUM BACKGROUND RENDERS &amp; AMBIANCE
           </h2>
-          <span className="rounded bg-emerald-500/20 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-400 border border-emerald-500/40">
+          <span className="rounded bg-blue-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-blue-900 border border-blue-200">
             ACTIVE: {activeStadiumObj.title}
           </span>
         </div>
-        <p className="mt-1 text-xs text-muted">
+        <p className="mt-1 text-xs text-slate-600">
           Instant real-time stadium backdrop switching. Floodlights, sunset canopy, day championship, virtual procedural pitch, transparent OBS mode, or custom upload.
         </p>
 
@@ -1213,43 +1213,43 @@ export const VideoPage = () => {
                 className={clsx(
                   'group relative rounded-xl border p-2 text-left transition-all duration-200 cursor-pointer',
                   isSelected
-                    ? 'border-amber-400 bg-[#162238] shadow-[0_0_16px_rgba(245,158,11,0.35)] ring-2 ring-amber-400/80 scale-[1.03]'
-                    : 'border-border/80 bg-[#111a28] hover:border-slate-500 hover:bg-[#152033]',
+                    ? 'border-orange-500 bg-orange-50/60 shadow-md ring-2 ring-orange-500 scale-[1.03]'
+                    : 'border-blue-100 bg-[#f8fafc] hover:border-orange-300 hover:bg-white',
                 )}
               >
                 <div
-                  className="relative aspect-video w-full rounded-lg border border-border/50 flex items-center justify-center overflow-hidden"
+                  className="relative aspect-video w-full rounded-lg border border-blue-100 flex items-center justify-center overflow-hidden"
                   style={{ background: stadium.thumb }}
                 >
                   <span className="absolute top-1 left-1 rounded bg-black/80 px-1 py-0.2 text-[8px] font-bold uppercase text-white backdrop-blur-sm">
                     {stadium.tag}
                   </span>
                   {isSelected ? (
-                    <span className="absolute top-1 right-1 rounded bg-amber-400 px-1 py-0.2 text-[8px] font-bold uppercase text-black shadow-sm">
+                    <span className="absolute top-1 right-1 rounded bg-orange-500 px-1 py-0.2 text-[8px] font-bold uppercase text-white shadow-sm">
                       ACTIVE
                     </span>
                   ) : stadium.onAir ? (
-                    <span className="absolute top-1 right-1 rounded bg-blue-500 px-1 py-0.2 text-[8px] font-bold uppercase text-white">
+                    <span className="absolute top-1 right-1 rounded bg-blue-600 px-1 py-0.2 text-[8px] font-bold uppercase text-white">
                       DEFAULT
                     </span>
                   ) : null}
                 </div>
-                <h4 className="mt-2 text-xs font-bold text-white truncate">{stadium.title}</h4>
-                <p className="text-[10px] text-muted line-clamp-2 mt-0.5">{stadium.desc}</p>
+                <h4 className="mt-2 text-xs font-bold text-slate-900 truncate">{stadium.title}</h4>
+                <p className="text-[10px] text-slate-500 line-clamp-2 mt-0.5">{stadium.desc}</p>
               </button>
             );
           })}
         </div>
 
         {/* Direct image URL + upload button */}
-        <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-border/50 pt-4">
+        <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-blue-100 pt-4">
           <div className="flex-1 min-w-[280px] flex items-center gap-2">
-            <span className="text-xs text-muted">🔗 DIRECT IMAGE URL:</span>
+            <span className="text-xs text-slate-600">🔗 DIRECT IMAGE URL:</span>
             <input
               value={customBgUrl}
               onChange={(e) => setCustomBgUrl(e.target.value)}
               placeholder="https://example.com/stadium.jpg or /assets/backgrounds/custom.jpg"
-              className="flex-1 rounded-lg border border-border bg-[#111a28] px-3 py-1.5 text-xs text-white"
+              className="flex-1 rounded-lg border border-blue-200 bg-white px-3 py-1.5 text-xs text-slate-800 focus:border-orange-500 focus:outline-none"
             />
             <button
               onClick={() => {
@@ -1259,12 +1259,12 @@ export const VideoPage = () => {
                   toast({ title: 'Custom Background URL Applied', kind: 'success' });
                 }
               }}
-              className="rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-bold text-black uppercase hover:bg-amber-400 cursor-pointer"
+              className="rounded-lg bg-orange-500 px-3 py-1.5 text-xs font-bold text-white uppercase hover:bg-orange-600 cursor-pointer shadow-sm"
             >
               APPLY URL
             </button>
           </div>
-          <span className="text-xs text-muted">OR</span>
+          <span className="text-xs text-slate-500">OR</span>
           <input
             ref={backgroundPicker}
             type="file"
@@ -1288,27 +1288,27 @@ export const VideoPage = () => {
       {/* ====================================================================================
           VIDEO & STREAMER CAMS (ADD YOUR CAMERA UPGRADED SUITE)
           ==================================================================================== */}
-      <div className="w-full rounded-xl border border-border bg-[#0b1320] p-5 shadow-lg space-y-5">
+      <div className="w-full rounded-xl border border-blue-200 bg-white p-5 shadow-sm space-y-5">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <span className="text-purple-400 text-lg">📹</span>
+            <span className="text-orange-500 text-lg">📹</span>
             <div>
-              <h2 className="font-heading text-base font-bold uppercase tracking-wider text-white">
+              <h2 className="font-heading text-base font-bold uppercase tracking-wider text-slate-900">
                 VIDEO &amp; STREAMER CAMS STUDIO
               </h2>
-              <p className="text-xs text-muted">
+              <p className="text-xs text-slate-600">
                 Add your webcam or capture card into StumpCast Studio. Route live streams directly into broadcast scenes A–E.
               </p>
             </div>
           </div>
 
           {/* Camera tab navigation */}
-          <div className="flex rounded-lg border border-border/80 bg-[#111a28] p-1">
+          <div className="flex rounded-lg border border-blue-200 bg-blue-50/60 p-1">
             <button
               onClick={() => setCameraTab('webcam')}
               className={clsx(
                 'rounded-md px-3 py-1 text-xs font-bold uppercase transition',
-                cameraTab === 'webcam' ? 'bg-purple-600 text-white shadow-sm' : 'text-slate-400 hover:text-white',
+                cameraTab === 'webcam' ? 'bg-orange-500 text-white shadow-xs' : 'text-blue-900 hover:bg-white',
               )}
             >
               🌐 Direct WebCam
@@ -1317,7 +1317,7 @@ export const VideoPage = () => {
               onClick={() => setCameraTab('obs')}
               className={clsx(
                 'rounded-md px-3 py-1 text-xs font-bold uppercase transition',
-                cameraTab === 'obs' ? 'bg-purple-600 text-white shadow-sm' : 'text-slate-400 hover:text-white',
+                cameraTab === 'obs' ? 'bg-orange-500 text-white shadow-xs' : 'text-blue-900 hover:bg-white',
               )}
             >
               🎛️ OBS Role Mapping
@@ -1326,7 +1326,7 @@ export const VideoPage = () => {
               onClick={() => setCameraTab('guide')}
               className={clsx(
                 'rounded-md px-3 py-1 text-xs font-bold uppercase transition',
-                cameraTab === 'guide' ? 'bg-purple-600 text-white shadow-sm' : 'text-slate-400 hover:text-white',
+                cameraTab === 'guide' ? 'bg-orange-500 text-white shadow-xs' : 'text-blue-900 hover:bg-white',
               )}
             >
               📘 4-Step Setup Guide
@@ -1336,12 +1336,12 @@ export const VideoPage = () => {
 
         {/* TAB 1: DIRECT IN-BROWSER WEBCAM STUDIO */}
         {cameraTab === 'webcam' && (
-          <div className="rounded-xl border border-purple-500/30 bg-[#120f24]/60 p-4 space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-purple-500/20 pb-3">
+          <div className="rounded-xl border border-blue-100 bg-[#f8fafc] p-4 space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-blue-100 pb-3">
               <div className="flex items-center gap-2">
                 <span className="text-sm">📷</span>
-                <span className="text-sm font-bold text-white uppercase tracking-wider">Browser WebCam / USB Device Studio</span>
-                <span className={clsx('rounded px-2 py-0.5 text-[10px] font-bold uppercase', webcamActive ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40' : 'bg-slate-800 text-slate-400')}>
+                <span className="text-sm font-bold text-slate-900 uppercase tracking-wider">Browser WebCam / USB Device Studio</span>
+                <span className={clsx('rounded px-2 py-0.5 text-[10px] font-bold uppercase', webcamActive ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-slate-200 text-slate-700')}>
                   {webcamActive ? '● CAMERA ON-AIR' : 'CAMERA STANDBY'}
                 </span>
               </div>
@@ -1350,14 +1350,14 @@ export const VideoPage = () => {
                 {!webcamActive ? (
                   <button
                     onClick={() => void startWebcam(selectedDeviceId)}
-                    className="rounded-lg bg-emerald-600 px-4 py-1.5 text-xs font-bold text-white uppercase hover:bg-emerald-500 transition shadow-md flex items-center gap-1.5 cursor-pointer"
+                    className="rounded-lg bg-orange-500 px-4 py-1.5 text-xs font-bold text-white uppercase hover:bg-orange-600 transition shadow-sm flex items-center gap-1.5 cursor-pointer"
                   >
                     <span>▶</span> Turn On WebCam Preview
                   </button>
                 ) : (
                   <button
                     onClick={stopWebcam}
-                    className="rounded-lg bg-rose-600 px-4 py-1.5 text-xs font-bold text-white uppercase hover:bg-rose-500 transition shadow-md flex items-center gap-1.5 cursor-pointer"
+                    className="rounded-lg bg-rose-600 px-4 py-1.5 text-xs font-bold text-white uppercase hover:bg-rose-500 transition shadow-sm flex items-center gap-1.5 cursor-pointer"
                   >
                     <span>⏹</span> Stop Camera
                   </button>
@@ -1376,10 +1376,10 @@ export const VideoPage = () => {
                   className={clsx('w-full h-full object-cover', mirrorVideo && 'scale-x-[-1]', !webcamActive && 'hidden')}
                 />
                 {!webcamActive && (
-                  <div className="text-center p-6 text-muted">
+                  <div className="text-center p-6 text-slate-400">
                     <span className="text-3xl block mb-2 opacity-60">📹</span>
-                    <p className="text-xs font-bold text-slate-300">WebCam is currently turned off</p>
-                    <p className="text-[11px] text-slate-500 mt-1">
+                    <p className="text-xs font-bold text-slate-200">WebCam is currently turned off</p>
+                    <p className="text-[11px] text-slate-400 mt-1">
                       Click "Turn On WebCam Preview" to test your USB camera, virtual cam, or capture card.
                     </p>
                   </div>
@@ -1397,14 +1397,14 @@ export const VideoPage = () => {
               {/* WebCam Controls & Configuration */}
               <div className="space-y-3 text-xs">
                 <div>
-                  <label className="text-[11px] font-semibold text-slate-300 block mb-1">Select Video Device / Camera</label>
+                  <label className="text-[11px] font-semibold text-slate-700 block mb-1">Select Video Device / Camera</label>
                   <select
                     value={selectedDeviceId}
                     onChange={(e) => {
                       setSelectedDeviceId(e.target.value);
                       if (webcamActive) void startWebcam(e.target.value);
                     }}
-                    className="w-full rounded-lg border border-border bg-[#111a28] px-3 py-2 text-xs text-white"
+                    className="w-full rounded-lg border border-blue-200 bg-white px-3 py-2 text-xs text-slate-800 focus:border-orange-500 focus:outline-none"
                   >
                     {videoDevices.length === 0 ? (
                       <option value="">Default / Integrated WebCam</option>
@@ -1419,17 +1419,17 @@ export const VideoPage = () => {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-3">
-                  <label className="flex items-center gap-2 text-slate-300 cursor-pointer">
+                  <label className="flex items-center gap-2 text-slate-700 cursor-pointer font-medium">
                     <input
                       type="checkbox"
                       checked={mirrorVideo}
                       onChange={(e) => setMirrorVideo(e.target.checked)}
-                      className="accent-purple-500"
+                      className="accent-orange-500"
                     />
                     Mirror Video (Selfie Mode)
                   </label>
 
-                  <label className="flex items-center gap-2 text-slate-300 cursor-pointer">
+                  <label className="flex items-center gap-2 text-slate-700 cursor-pointer font-medium">
                     <input
                       type="checkbox"
                       checked={routeToCam1}
@@ -1444,7 +1444,7 @@ export const VideoPage = () => {
                           kind: 'info',
                         });
                       }}
-                      className="accent-purple-500"
+                      className="accent-orange-500"
                     />
                     Route WebCam into Cam 1 Monitor Window &amp; OBS
                   </label>
@@ -1452,22 +1452,22 @@ export const VideoPage = () => {
 
                 {/* Audio Level Meter */}
                 <div>
-                  <div className="flex justify-between text-[11px] text-muted mb-1">
+                  <div className="flex justify-between text-[11px] text-slate-600 mb-1">
                     <span>Microphone Activity Meter</span>
-                    <span className="font-mono text-cyan-400">{audioLevel}%</span>
+                    <span className="font-mono text-orange-600 font-bold">{audioLevel}%</span>
                   </div>
-                  <div className="h-2 w-full rounded-full bg-slate-800 overflow-hidden border border-slate-700/80">
+                  <div className="h-2 w-full rounded-full bg-slate-200 overflow-hidden border border-slate-300">
                     <div
                       className={clsx(
                         'h-full transition-all duration-75',
-                        audioLevel > 75 ? 'bg-rose-500' : audioLevel > 40 ? 'bg-amber-400' : 'bg-emerald-400',
+                        audioLevel > 75 ? 'bg-rose-500' : audioLevel > 40 ? 'bg-orange-500' : 'bg-emerald-500',
                       )}
                       style={{ width: `${audioLevel}%` }}
                     />
                   </div>
                 </div>
 
-                <div className="rounded-lg bg-purple-500/10 border border-purple-500/20 p-2.5 text-[11px] text-purple-300">
+                <div className="rounded-lg bg-blue-50 border border-blue-200 p-2.5 text-[11px] text-blue-900">
                   💡 <strong>Tip:</strong> Once active, this webcam feed streams directly into your Cam 1 box on the Stage Monitor above. You can also use OBS Virtual Camera here!
                 </div>
               </div>
@@ -1477,31 +1477,31 @@ export const VideoPage = () => {
 
         {/* TAB 2: OBS SOURCES ROLE MAPPING */}
         {cameraTab === 'obs' && (
-          <div className="rounded-xl border border-cyan-500/30 bg-[#0b1728]/60 p-4 space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-cyan-500/20 pb-3">
+          <div className="rounded-xl border border-blue-200 bg-white p-4 space-y-4 shadow-sm">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-blue-100 pb-3">
               <div className="flex items-center gap-2">
                 <span className="text-sm">🎛️</span>
-                <span className="text-sm font-bold text-white uppercase tracking-wider">OBS Source Role Mapping</span>
-                <span className={clsx('rounded px-2 py-0.5 text-[10px] font-bold uppercase', connected ? 'text-emerald-400 bg-emerald-500/20 border border-emerald-500/40' : 'text-slate-400 bg-slate-800')}>
+                <span className="text-sm font-bold text-slate-900 uppercase tracking-wider">OBS Source Role Mapping</span>
+                <span className={clsx('rounded px-2 py-0.5 text-[10px] font-bold uppercase', connected ? 'text-emerald-700 bg-emerald-50 border border-emerald-300' : 'text-slate-500 bg-slate-100 border border-slate-200')}>
                   {connected ? '● OBS CONNECTED' : '○ OBS DISCONNECTED'}
                 </span>
               </div>
               <button
                 onClick={() => void qc.invalidateQueries({ queryKey: ['obs-sources'] })}
-                className="rounded-lg border border-border bg-surface-2 px-3 py-1 text-xs font-semibold text-slate-300 hover:text-white"
+                className="rounded-lg border border-blue-200 bg-white px-3 py-1 text-xs font-semibold text-slate-700 hover:text-blue-600 hover:bg-blue-50 transition cursor-pointer"
               >
                 🔄 Refresh OBS Sources
               </button>
             </div>
 
-            <p className="text-xs text-muted">
+            <p className="text-xs text-slate-600">
               Map your OBS video sources to StumpCast Studio broadcast roles. StumpCast will automatically move and resize these sources during scene transitions.
             </p>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {/* CAM 1 Mapping */}
-              <div className="rounded-xl border border-border/80 bg-[#111a28] p-3 space-y-2">
-                <div className="flex items-center gap-1.5 text-xs font-bold text-white">
+              <div className="rounded-xl border border-blue-200 bg-blue-50/40 p-3 space-y-2">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-slate-900">
                   <span className="size-2.5 rounded-full bg-blue-500" />
                   CAM 1 (Host 1 Source)
                 </div>
@@ -1509,7 +1509,7 @@ export const VideoPage = () => {
                   <select
                     value={cam1Draft}
                     onChange={(e) => setCam1Draft(e.target.value)}
-                    className="w-full rounded-lg border border-border bg-[#0a1120] px-3 py-1.5 text-xs text-white"
+                    className="w-full rounded-lg border border-blue-200 bg-white px-3 py-1.5 text-xs text-slate-900 focus:outline-none focus:border-orange-500"
                   >
                     <option value="">-- Choose OBS Source --</option>
                     {obsSources.data.map((src) => (
@@ -1523,15 +1523,15 @@ export const VideoPage = () => {
                     value={cam1Draft}
                     onChange={(e) => setCam1Draft(e.target.value)}
                     placeholder="e.g. Streamer Cam 1"
-                    className="w-full rounded-lg border border-border bg-[#0a1120] px-3 py-1.5 text-xs text-white"
+                    className="w-full rounded-lg border border-blue-200 bg-white px-3 py-1.5 text-xs text-slate-900 focus:outline-none focus:border-orange-500"
                   />
                 )}
-                <span className="text-[10px] text-muted block">Primary commentator webcam source in OBS</span>
+                <span className="text-[10px] text-slate-500 block">Primary commentator webcam source in OBS</span>
               </div>
 
               {/* CAM 2 Mapping */}
-              <div className="rounded-xl border border-border/80 bg-[#111a28] p-3 space-y-2">
-                <div className="flex items-center gap-1.5 text-xs font-bold text-white">
+              <div className="rounded-xl border border-blue-200 bg-blue-50/40 p-3 space-y-2">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-slate-900">
                   <span className="size-2.5 rounded-full bg-red-500" />
                   CAM 2 (2nd Host / Guest)
                 </div>
@@ -1539,7 +1539,7 @@ export const VideoPage = () => {
                   <select
                     value={cam2Draft}
                     onChange={(e) => setCam2Draft(e.target.value)}
-                    className="w-full rounded-lg border border-border bg-[#0a1120] px-3 py-1.5 text-xs text-white"
+                    className="w-full rounded-lg border border-blue-200 bg-white px-3 py-1.5 text-xs text-slate-900 focus:outline-none focus:border-orange-500"
                   >
                     <option value="">-- Choose OBS Source --</option>
                     {obsSources.data.map((src) => (
@@ -1553,15 +1553,15 @@ export const VideoPage = () => {
                     value={cam2Draft}
                     onChange={(e) => setCam2Draft(e.target.value)}
                     placeholder="e.g. Streamer Cam 2 / Discord"
-                    className="w-full rounded-lg border border-border bg-[#0a1120] px-3 py-1.5 text-xs text-white"
+                    className="w-full rounded-lg border border-blue-200 bg-white px-3 py-1.5 text-xs text-slate-900 focus:outline-none focus:border-orange-500"
                   />
                 )}
-                <span className="text-[10px] text-muted block">Second commentator or remote guest video</span>
+                <span className="text-[10px] text-slate-500 block">Second commentator or remote guest video</span>
               </div>
 
               {/* MATCH VIDEO Mapping */}
-              <div className="rounded-xl border border-border/80 bg-[#111a28] p-3 space-y-2">
-                <div className="flex items-center gap-1.5 text-xs font-bold text-white">
+              <div className="rounded-xl border border-blue-200 bg-blue-50/40 p-3 space-y-2">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-slate-900">
                   <span className="size-2.5 rounded-full bg-emerald-500" />
                   MATCH VIDEO SOURCE
                 </div>
@@ -1569,7 +1569,7 @@ export const VideoPage = () => {
                   <select
                     value={matchVideoDraft}
                     onChange={(e) => setMatchVideoDraft(e.target.value)}
-                    className="w-full rounded-lg border border-border bg-[#0a1120] px-3 py-1.5 text-xs text-white"
+                    className="w-full rounded-lg border border-blue-200 bg-white px-3 py-1.5 text-xs text-slate-900 focus:outline-none focus:border-orange-500"
                   >
                     <option value="">-- Choose OBS Source --</option>
                     {obsSources.data.map((src) => (
@@ -1583,10 +1583,10 @@ export const VideoPage = () => {
                     value={matchVideoDraft}
                     onChange={(e) => setMatchVideoDraft(e.target.value)}
                     placeholder="e.g. Capture Card / Game Feed"
-                    className="w-full rounded-lg border border-border bg-[#0a1120] px-3 py-1.5 text-xs text-white"
+                    className="w-full rounded-lg border border-blue-200 bg-white px-3 py-1.5 text-xs text-slate-900 focus:outline-none focus:border-orange-500"
                   />
                 )}
-                <span className="text-[10px] text-muted block">Live match gameplay or capture card source</span>
+                <span className="text-[10px] text-slate-500 block">Live match gameplay or capture card source</span>
               </div>
             </div>
 
@@ -1600,7 +1600,7 @@ export const VideoPage = () => {
                   });
                 }}
                 disabled={saveObsMap.isPending}
-                className="rounded-lg bg-emerald-600 px-5 py-2 text-xs font-bold text-white uppercase hover:bg-emerald-500 transition shadow-md cursor-pointer disabled:opacity-50"
+                className="rounded-lg bg-orange-500 hover:bg-orange-600 px-5 py-2 text-xs font-bold text-white uppercase transition shadow-md cursor-pointer disabled:opacity-50"
               >
                 💾 SAVE OBS ROLE MAPPING
               </button>
@@ -1610,11 +1610,11 @@ export const VideoPage = () => {
 
         {/* TAB 3: STEP-BY-STEP 4-STAGE SETUP GUIDE */}
         {cameraTab === 'guide' && (
-          <div className="rounded-xl border border-emerald-500/30 bg-[#0d221c]/50 p-4 space-y-4">
-            <div className="flex items-center justify-between border-b border-border/50 pb-3">
+          <div className="rounded-xl border border-blue-200 bg-white p-4 space-y-4 shadow-sm">
+            <div className="flex items-center justify-between border-b border-blue-100 pb-3">
               <div>
-                <h3 className="font-heading text-sm font-bold text-white">4-Step Camera Setup Wizard</h3>
-                <p className="text-xs text-muted">Complete these 4 simple steps to connect your camera with StumpCast Studio.</p>
+                <h3 className="font-heading text-sm font-bold text-slate-900">4-Step Camera Setup Wizard</h3>
+                <p className="text-xs text-slate-500">Complete these 4 simple steps to connect your camera with StumpCast Studio.</p>
               </div>
               <div className="flex gap-1.5">
                 {[1, 2, 3, 4].map((step) => (
@@ -1622,10 +1622,10 @@ export const VideoPage = () => {
                     key={step}
                     onClick={() => setGuideStep(step)}
                     className={clsx(
-                      'size-7 rounded-lg text-xs font-bold transition',
+                      'size-7 rounded-lg text-xs font-bold transition cursor-pointer',
                       guideStep === step
-                        ? 'bg-emerald-500 text-black shadow-md'
-                        : 'border border-border/80 bg-surface-2 text-muted hover:text-white',
+                        ? 'bg-orange-500 text-white shadow-sm'
+                        : 'border border-blue-200 bg-white text-slate-600 hover:bg-blue-50',
                     )}
                   >
                     {step}
@@ -1636,20 +1636,20 @@ export const VideoPage = () => {
 
             {/* Guide Step 1 */}
             {guideStep === 1 && (
-              <div className="rounded-lg bg-surface p-4 text-xs space-y-2">
-                <span className="font-bold text-emerald-400 text-sm">Step 1: Turn on OBS WebSocket Remote Control</span>
-                <p className="text-slate-300">
+              <div className="rounded-lg bg-blue-50/60 border border-blue-100 p-4 text-xs space-y-2">
+                <span className="font-bold text-blue-900 text-sm">Step 1: Turn on OBS WebSocket Remote Control</span>
+                <p className="text-slate-700">
                   Open OBS Studio. In the top menu, go to <strong>Tools → WebSocket Server Settings</strong>.
                 </p>
-                <ul className="list-disc list-inside space-y-1 text-muted pl-2">
-                  <li>Tick <strong className="text-white">"Enable WebSocket server"</strong>.</li>
-                  <li>Ensure Server Port is set to <code className="text-amber-300">4455</code>.</li>
-                  <li>Click <strong className="text-white">"Apply"</strong> and <strong className="text-white">"OK"</strong>.</li>
+                <ul className="list-disc list-inside space-y-1 text-slate-600 pl-2">
+                  <li>Tick <strong className="text-slate-900">"Enable WebSocket server"</strong>.</li>
+                  <li>Ensure Server Port is set to <code className="text-orange-600 font-bold">4455</code>.</li>
+                  <li>Click <strong className="text-slate-900">"Apply"</strong> and <strong className="text-slate-900">"OK"</strong>.</li>
                 </ul>
                 <div className="pt-2">
                   <button
                     onClick={() => setGuideStep(2)}
-                    className="rounded-lg bg-emerald-600 px-4 py-1.5 text-xs font-bold text-white uppercase hover:bg-emerald-500"
+                    className="rounded-lg bg-orange-500 hover:bg-orange-600 px-4 py-1.5 text-xs font-bold text-white uppercase shadow-sm cursor-pointer"
                   >
                     Next: Step 2 →
                   </button>
@@ -1659,22 +1659,22 @@ export const VideoPage = () => {
 
             {/* Guide Step 2 */}
             {guideStep === 2 && (
-              <div className="rounded-lg bg-surface p-4 text-xs space-y-2">
-                <span className="font-bold text-emerald-400 text-sm">Step 2: Add your Camera Source in OBS</span>
-                <p className="text-slate-300">
+              <div className="rounded-lg bg-blue-50/60 border border-blue-100 p-4 text-xs space-y-2">
+                <span className="font-bold text-blue-900 text-sm">Step 2: Add your Camera Source in OBS</span>
+                <p className="text-slate-700">
                   Inside OBS Studio, locate the <strong>Sources</strong> dock at the bottom:
                 </p>
-                <ul className="list-disc list-inside space-y-1 text-muted pl-2">
+                <ul className="list-disc list-inside space-y-1 text-slate-600 pl-2">
                   <li>Click the <strong>+ (Add Source)</strong> button.</li>
                   <li>Select <strong>"Video Capture Device"</strong>.</li>
-                  <li>Name it <code className="text-cyan-300 font-bold">Streamer Cam 1</code>.</li>
+                  <li>Name it <code className="text-blue-700 font-bold">Streamer Cam 1</code>.</li>
                   <li>Choose your webcam model from the device dropdown and click OK.</li>
                 </ul>
                 <div className="flex gap-2 pt-2">
-                  <button onClick={() => setGuideStep(1)} className="rounded-lg border border-border px-3 py-1.5 text-xs text-muted hover:text-white">
+                  <button onClick={() => setGuideStep(1)} className="rounded-lg border border-blue-200 bg-white px-3 py-1.5 text-xs text-slate-600 hover:bg-blue-50 cursor-pointer">
                     ← Back
                   </button>
-                  <button onClick={() => setGuideStep(3)} className="rounded-lg bg-emerald-600 px-4 py-1.5 text-xs font-bold text-white uppercase hover:bg-emerald-500">
+                  <button onClick={() => setGuideStep(3)} className="rounded-lg bg-orange-500 hover:bg-orange-600 px-4 py-1.5 text-xs font-bold text-white uppercase shadow-sm cursor-pointer">
                     Next: Step 3 →
                   </button>
                 </div>
@@ -1683,21 +1683,21 @@ export const VideoPage = () => {
 
             {/* Guide Step 3 */}
             {guideStep === 3 && (
-              <div className="rounded-lg bg-surface p-4 text-xs space-y-2">
-                <span className="font-bold text-emerald-400 text-sm">Step 3: Link Source to StumpCast Studio</span>
-                <p className="text-slate-300">
+              <div className="rounded-lg bg-blue-50/60 border border-blue-100 p-4 text-xs space-y-2">
+                <span className="font-bold text-blue-900 text-sm">Step 3: Link Source to StumpCast Studio</span>
+                <p className="text-slate-700">
                   Switch to the <strong>OBS Role Mapping</strong> tab above:
                 </p>
-                <ul className="list-disc list-inside space-y-1 text-muted pl-2">
-                  <li>Under <strong>CAM 1 (Host 1 Source)</strong>, select <code className="text-cyan-300">Streamer Cam 1</code>.</li>
+                <ul className="list-disc list-inside space-y-1 text-slate-600 pl-2">
+                  <li>Under <strong>CAM 1 (Host 1 Source)</strong>, select <code className="text-blue-700 font-bold">Streamer Cam 1</code>.</li>
                   <li>Click <strong>"Save OBS Role Mapping"</strong>.</li>
                   <li>StumpCast Studio now commands OBS to position your camera automatically!</li>
                 </ul>
                 <div className="flex gap-2 pt-2">
-                  <button onClick={() => setGuideStep(2)} className="rounded-lg border border-border px-3 py-1.5 text-xs text-muted hover:text-white">
+                  <button onClick={() => setGuideStep(2)} className="rounded-lg border border-blue-200 bg-white px-3 py-1.5 text-xs text-slate-600 hover:bg-blue-50 cursor-pointer">
                     ← Back
                   </button>
-                  <button onClick={() => setGuideStep(4)} className="rounded-lg bg-emerald-600 px-4 py-1.5 text-xs font-bold text-white uppercase hover:bg-emerald-500">
+                  <button onClick={() => setGuideStep(4)} className="rounded-lg bg-orange-500 hover:bg-orange-600 px-4 py-1.5 text-xs font-bold text-white uppercase shadow-sm cursor-pointer">
                     Next: Step 4 →
                   </button>
                 </div>
@@ -1706,18 +1706,18 @@ export const VideoPage = () => {
 
             {/* Guide Step 4 */}
             {guideStep === 4 && (
-              <div className="rounded-lg bg-surface p-4 text-xs space-y-2">
-                <span className="font-bold text-emerald-400 text-sm">Step 4: Verify Scene Rotation &amp; Alignment</span>
-                <p className="text-slate-300">
+              <div className="rounded-lg bg-blue-50/60 border border-blue-100 p-4 text-xs space-y-2">
+                <span className="font-bold text-blue-900 text-sm">Step 4: Verify Scene Rotation &amp; Alignment</span>
+                <p className="text-slate-700">
                   Test your setup using the Scene On-Air buttons below (Presets A through E):
                 </p>
-                <ul className="list-disc list-inside space-y-1 text-muted pl-2">
+                <ul className="list-disc list-inside space-y-1 text-slate-600 pl-2">
                   <li>Click Preset A, B, C, or E to see your camera move fluidly in real-time.</li>
                   <li>Toggle <strong>"Safe Guides Grid"</strong> on the Monitor to align your headshot.</li>
                   <li>You are 100% ready for professional live commentary!</li>
                 </ul>
                 <div className="pt-2">
-                  <button onClick={() => setCameraTab('webcam')} className="rounded-lg bg-purple-600 px-4 py-1.5 text-xs font-bold text-white uppercase hover:bg-purple-500">
+                  <button onClick={() => setCameraTab('webcam')} className="rounded-lg bg-orange-500 hover:bg-orange-600 px-4 py-1.5 text-xs font-bold text-white uppercase shadow-sm cursor-pointer">
                     Open WebCam Preview Studio →
                   </button>
                 </div>
@@ -1727,9 +1727,9 @@ export const VideoPage = () => {
         )}
 
         {/* Streamer cams count selection */}
-        <div className="flex flex-wrap items-center justify-between gap-4 border-t border-border/50 pt-4">
+        <div className="flex flex-wrap items-center justify-between gap-4 border-t border-blue-100 pt-4">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold text-muted">Streamer cams (1 host is the default):</span>
+            <span className="text-xs font-semibold text-slate-600">Streamer cams (1 host is the default):</span>
             <div className="flex gap-2">
               {[
                 { id: 'none', label: 'NO CAM' },
@@ -1743,10 +1743,10 @@ export const VideoPage = () => {
                     saveVideo.mutate({ cameraMode: c.id as typeof cameraHostCount });
                   }}
                   className={clsx(
-                    'rounded-lg px-3 py-1 text-xs font-bold uppercase transition',
+                    'rounded-lg px-3 py-1 text-xs font-bold uppercase transition cursor-pointer',
                     cameraHostCount === c.id
-                      ? 'border border-emerald-500 bg-emerald-500/20 text-emerald-300'
-                      : 'border border-border/80 bg-[#111a28] text-muted hover:text-white',
+                      ? 'border-2 border-orange-500 bg-orange-50 text-orange-600 shadow-sm'
+                      : 'border border-blue-200 bg-white text-slate-600 hover:bg-blue-50',
                   )}
                 >
                   {c.label}
@@ -1755,7 +1755,7 @@ export const VideoPage = () => {
             </div>
           </div>
           <div className="flex items-center gap-4 text-xs">
-            <label className="flex items-center gap-2 text-muted cursor-pointer">
+            <label className="flex items-center gap-2 text-slate-600 cursor-pointer">
               <input
                 type="checkbox"
                 checked={video.camerasOnBreaks}
@@ -1763,7 +1763,7 @@ export const VideoPage = () => {
               />
               Cams as picture-in-picture on breaks / full-screen cards
             </label>
-            <label className="flex items-center gap-2 text-muted cursor-pointer">
+            <label className="flex items-center gap-2 text-slate-600 cursor-pointer">
               <input
                 type="checkbox"
                 checked={video.alignmentGuides}
@@ -1775,12 +1775,12 @@ export const VideoPage = () => {
         </div>
 
         {/* Scene on air (A to E) */}
-        <div className="border-t border-border/50 pt-4">
+        <div className="border-t border-blue-100 pt-4">
           <div className="flex items-center justify-between">
-            <div className="text-xs font-semibold text-muted">
+            <div className="text-xs font-semibold text-slate-700">
               Scene on air — click to cut now:
             </div>
-            <div className="flex items-center gap-2 text-xs text-muted">
+            <div className="flex items-center gap-2 text-xs text-slate-600">
               <input
                 type="checkbox"
                 checked={video.sceneRotation}
@@ -1789,7 +1789,7 @@ export const VideoPage = () => {
               Random rotation every
               <input
                 defaultValue="90"
-                className="w-12 rounded border border-border bg-[#111a28] px-1 py-0.5 text-center text-xs text-white"
+                className="w-12 rounded border border-blue-200 bg-white px-1 py-0.5 text-center text-xs text-slate-900"
               />
               seconds
             </div>
@@ -1814,16 +1814,16 @@ export const VideoPage = () => {
                 className={clsx(
                   'rounded-xl border p-3 text-left transition cursor-pointer',
                   (video.activeObsLayout ?? 'B') === preset.id
-                    ? 'border-amber-500 bg-[#111a28] shadow-[0_0_12px_rgba(245,158,11,0.2)] ring-1 ring-amber-500'
-                    : 'border-border/80 bg-[#111a28] hover:border-border',
+                    ? 'border-2 border-orange-500 bg-orange-50/60 shadow-sm ring-1 ring-orange-400'
+                    : 'border border-blue-200 bg-white hover:border-blue-400 hover:bg-blue-50/40',
                 )}
               >
-                <div className="aspect-video w-full rounded bg-[#1e293b] p-1.5 flex gap-1 relative overflow-hidden">
-                  <div className="w-1/3 bg-amber-500/80 rounded-sm" />
-                  <div className="flex-1 bg-emerald-500 rounded-sm" />
+                <div className="aspect-video w-full rounded bg-slate-100 border border-slate-200 p-1.5 flex gap-1 relative overflow-hidden">
+                  <div className="w-1/3 bg-orange-500/80 rounded-sm" />
+                  <div className="flex-1 bg-blue-600 rounded-sm" />
                 </div>
-                <div className="mt-2 text-xs font-bold text-white">{preset.title}</div>
-                <div className="mt-1 flex items-center gap-1 text-[10px] text-muted">
+                <div className="mt-2 text-xs font-bold text-slate-900">{preset.title}</div>
+                <div className="mt-1 flex items-center gap-1 text-[10px] text-slate-500">
                   <input type="checkbox" defaultChecked />
                   in random rotation
                 </div>
@@ -1831,19 +1831,19 @@ export const VideoPage = () => {
             ))}
           </div>
 
-          <div className="mt-3 flex items-center gap-4 text-[11px] text-muted">
-            <span className="flex items-center gap-1.5"><span className="size-2 rounded-full bg-emerald-500" /> match video</span>
-            <span className="flex items-center gap-1.5"><span className="size-2 rounded-full bg-blue-500" /> cam 1</span>
+          <div className="mt-3 flex items-center gap-4 text-[11px] text-slate-600">
+            <span className="flex items-center gap-1.5"><span className="size-2 rounded-full bg-blue-600" /> match video</span>
+            <span className="flex items-center gap-1.5"><span className="size-2 rounded-full bg-orange-500" /> cam 1</span>
             <span className="flex items-center gap-1.5"><span className="size-2 rounded-full bg-red-500" /> cam 2</span>
             <span className="flex items-center gap-1.5"><span className="size-2 rounded-full bg-amber-500" /> live stats</span>
           </div>
         </div>
 
         {/* MATCH VIDEO source buttons */}
-        <div className="border-t border-border/50 pt-4">
+        <div className="border-t border-blue-100 pt-4">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-white uppercase tracking-wider">MATCH VIDEO</span>
-            <span className="rounded bg-surface-2 px-2 py-0.5 text-[10px] font-bold text-muted uppercase">APPLIED</span>
+            <span className="text-xs font-bold text-slate-900 uppercase tracking-wider">MATCH VIDEO</span>
+            <span className="rounded bg-blue-50 border border-blue-200 px-2 py-0.5 text-[10px] font-bold text-blue-800 uppercase">APPLIED</span>
           </div>
           <div className="mt-2 flex flex-wrap gap-2">
             {[
@@ -1857,28 +1857,28 @@ export const VideoPage = () => {
                 key={val}
                 onClick={() => saveVideo.mutate({ sourceMode: val as typeof video.sourceMode })}
                 className={clsx(
-                  'rounded-lg px-4 py-1.5 text-xs font-bold uppercase transition',
+                  'rounded-lg px-4 py-1.5 text-xs font-bold uppercase transition cursor-pointer',
                   video.sourceMode === val
-                    ? 'border border-emerald-500 bg-emerald-500/20 text-emerald-300'
-                    : 'border border-border/80 bg-[#111a28] text-muted hover:text-white',
+                    ? 'border-2 border-orange-500 bg-orange-50 text-orange-600 shadow-sm'
+                    : 'border border-blue-200 bg-white text-slate-600 hover:bg-blue-50',
                 )}
               >
                 {label}
               </button>
             ))}
           </div>
-          <p className="mt-2 text-xs text-muted">
+          <p className="mt-2 text-xs text-slate-500">
             No video — stadium artwork shows in the window.
           </p>
         </div>
 
         {/* OBS WEBSOCKET LINK */}
-        <div className="border-t border-border/50 pt-4">
+        <div className="border-t border-blue-100 pt-4">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-white uppercase tracking-wider">
-              OBS WEBSOCKET LINK <span className="text-muted font-normal">(moves OBS sources with the scenes)</span>
+            <span className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+              OBS WEBSOCKET LINK <span className="text-slate-500 font-normal">(moves OBS sources with the scenes)</span>
             </span>
-            <span className={clsx('text-xs font-semibold', connected ? 'text-emerald-400' : 'text-muted')}>
+            <span className={clsx('text-xs font-semibold', connected ? 'text-emerald-700' : 'text-slate-500')}>
               {connected ? `Connected · ${status.data?.host}:${status.data?.port}` : '● Not connected'}
             </span>
           </div>
@@ -1888,36 +1888,36 @@ export const VideoPage = () => {
               value={hostDraft}
               onChange={(e) => setHostDraft(e.target.value)}
               placeholder="127.0.0.1"
-              className="w-28 rounded-lg border border-border bg-[#111a28] px-3 py-1.5 text-xs text-white"
+              className="w-28 rounded-lg border border-blue-200 bg-white px-3 py-1.5 text-xs text-slate-900 focus:outline-none focus:border-orange-500"
             />
             <input
               value={portDraft}
               onChange={(e) => setPortDraft(e.target.value)}
               placeholder="4455"
-              className="w-20 rounded-lg border border-border bg-[#111a28] px-3 py-1.5 text-xs text-white"
+              className="w-20 rounded-lg border border-blue-200 bg-white px-3 py-1.5 text-xs text-slate-900 focus:outline-none focus:border-orange-500"
             />
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Password (blank = keep saved)"
-              className="flex-1 min-w-[140px] rounded-lg border border-border bg-[#111a28] px-3 py-1.5 text-xs text-white"
+              className="flex-1 min-w-[140px] rounded-lg border border-blue-200 bg-white px-3 py-1.5 text-xs text-slate-900 focus:outline-none focus:border-orange-500"
             />
             <input
               placeholder="Scene (blank = current)"
-              className="flex-1 min-w-[140px] rounded-lg border border-border bg-[#111a28] px-3 py-1.5 text-xs text-white"
+              className="flex-1 min-w-[140px] rounded-lg border border-blue-200 bg-white px-3 py-1.5 text-xs text-slate-900 focus:outline-none focus:border-orange-500"
             />
             <button
               disabled={connected || connect.isPending}
               onClick={() => connect.mutate()}
-              className="rounded-lg bg-emerald-600 px-4 py-1.5 text-xs font-bold text-white uppercase hover:bg-emerald-500 disabled:opacity-50 cursor-pointer"
+              className="rounded-lg bg-orange-500 hover:bg-orange-600 px-4 py-1.5 text-xs font-bold text-white uppercase disabled:opacity-50 cursor-pointer shadow-sm transition"
             >
               CONNECT
             </button>
             <button
               disabled={!connected || disconnect.isPending}
               onClick={() => disconnect.mutate()}
-              className="rounded-lg border border-border bg-surface-2 px-4 py-1.5 text-xs font-bold text-muted uppercase hover:text-white disabled:opacity-50 cursor-pointer"
+              className="rounded-lg border border-blue-200 bg-white px-4 py-1.5 text-xs font-bold text-slate-600 uppercase hover:bg-blue-50 disabled:opacity-50 cursor-pointer"
             >
               STOP
             </button>

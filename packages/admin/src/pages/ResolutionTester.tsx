@@ -36,28 +36,28 @@ export const ResolutionTester = ({ onClose }: { onClose?: () => void }) => {
   const overlayUrl = `${overlayBase}?fixture=test&layout=${currentLayout}&preview=1&resolution=1&reload=${reload}`;
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-[#050811] text-[#e6edf3]">
-      {/* Broadcast Tester Header matching Screenshot 203141 */}
-      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-[#1b2a3f] bg-[#090e17] px-6 py-3">
+    <div className="fixed inset-0 z-50 flex flex-col bg-slate-100 text-slate-800">
+      {/* Broadcast Tester Header */}
+      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-blue-200 bg-white px-6 py-3 shadow-sm">
         <div className="flex items-center gap-3">
           <span className="text-xl">🖥️</span>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="font-heading text-lg font-extrabold uppercase tracking-wider text-white">
+              <h1 className="font-heading text-lg font-extrabold uppercase tracking-wider text-slate-900">
                 1920×1080 OBS Broadcast Resolution Tester
               </h1>
-              <span className="rounded bg-amber-500/20 px-2 py-0.5 text-xs font-bold uppercase tracking-wider text-amber-400 border border-amber-500/40">
+              <span className="rounded bg-blue-50 px-2 py-0.5 text-xs font-bold uppercase tracking-wider text-blue-800 border border-blue-200">
                 FULL HD 16:9
               </span>
             </div>
-            <p className="font-mono text-xs text-slate-400">
-              Inspect exact 1080p TV broadcast scale, giant Teko typography, and real-time layout & themes.
+            <p className="font-mono text-xs text-slate-500">
+              Inspect exact 1080p TV broadcast scale, giant Teko typography, and real-time layout &amp; themes.
             </p>
           </div>
         </div>
 
         {/* Live Layout Switcher in Header */}
-        <div className="flex items-center gap-1 rounded-lg border border-[#23354d] bg-[#101826] p-1">
+        <div className="flex items-center gap-1 rounded-lg border border-blue-200 bg-slate-50 p-1">
           {[
             { id: 'arena', label: 'ARENA + VIDEO' },
             { id: 'fullscreen', label: 'FULL SCREEN' },
@@ -72,10 +72,10 @@ export const ResolutionTester = ({ onClose }: { onClose?: () => void }) => {
                   saveSettings.mutate({ ...settings.data, layout: l.id as typeof currentLayout });
                 }
               }}
-              className={`rounded px-2.5 py-1 text-[11px] font-bold uppercase transition ${
+              className={`rounded px-2.5 py-1 text-[11px] font-bold uppercase transition cursor-pointer ${
                 currentLayout === l.id
-                  ? 'bg-emerald-500 text-black shadow-sm'
-                  : 'text-slate-400 hover:text-white'
+                  ? 'bg-orange-500 text-white shadow-sm'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-white'
               }`}
             >
               {l.label}
@@ -85,8 +85,8 @@ export const ResolutionTester = ({ onClose }: { onClose?: () => void }) => {
 
         {/* Side Cards Scale Customizer in Header for Arena & Fullscreen */}
         {(currentLayout === 'arena' || currentLayout === 'fullscreen') && (
-          <div className="flex items-center gap-1.5 rounded-lg border border-[#23354d] bg-[#101826] px-2.5 py-1">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400">
+          <div className="flex items-center gap-1.5 rounded-lg border border-blue-200 bg-slate-50 px-2.5 py-1">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-orange-600">
               SIDE CARDS:
             </span>
             {[
@@ -106,10 +106,10 @@ export const ResolutionTester = ({ onClose }: { onClose?: () => void }) => {
                       saveSettings.mutate({ ...settings.data, sideCardScale: p.scale });
                     }
                   }}
-                  className={`rounded px-2 py-0.5 text-[10px] font-bold transition ${
+                  className={`rounded px-2 py-0.5 text-[10px] font-bold transition cursor-pointer ${
                     active
-                      ? 'bg-amber-400 text-black shadow-sm'
-                      : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+                      ? 'bg-orange-500 text-white shadow-sm'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-white'
                   }`}
                 >
                   {p.label}
@@ -123,10 +123,10 @@ export const ResolutionTester = ({ onClose }: { onClose?: () => void }) => {
           <button
             type="button"
             onClick={() => setMode('fit')}
-            className={`rounded px-4 py-1.5 text-xs font-bold uppercase tracking-wider transition ${
+            className={`rounded px-4 py-1.5 text-xs font-bold uppercase tracking-wider transition cursor-pointer ${
               mode === 'fit'
-                ? 'bg-amber-500 text-black shadow-md shadow-amber-500/30'
-                : 'bg-[#162132] text-slate-300 hover:bg-[#203047] border border-[#23354d]'
+                ? 'bg-orange-500 text-white shadow-sm'
+                : 'bg-white text-slate-700 hover:bg-blue-50 border border-blue-200'
             }`}
           >
             Fit 16:9 Screen
@@ -134,10 +134,10 @@ export const ResolutionTester = ({ onClose }: { onClose?: () => void }) => {
           <button
             type="button"
             onClick={() => setMode('actual')}
-            className={`rounded px-4 py-1.5 text-xs font-bold uppercase tracking-wider transition ${
+            className={`rounded px-4 py-1.5 text-xs font-bold uppercase tracking-wider transition cursor-pointer ${
               mode === 'actual'
-                ? 'bg-amber-500 text-black shadow-md shadow-amber-500/30'
-                : 'bg-[#162132] text-slate-300 hover:bg-[#203047] border border-[#23354d]'
+                ? 'bg-orange-500 text-white shadow-sm'
+                : 'bg-white text-slate-700 hover:bg-blue-50 border border-blue-200'
             }`}
           >
             100% (1:1 1080P)
@@ -145,14 +145,14 @@ export const ResolutionTester = ({ onClose }: { onClose?: () => void }) => {
           <button
             type="button"
             onClick={() => setReload((v) => v + 1)}
-            className="flex items-center gap-1.5 rounded bg-[#162132] px-3 py-1.5 text-xs font-medium text-slate-300 border border-[#23354d] hover:bg-[#203047] transition"
+            className="flex items-center gap-1.5 rounded bg-white px-3 py-1.5 text-xs font-medium text-slate-700 border border-blue-200 hover:bg-blue-50 transition cursor-pointer"
           >
             <span>🔄</span> Reload
           </button>
           <button
             type="button"
             onClick={() => setShowProLooks(true)}
-            className="flex items-center gap-1.5 rounded bg-gradient-to-r from-amber-500 to-yellow-400 px-3.5 py-1.5 text-xs font-black uppercase tracking-wider text-black hover:brightness-110 transition shadow-md shadow-amber-950/60"
+            className="flex items-center gap-1.5 rounded bg-orange-500 px-3.5 py-1.5 text-xs font-black uppercase tracking-wider text-white hover:bg-orange-600 transition shadow-sm cursor-pointer"
           >
             <span>✨</span> PRO LOOKS
           </button>
@@ -165,14 +165,14 @@ export const ResolutionTester = ({ onClose }: { onClose?: () => void }) => {
                 'popup=yes,width=1920,height=1080,menubar=no,toolbar=no',
               )
             }
-            className="flex items-center gap-1.5 rounded bg-emerald-950/80 px-3 py-1.5 text-xs font-semibold text-emerald-400 border border-emerald-700/60 hover:bg-emerald-900 transition"
+            className="flex items-center gap-1.5 rounded bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-900 border border-blue-200 hover:bg-blue-100 transition cursor-pointer"
           >
             <span>🗗</span> Dedicated Window
           </button>
           <button
             type="button"
             onClick={handleClose}
-            className="flex items-center gap-1 rounded bg-rose-600 px-3.5 py-1.5 text-xs font-bold text-white hover:bg-rose-500 transition shadow-sm"
+            className="flex items-center gap-1 rounded bg-rose-600 px-3.5 py-1.5 text-xs font-bold text-white hover:bg-rose-500 transition shadow-sm cursor-pointer"
           >
             <span>✖</span> Close (Esc)
           </button>
@@ -186,7 +186,7 @@ export const ResolutionTester = ({ onClose }: { onClose?: () => void }) => {
         }`}
       >
         <div
-          className={`relative border-2 border-emerald-500/40 shadow-2xl shadow-black rounded-lg overflow-hidden bg-black ${
+          className={`relative border-2 border-blue-300 shadow-2xl rounded-lg overflow-hidden bg-black ${
             mode === 'actual'
               ? 'h-[1080px] w-[1920px] shrink-0'
               : 'aspect-video w-full max-w-[min(100%,calc((100dvh-120px)*16/9))]'
@@ -203,10 +203,10 @@ export const ResolutionTester = ({ onClose }: { onClose?: () => void }) => {
         </div>
       </main>
 
-      {/* Footer matching Screenshot 203141 */}
-      <footer className="flex items-center justify-between border-t border-[#1b2a3f] bg-[#090e17] px-6 py-2 text-xs font-mono text-slate-400">
+      {/* Footer */}
+      <footer className="flex items-center justify-between border-t border-blue-200 bg-white px-6 py-2 text-xs font-mono text-slate-600">
         <div className="flex items-center gap-2">
-          <span className="size-2 rounded-full bg-emerald-400 animate-pulse" />
+          <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
           <span>
             OBS Studio Canvas: 1920 × 1080 px | Aspect Ratio: 16:9 | Target: YouTube Live 1080p60
           </span>

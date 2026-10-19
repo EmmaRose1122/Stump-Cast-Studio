@@ -179,6 +179,7 @@ const startServer = (): Promise<string> =>
 
 const adminUrl = (route = '/live'): string => `${serverUrl}/admin/#${route}`;
 const overlayUrl = (): string => `${serverUrl}/overlay/`;
+const licenseGeneratorUrl = (): string => `${serverUrl}/license-generator/`;
 
 const createSplashWindow = (): void => {
 	const icon = appIconPath();
@@ -302,6 +303,7 @@ const createTray = (): void => {
 				label: 'Open Overlay in Browser',
 				click: () => serverUrl && void shell.openExternal(overlayUrl()),
 			},
+			{ label: 'License Key Generator', click: () => serverUrl && void shell.openExternal(licenseGeneratorUrl()) },
 			{ label: 'Copy Overlay Link', click: () => serverUrl && clipboard.writeText(overlayUrl()) },
 			{ label: 'Pop-out Preview', click: () => void createPreviewWindow() },
 			{
@@ -403,7 +405,7 @@ ipcMain.handle('stumpcast:check-update', async (_event, customUrl?: string) => {
 			customUrl ||
 			(serverUrl
 				? `${serverUrl}/api/app/update-check`
-				: 'https://api.github.com/repos/stumpcast/studio/releases/latest');
+				: 'https://api.github.com/repos/EmmaRose1122/Stump-Cast-Studio/releases/latest');
 		const res = await fetch(targetUrl, {
 			signal: AbortSignal.timeout(5000),
 			headers: { 'User-Agent': 'StumpCast-Studio' },
@@ -551,6 +553,9 @@ ipcMain.handle('stumpcast:download-update', async (_event, downloadUrl?: string)
 
 		// Local / Simulation fallback: copy or simulate transfer
 		const localCandidates = [
+			path.join(workspaceRoot, 'release', 'StumpCast-Studio-Setup-1.0.2.exe'),
+			'C:\\Users\\IK\\Downloads\\StumpCast Studio\\stumpcast\\release\\StumpCast-Studio-Setup-1.0.2.exe',
+			path.join(process.env.USERPROFILE || '', 'Downloads', 'StumpCast Studio', 'stumpcast', 'release', 'StumpCast-Studio-Setup-1.0.2.exe'),
 			path.join(workspaceRoot, 'release', 'StumpCast-Studio-Setup-1.0.1.exe'),
 			path.join(workspaceRoot, 'release', 'StumpCast-Studio-Setup-0.0.0.exe'),
 		];

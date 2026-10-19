@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StumpCast Studio - License Key Generator</title>
+<style>
+  :root {
+    --orange: #f97316;
+    --orange-dark: #ea580c;
+    --orange-light: #fff7ed;
+    --blue: #1e40af;
+    --blue-light: #dbeafe;
+    --slate: #0f172a;
+    --slate-light: #64748b;
+    --border: #cbd5e1;
+    --success: #16a34a;
+    --success-light: #f0fdf4;
+    --error: #dc2626;
+    --error-light: #fef2f2;
+    --bg: #f1f5f9;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--slate);
+    min-height: 100vh;
+    padding: 24px;
+  }
+
+  .container {
+    max-width: 720px;
+    margin: 0 auto;
+  }
+
+  .header {
+    text-align: center;
+    margin-bottom: 32px;
+  }
+
+  .header h1 {
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--slate);
+    margin-bottom: 8px;
+  }
+
+  .header h1 span { color: var(--orange); }
+
+  .header p {
+    color: var(--slate-light);
+    font-size: 14px;
+  }
+
+  .card {
+    background: white;
+    border-radius: 16px;
+    padding: 28px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.04);
+    margin-bottom: 20px;
+  }
+
+  .card h2 {
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 16px;
+    color: var(--slate);
+  }
+
+  .field-group {
+    margin-bottom: 20px;
+  }
+
+  label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--slate);
+    margin-bottom: 6px;
+  }
+
+  input[type="text"],
+  input[type="number"],
+  select {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    font-size: 14px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    outline: none;
+    background: white;
+  }
+
+  input[type="text"]:focus,
+  input[type="number"]:focus,
+  select:focus {
+    border-color: var(--orange);
+    box-shadow: 0 0 0 3px rgba(249,115,22,0.12);
+  }
+
+  .row {
+    display: flex;
+    gap: 12px;
+  }
+
+  .row > .field-group { flex: 1; }
+
+  .plan-options {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .plan-option {
+    flex: 1;
+    min-width: 120px;
+  }
+
+  .plan-option input { display: none; }
+
+  .plan-option label {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 16px 12px;
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 14px;
+    font-weight: 600;
+    margin: 0;
+    text-align: center;
+  }
+
+  .plan-option label .plan-icon {
+    font-size: 24px;
+  }
+
+  .plan-option label .plan-name {
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .plan-option label .plan-desc {
+    font-size: 11px;
+    font-weight: 400;
+    color: var(--slate-light);
+  }
+
+  .plan-option input:checked + label {
+    border-color: var(--orange);
+    background: var(--orange-light);
+    color: var(--orange-dark);
+  }
+
+  .plan-option input:checked + label .plan-desc {
+    color: var(--orange-dark);
+    opacity: 0.7;
+  }
+
+  .plan-option input:checked + label::before {
+    content: '';
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 24px;
+    border: none;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-primary {
+    background: var(--orange);
+    color: white;
+    width: 100%;
+  }
+
+  .btn-primary:hover {
+    background: var(--orange-dark);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(249,115,22,0.3);
+  }
+
+  .btn-primary:active { transform: translateY(0); }
+
+  .btn-primary:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .btn-copy {
+    background: var(--blue-light);
+    color: var(--blue);
+    padding: 10px 20px;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+
+  .btn-copy:hover { background: #bfdbfe; }
+
+  .key-output {
+    display: none;
+    margin-top: 20px;
+    padding: 24px;
+    background: var(--success-light);
+    border: 2px solid #bbf7d0;
+    border-radius: 14px;
+    text-align: center;
+  }
+
+  .key-output.visible { display: block; }
+
+  .key-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--success);
+    margin-bottom: 12px;
+  }
+
+  .key-value {
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--slate);
+    word-break: break-all;
+    line-height: 1.7;
+    padding: 16px;
+    background: white;
+    border-radius: 10px;
+    border: 1px solid #bbf7d0;
+    margin-bottom: 16px;
+  }
+
+  .key-info {
+    font-size: 12px;
+    color: var(--slate-light);
+    margin-top: 12px;
+    line-height: 1.8;
+  }
+
+  .key-info strong { color: var(--slate); }
+
+  .alert {
+    display: none;
+    padding: 14px 18px;
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: 500;
+    margin-bottom: 16px;
+    animation: slideDown 0.3s ease;
+  }
+
+  .alert-error {
+    background: var(--error-light);
+    color: var(--error);
+    border: 1px solid #fecaca;
+  }
+
+  .alert-success {
+    background: var(--success-light);
+    color: var(--success);
+    border: 1px solid #bbf7d0;
+  }
+
+  .alert.visible { display: block; }
+
+  @keyframes slideDown {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .field-group.disabled {
+    opacity: 0.45;
+    pointer-events: none;
+  }
+
+  .count-display {
+    text-align: center;
+    padding: 14px;
+    background: var(--blue-light);
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--blue);
+  }
+
+  .help-text {
+    font-size: 13px;
+    color: var(--slate-light);
+    line-height: 1.8;
+  }
+
+  .help-text code {
+    background: var(--blue-light);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 12px;
+    color: var(--blue);
+  }
+
+  .help-text ol {
+    padding-left: 20px;
+  }
+
+  .help-text li {
+    margin-bottom: 8px;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>StumpCast <span>Studio</span></h1>
+    <p>License Key Generator &mdash; Admin Tool</p>
+  </div>
+
+  <div class="card">
+    <div class="alert alert-error" id="errorAlert"></div>
+    <div class="alert alert-success" id="successAlert"></div>
+
+    <h2>Plan Details</h2>
+
+    <div class="field-group">
+      <label for="channel">Channel / Handle</label>
+      <input type="text" id="channel" placeholder="@channelname" maxlength="100">
+    </div>
+
+    <div class="field-group">
+      <label>Plan Type</label>
+      <div class="plan-options">
+        <div class="plan-option">
+          <input type="radio" name="plan" id="planMonthly" value="monthly" checked>
+          <label for="planMonthly">
+            <span class="plan-icon">&#128197;</span>
+            <span class="plan-name">Monthly</span>
+            <span class="plan-desc">~31 days</span>
+          </label>
+        </div>
+        <div class="plan-option">
+          <input type="radio" name="plan" id="planYearly" value="yearly">
+          <label for="planYearly">
+            <span class="plan-icon">&#128197;</span>
+            <span class="plan-name">Yearly</span>
+            <span class="plan-desc">~366 days</span>
+          </label>
+        </div>
+        <div class="plan-option">
+          <input type="radio" name="plan" id="planLifetime" value="lifetime">
+          <label for="planLifetime">
+            <span class="plan-icon">&#9733;</span>
+            <span class="plan-name">Lifetime</span>
+            <span class="plan-desc">Never expires</span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <div class="field-group" id="expiryField">
+      <label>Expiry Date</label>
+      <div class="row">
+        <div class="field-group">
+          <label for="expDay">Day</label>
+          <select id="expDay"></select>
+        </div>
+        <div class="field-group">
+          <label for="expMonth">Month</label>
+          <select id="expMonth"></select>
+        </div>
+        <div class="field-group">
+          <label for="expYear">Year</label>
+          <select id="expYear"></select>
+        </div>
+      </div>
+      <div class="count-display" id="daysCount"></div>
+    </div>
+
+    <button class="btn btn-primary" id="generateBtn" style="margin-top: 8px;">Generate License Key</button>
+
+    <div class="key-output" id="keyOutput">
+      <div class="key-label">License Key Generated</div>
+      <div class="key-value" id="keyValue"></div>
+      <button class="btn btn-copy" id="copyBtn">Copy to Clipboard</button>
+      <div class="key-info" id="keyInfo"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>How It Works</h2>
+    <div class="help-text">
+      <ol>
+        <li>Enter the <strong>channel handle</strong> the licence is bound to.</li>
+        <li>Select a <strong>plan type</strong>: Monthly, Yearly, or Lifetime.</li>
+        <li>For Monthly/Yearly: pick the <strong>expiry date</strong> using day/month/year selectors.</li>
+        <li>For Lifetime: no expiry &mdash; the key never expires.</li>
+        <li>Click <strong>Generate</strong> &mdash; a signed <code>SC1</code> token is produced.</li>
+        <li>Send the key to the user. They paste it into StumpCast Studio's licence dialog.</li>
+      </ol>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+
+const channelInput = $('channel');
+const expDay = $('expDay');
+const expMonth = $('expMonth');
+const expYear = $('expYear');
+const expiryField = $('expiryField');
+const daysCount = $('daysCount');
+const generateBtn = $('generateBtn');
+const copyBtn = $('copyBtn');
+const keyOutput = $('keyOutput');
+const keyValue = $('keyValue');
+const keyInfo = $('keyInfo');
+const errorAlert = $('errorAlert');
+const successAlert = $('successAlert');
+
+const MONTHS = [
+  'January','February','March','April','May','June',
+  'July','August','September','October','November','December'
+];
+
+let generatedToken = null;
+
+function populateDateSelectors() {
+  const now = new Date();
+
+  for (let d = 1; d <= 31; d++) {
+    const opt = document.createElement('option');
+    opt.value = d;
+    opt.textContent = String(d).padStart(2, '0');
+    expDay.appendChild(opt);
+  }
+
+  MONTHS.forEach((m, i) => {
+    const opt = document.createElement('option');
+    opt.value = i + 1;
+    opt.textContent = m;
+    expMonth.appendChild(opt);
+  });
+
+  for (let y = now.getFullYear(); y <= now.getFullYear() + 10; y++) {
+    const opt = document.createElement('option');
+    opt.value = y;
+    opt.textContent = y;
+    expYear.appendChild(opt);
+  }
+
+  expDay.value = now.getDate();
+  expMonth.value = now.getMonth() + 1;
+  expYear.value = now.getFullYear();
+}
+
+function updateDaysCount() {
+  const now = new Date();
+  const selected = new Date(
+    Number(expYear.value),
+    Number(expMonth.value) - 1,
+    Number(expDay.value)
+  );
+  const diffMs = selected - now;
+  const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+  if (diffDays > 0) {
+    daysCount.textContent = diffDays + ' day' + (diffDays !== 1 ? 's' : '') + ' remaining';
+  } else {
+    daysCount.textContent = 'Select a future date';
+  }
+}
+
+function getSelectedPlan() {
+  return document.querySelector('input[name="plan"]:checked').value;
+}
+
+function updateFieldVisibility() {
+  const plan = getSelectedPlan();
+  if (plan === 'lifetime') {
+    expiryField.classList.add('disabled');
+    daysCount.textContent = 'Lifetime - never expires';
+  } else {
+    expiryField.classList.remove('disabled');
+    updateDaysCount();
+  }
+}
+
+function showAlert(el, msg) {
+  el.textContent = msg;
+  el.classList.add('visible');
+  setTimeout(() => el.classList.remove('visible'), 5000);
+}
+
+function showError(msg) { showAlert(errorAlert, msg); }
+function showSuccess(msg) { showAlert(successAlert, msg); }
+
+async function generateKey() {
+  const channel = channelInput.value.trim();
+  if (!channel) { showError('Please enter a channel handle.'); return; }
+
+  const plan = getSelectedPlan();
+
+  const expiryDate = new Date(
+    Number(expYear.value),
+    Number(expMonth.value) - 1,
+    Number(expDay.value)
+  );
+  const now = new Date();
+  const days = Math.ceil((expiryDate - now) / (1000 * 60 * 60 * 24));
+
+  if (plan !== 'lifetime' && days <= 0) {
+    showError('Expiry date must be in the future.');
+    return;
+  }
+
+  generateBtn.disabled = true;
+  generateBtn.textContent = 'Generating...';
+
+  try {
+    const resp = await fetch(window.location.origin + '/api/licence/generate', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        channel,
+        plan,
+        ...(plan !== 'lifetime' ? { days } : {}),
+      }),
+    });
+
+    const data = await resp.json();
+    if (!resp.ok) { showError(data.error || 'Failed to generate key.'); return; }
+
+    generatedToken = data.token;
+    keyValue.textContent = generatedToken;
+
+    const expiryText = plan === 'lifetime'
+      ? 'Never expires (Lifetime)'
+      : 'Expires: ' + new Date(data.expiresAt).toLocaleDateString('en-US', {
+          year: 'numeric', month: 'long', day: 'numeric'
+        });
+
+    keyInfo.innerHTML = '<strong>Channel:</strong> ' + data.channel +
+      ' &nbsp;|&nbsp; <strong>Plan:</strong> ' + data.plan +
+      ' &nbsp;|&nbsp; ' + expiryText;
+
+    keyOutput.classList.add('visible');
+    showSuccess('License key generated successfully!');
+    keyOutput.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  } catch {
+    showError('Server not reachable. Make sure StumpCast server is running.');
+  } finally {
+    generateBtn.disabled = false;
+    generateBtn.textContent = 'Generate License Key';
+  }
+}
+
+async function copyKey() {
+  if (!generatedToken) return;
+  try {
+    await navigator.clipboard.writeText(generatedToken);
+    copyBtn.textContent = 'Copied!';
+    setTimeout(() => { copyBtn.textContent = 'Copy to Clipboard'; }, 2000);
+  } catch {
+    const ta = document.createElement('textarea');
+    ta.value = generatedToken;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    copyBtn.textContent = 'Copied!';
+    setTimeout(() => { copyBtn.textContent = 'Copy to Clipboard'; }, 2000);
+  }
+}
+
+populateDateSelectors();
+updateFieldVisibility();
+
+document.querySelectorAll('input[name="plan"]').forEach(r =>
+  r.addEventListener('change', updateFieldVisibility)
+);
+[expDay, expMonth, expYear].forEach(s =>
+  s.addEventListener('change', updateDaysCount)
+);
+generateBtn.addEventListener('click', generateKey);
+copyBtn.addEventListener('click', copyKey);
+</script>
+</body>
+</html>

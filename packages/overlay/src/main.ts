@@ -25,6 +25,7 @@ import { ThisBall } from './components/ThisBall';
 import { ThisOver } from './components/ThisOver';
 import { Watermark } from './components/Watermark';
 import { WinProb } from './components/WinProb';
+import { UpgradePopup } from './components/UpgradePopup';
 import { mountDebug, parseParams } from './debug';
 import { CardManager } from './cards/CardManager';
 import { CARD_DEFS } from './cards/defs';
@@ -83,6 +84,7 @@ const batters = new BatterCards();
 const bowler = new BowlerCard();
 const banner = new BoundaryBanner();
 const watermark = new Watermark();
+const upgradePopup = new UpgradePopup();
 const dataBadge = new DataBadge();
 const streamFrame = new StreamFrame();
 const resultScreen = new ResultScreen();
@@ -102,6 +104,7 @@ if (store.get().settings.layout === 'arena') {
 }
 banner.mount(zones.top, look);
 watermark.mount(stageEl, look);
+upgradePopup.mount(stageEl, look);
 dataBadge.mount(stageEl, look);
 streamFrame.mount(stageEl, look);
 streamFrame.setCameraMode(store.get().settings.video.cameraMode);
@@ -129,6 +132,7 @@ const components = [
   bowler,
   banner,
   watermark,
+  upgradePopup,
   dataBadge,
   streamFrame,
   resultScreen,
@@ -159,6 +163,27 @@ const syncOnAirScreen = (s: typeof store extends { get(): infer G } ? G : never)
 };
 
 syncOnAirScreen(store.get());
+
+const applyLicenceState = (licensed: boolean) => {
+  watermark.setVisible(!licensed);
+  if (licensed) upgradePopup.stop();
+  else upgradePopup.start();
+};
+
+if (params.preview) {
+  try {
+    const res = await fetch(`${location.origin}/api/licence`);
+    if (res.ok) {
+      const data = (await res.json()) as { licensed: boolean };
+      store.setLicensed(data.licensed);
+      applyLicenceState(data.licensed);
+    }
+  } catch { /* offline */ }
+}
+
+store.subscribe((s, prev) => {
+  if (s.licensed !== prev.licensed) applyLicenceState(s.licensed);
+});
 
 // Render on every change. The DOM is only ever updated in place, so a lost connection or a
 // missing match leaves the last picture on screen instead of blanking it.
@@ -331,7 +356,7 @@ const commentary = new OverlayCommentary();
 
 const client = new OverlayWsClient({
   url: `${proto}://${location.host}/ws${params.preview ? '?preview=1' : ''}`,
-  channels: ['state', 'events', 'cards', 'layout', 'health', 'sound', 'commentary'],
+  channels: ['state', 'events', 'cards', 'layout', 'health', 'sound', 'commentary', 'licence'],
   onStatus: (s) => store.setConnection(s),
   onOpen: () => {
     void bootstrap();
@@ -368,6 +393,11 @@ const client = new OverlayWsClient({
             cards.updateMatch(m);
           }
         } else store.applyCard(c.data);
+      }
+    } else     if (msg.channel === 'licence') {
+      const data = msg.payload as { licensed?: boolean } | null;
+      if (data?.licensed !== undefined) {
+        store.setLicensed(data.licensed);
       }
     } else if (msg.channel === 'layout') {
       if (msg.event === 'settings') {

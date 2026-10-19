@@ -70,14 +70,18 @@
         selectors: [
           ".cb-text-toss",
           ".cb-toss",
+          ".text-cbItmBkgDark div",
+          ".text-sm.text-cbTxtSec",
           "#miniscore-branding-container .text-cbPreview",
           ".text-cbPreview"
-        ]
+        ],
+        regex: "(?:.*?[Tt]oss:\\s*)?([^\\n\\r]+)"
       },
       team1: {
         selectors: [
           '#miniscore-branding-container [class*="flex-row"]:first-child .mr-2',
           '[id^="sticky-m"] [class*="flex-row"]:first-child .mr-2',
+          "#miniscore-branding-container .text-base .mr-2",
           '#miniscore-branding-container [class*="flex-row"]:first-child > div:first-child',
           ".cb-hm-rwt .cb-hm-rwt-title",
           ".cb-col-50.cb-font-16"
@@ -85,6 +89,7 @@
       },
       team2: {
         selectors: [
+          "#miniscore-branding-container .text-xl .mr-2",
           '#miniscore-branding-container [class*="flex-row"]:nth-child(2) .mr-2',
           '[id^="sticky-m"] [class*="flex-row"]:nth-child(2) .mr-2',
           '#miniscore-branding-container [class*="flex-row"]:nth-child(2) > div:first-child',
@@ -94,10 +99,11 @@
       },
       battingTeam: {
         selectors: [
+          "#miniscore-branding-container .text-xl .mr-2",
+          "#sticky-mscore .font-bold.text-lg",
+          "#miniscore-branding-container .text-xl > div:first-child",
           '#miniscore-branding-container [class*="flex-row"]:last-child .mr-2',
           '[id^="sticky-m"] [class*="flex-row"]:last-child .mr-2',
-          "#miniscore-branding-container .text-xl > div:first-child",
-          "#sticky-mscore .font-bold.text-lg",
           ".cb-min-bat-rw .cb-font-20",
           ".cb-min-bat-rw span:first-child",
           ".cb-min-bat-rw"
@@ -112,6 +118,7 @@
       },
       "inn1.score": {
         selectors: [
+          "#miniscore-branding-container .text-base span.mr-2:first-child",
           "#miniscore-branding-container .text-base > div:last-child",
           "#miniscore-branding-container .text-base .flex",
           '#miniscore-branding-container [class*="flex-row"]:first-child:not(:last-child) .flex',
@@ -121,6 +128,8 @@
       },
       "inn1.overs": {
         selectors: [
+          "#miniscore-branding-container .text-base span.mr-2:last-child",
+          "#miniscore-branding-container .text-base span:last-child",
           "#miniscore-branding-container .text-base span.ml-1",
           "#miniscore-branding-container .text-base > div:nth-child(2) > div",
           '#miniscore-branding-container [class*="flex-row"]:first-child:not(:last-child) span.ml-1',
@@ -130,21 +139,30 @@
       },
       "inn2.team": {
         selectors: [
+          "#miniscore-branding-container .text-xl > div:first-child",
+          "#miniscore-branding-container .text-xl .mr-2",
           '#miniscore-branding-container [class*="flex-row"]:nth-child(2) .mr-2',
           '[id^="sticky-m"] [class*="flex-row"]:nth-child(2) .mr-2'
         ]
       },
       "inn2.score": {
         selectors: [
+          "#miniscore-branding-container .text-xl span.mr-2:first-child",
+          '#miniscore-branding-container [class*="flex-row"]:nth-child(2) .text-xl span.mr-2:first-child',
           '#miniscore-branding-container [class*="flex-row"]:nth-child(2) .text-xl > div:nth-child(2)',
           '#miniscore-branding-container [class*="flex-row"]:nth-child(2) .flex',
           '#miniscore-branding-container [class*="flex-row"]:nth-child(2) div:last-child',
           '[id^="sticky-m"] [class*="flex-row"]:nth-child(2) .text-3xl',
-          '[id^="sticky-m"] [class*="flex-row"]:nth-child(2) div:last-child'
+          '[id^="sticky-m"] [class*="flex-row"]:nth-child(2) div:last-child',
+          "#miniscore-branding-container .text-xl > div:nth-child(2)"
         ]
       },
       "inn2.overs": {
         selectors: [
+          "#miniscore-branding-container .text-xl span.mr-2:last-child",
+          "#miniscore-branding-container .text-xl span:last-child",
+          "#sticky-mscore .text-cbTxtSec",
+          '#miniscore-branding-container [class*="flex-row"]:nth-child(2) .text-xl span.mr-2:last-child',
           '#miniscore-branding-container [class*="flex-row"]:nth-child(2) .text-xl > div:nth-child(2) > div',
           '#miniscore-branding-container [class*="flex-row"]:nth-child(2) .font-bold.text-lg',
           '#miniscore-branding-container [class*="flex-row"]:nth-child(2) .ml-1:not(.text-cbTxtSec)',
@@ -156,12 +174,13 @@
       },
       score: {
         selectors: [
+          "#miniscore-branding-container .text-xl span.mr-2:first-child",
+          "#miniscore-branding-container .text-xl > div:nth-child(2) > span:first-child",
           "#miniscore-branding-container .text-xl > div:nth-child(2)",
           "#miniscore-branding-container .text-xl > .flex",
           "#miniscore-branding-container .text-xl .flex:has(span)",
           "#sticky-mscore .text-3xl",
           '#miniscore-branding-container [class*="flex-row"]:last-child div:nth-child(2)',
-          "#miniscore-branding-container .text-xl > div:nth-child(2) > span:first-child",
           ".cb-min-bat-rw .cb-font-20.text-bold",
           ".cb-min-bat-rw .cb-font-20",
           ".cb-min-bat-rw span",
@@ -172,12 +191,14 @@
       },
       overs: {
         selectors: [
+          "#miniscore-branding-container .text-xl span.mr-2:last-child",
+          "#miniscore-branding-container .text-xl span:last-child",
+          "#sticky-mscore .text-cbTxtSec",
+          "#sticky-mscore .text-3xl .text-cbTxtSec",
+          "#miniscore-branding-container .text-xl .text-cbTxtSec",
+          "#miniscore-branding-container .text-xl > div:nth-child(2) > span:nth-child(2)",
           "#miniscore-branding-container .text-xl > div:nth-child(2) > div",
           "#miniscore-branding-container .text-xl .font-bold.text-lg",
-          "#miniscore-branding-container .text-xl .ml-1:not(.text-cbTxtSec)",
-          "#sticky-mscore .text-3xl .text-cbTxtSec",
-          "#sticky-mscore .text-cbTxtSec",
-          "#miniscore-branding-container .text-xl > div:nth-child(2) > span:nth-child(2)",
           '#miniscore-branding-container [class*="flex-row"]:last-child span.ml-1',
           "#miniscore-branding-container span.ml-1",
           ".cb-min-bat-rw span:last-child",
@@ -309,10 +330,35 @@
         selectors: ["p.text-\\[\\#666\\]", ".text-\\[\\#666\\]", ".cb-min-rec", "span.cb-min-rec", "div.cb-min-rec"]
       },
       partnership: {
-        selectors: [".cb-col-100:has(.cb-min-itm)", ".cb-font-12"]
+        selectors: [
+          ".text-cbItmBkgDark div",
+          ".text-sm.text-cbTxtSec",
+          ".cb-col-100:has(.cb-min-itm)",
+          ".cb-font-12"
+        ],
+        regex: "(?:Partnership:?\\s*)(\\d+\\s*(?:\\(\\s*\\d+\\s*\\))?)"
       },
       crr: {
-        selectors: ["#miniscore-branding-container .text-xl span:last-child", ".cb-col-100:has(span.cb-font-12)", ".cb-min-bat-rw"]
+        selectors: [
+          "#miniscore-branding-container .text-cbTxtSec.ml-1",
+          "#miniscore-branding-container .text-xl span:last-child",
+          ".cb-col-100:has(span.cb-font-12)",
+          ".cb-min-bat-rw"
+        ]
+      },
+      rrr: {
+        selectors: [
+          ".text-cbTxtSec",
+          "#miniscore-branding-container .text-cbTxtSec"
+        ],
+        regex: "(?:REQ|RRR):?\\s*([\\d.]+)"
+      },
+      target: {
+        selectors: [
+          ".text-cbTxtSec",
+          "#miniscore-branding-container .text-cbTxtSec"
+        ],
+        regex: "(?:Target|TAR):?\\s*(\\d+)"
       }
     },
     minConfidenceFields: ["score", "overs"]
@@ -7262,9 +7308,16 @@
       return null;
     }
     async send(msg) {
+      let sentWs = false;
       if (this.socket && this.socket.readyState === OPEN && this.authed) {
-        this.socket.send(JSON.stringify(msg));
-      } else {
+        try {
+          this.socket.send(JSON.stringify(msg));
+          sentWs = true;
+        } catch {
+          sentWs = false;
+        }
+      }
+      if (!sentWs || msg.type === "update") {
         await this.postIngest(msg);
       }
       const activePorts = [4e3, 4002].filter((p) => p !== this.port);
@@ -7286,7 +7339,10 @@
       }
     }
     async postIngest(msg) {
-      if (!this.token) return;
+      if (!this.token) {
+        await this.autoPair();
+        if (!this.token) return;
+      }
       const port = this.port ?? await this.discoverPort();
       if (port === null) return;
       try {
@@ -7298,7 +7354,20 @@
           },
           body: JSON.stringify(msg)
         });
-        if (res.status === 401) await this.unpair();
+        if (res.status === 401) {
+          await this.unpair();
+          const rePaired = await this.autoPair();
+          if (rePaired && this.token) {
+            await this.deps.fetch(`http://127.0.0.1:${port}/api/ext/ingest`, {
+              method: "POST",
+              headers: {
+                "content-type": "application/json",
+                authorization: `Bearer ${this.token}`
+              },
+              body: JSON.stringify(msg)
+            }).catch(() => void 0);
+          }
+        }
       } catch {
       }
     }
@@ -7605,7 +7674,8 @@
       return true;
     }
     if (["score-update", "tick", "adapter-degraded"].includes(m.type ?? "")) {
-      void connector.init().then(() => connector.onContentMessage(msg, sender.tab?.id ?? null));
+      void connector.init().then(() => connector.onContentMessage(msg, sender.tab?.id ?? null)).then(() => sendResponse({ ok: true })).catch((err) => sendResponse({ ok: false, error: String(err) }));
+      return true;
     }
     return false;
   });

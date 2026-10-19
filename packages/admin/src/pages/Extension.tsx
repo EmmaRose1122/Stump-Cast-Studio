@@ -76,22 +76,22 @@ export const ExtensionPage = () => {
   return (
     <div className="w-full max-w-4xl mx-auto flex flex-col items-center space-y-6">
       <div className="text-center">
-        <h1 className="mb-1 font-heading text-2xl font-bold text-white">
+        <h1 className="mb-1 font-heading text-2xl font-bold text-slate-900">
           Chrome Extension
         </h1>
-        <p className="text-sm text-slate-300">
+        <p className="text-sm text-slate-600">
           Pair the extension to stream live match data from Cricbuzz or Crex pages you have open.
         </p>
       </div>
 
-      <div className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-[#0c1836] px-4 py-3">
+      <div className="flex flex-wrap items-center gap-3 rounded-xl border border-blue-200 bg-white px-4 py-3 shadow-sm">
         <span className={clsx('size-3 rounded-full', statusColor)} />
-        <span className="font-semibold text-white">{statusText}</span>
+        <span className="font-semibold text-blue-950">{statusText}</span>
         {provider.data?.extensionVersion && (
-          <span className="text-xs text-muted">v{provider.data.extensionVersion}</span>
+          <span className="text-xs text-slate-500">v{provider.data.extensionVersion}</span>
         )}
         {provider.data?.selectorsVersion !== null && provider.data?.selectorsVersion !== undefined && (
-          <span className="text-xs text-muted">selectors v{provider.data.selectorsVersion}</span>
+          <span className="text-xs text-slate-500">selectors v{provider.data.selectorsVersion}</span>
         )}
         <div className="ml-auto flex gap-2">
           <Button variant="secondary" onClick={() => testConnection.mutate()} disabled={testConnection.isPending}>
@@ -104,9 +104,9 @@ export const ExtensionPage = () => {
       </div>
 
       {rawStatus && (
-        <div className="w-full rounded-xl border border-border bg-[#0b1320] p-4">
-          <h3 className="text-xs font-bold text-muted uppercase tracking-wider">Raw Status Response</h3>
-          <pre className="mt-2 text-xs text-slate-300 overflow-x-auto">
+        <div className="w-full rounded-xl border border-blue-200 bg-blue-50/50 p-4 shadow-xs">
+          <h3 className="text-xs font-bold text-slate-600 uppercase tracking-wider">Raw Status Response</h3>
+          <pre className="mt-2 text-xs text-slate-700 overflow-x-auto">
             {JSON.stringify(rawStatus, null, 2)}
           </pre>
         </div>
@@ -114,10 +114,10 @@ export const ExtensionPage = () => {
 
       {health !== 'connected' && (
         <Card className="w-full">
-          <h2 className="font-heading text-lg font-semibold text-white">Troubleshooting</h2>
-          <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm text-slate-300">
+          <h2 className="font-heading text-lg font-semibold text-blue-950">Troubleshooting</h2>
+          <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm text-slate-700">
             <li>
-              Open <code className="text-teal">chrome://extensions</code> in Chrome
+              Open <code className="text-teal font-mono">chrome://extensions</code> in Chrome
             </li>
             <li>Find "StumpCast Studio Connector" and click <b>Reload</b> (circular arrow icon)</li>
             <li>
@@ -152,12 +152,12 @@ export const ExtensionPage = () => {
 
       {health !== 'connected' && (
         <Card className="w-full">
-          <h2 className="font-heading text-lg font-semibold text-white">Connect the extension</h2>
-          <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm text-slate-300">
+          <h2 className="font-heading text-lg font-semibold text-slate-900">Connect the extension</h2>
+          <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm text-slate-700">
             <li>
-              In Chrome open <code className="text-teal">chrome://extensions</code>, turn on{' '}
+              In Chrome open <code className="text-blue-700 font-mono">chrome://extensions</code>, turn on{' '}
               <b>Developer mode</b> and choose <b>Load unpacked</b>, then select the StumpCast{' '}
-              <code className="text-teal">extension</code> folder.
+              <code className="text-blue-700 font-mono">extension</code> folder.
             </li>
             <li>
               The extension connects <b>automatically (1-Click Auto Connect)</b> to StumpCast Studio on localhost. No manual pair code is needed.
@@ -167,7 +167,7 @@ export const ExtensionPage = () => {
             </li>
           </ol>
 
-          <label className="mt-4 flex max-w-2xl items-start gap-3 rounded-lg border border-border p-3 text-sm">
+          <label className="mt-4 flex max-w-2xl items-start gap-3 rounded-lg border border-blue-200 bg-blue-50/40 p-3 text-sm">
             <input
               type="checkbox"
               checked={accepted}
@@ -189,7 +189,7 @@ export const ExtensionPage = () => {
                 }
               }}
             />
-            <span className="text-slate-300">
+            <span className="text-slate-700">
               I understand that the extension reads only match pages I open. I am responsible for
               complying with the source site&apos;s terms of use; StumpCast does not host or resell
               source data.
@@ -200,38 +200,38 @@ export const ExtensionPage = () => {
 
       {health === 'connected' && (
         <Card className="w-full">
-          <h2 className="font-heading text-lg font-semibold text-white">Data Feed Status</h2>
+          <h2 className="font-heading text-lg font-semibold text-slate-900">Data Feed Status</h2>
           <div className="mt-3 grid grid-cols-3 gap-3">
-            <div className="rounded-lg border border-border bg-[#111a28] p-3 text-center">
-              <div className="text-2xl font-bold text-emerald-400">
+            <div className="rounded-lg border border-blue-200 bg-blue-50/50 p-3 text-center">
+              <div className="text-2xl font-bold text-emerald-600">
                 {provider.data?.openTabs ?? 0}
               </div>
-              <div className="text-[10px] text-muted uppercase tracking-wider">Open Tabs</div>
+              <div className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Open Tabs</div>
             </div>
-            <div className="rounded-lg border border-border bg-[#111a28] p-3 text-center">
-              <div className="text-2xl font-bold text-cyan-400">
+            <div className="rounded-lg border border-blue-200 bg-blue-50/50 p-3 text-center">
+              <div className="text-2xl font-bold text-blue-600">
                 {matches.data?.length ?? 0}
               </div>
-              <div className="text-[10px] text-muted uppercase tracking-wider">Matches</div>
+              <div className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Matches</div>
             </div>
-            <div className="rounded-lg border border-border bg-[#111a28] p-3 text-center">
-              <div className="text-2xl font-bold text-amber-400">
+            <div className="rounded-lg border border-blue-200 bg-blue-50/50 p-3 text-center">
+              <div className="text-2xl font-bold text-orange-600">
                 {provider.data?.lastHeartbeatAt
                   ? `${Math.max(0, Math.round((Date.now() - provider.data.lastHeartbeatAt) / 1000))}s ago`
                   : '—'}
               </div>
-              <div className="text-[10px] text-muted uppercase tracking-wider">Last Heartbeat</div>
+              <div className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Last Heartbeat</div>
             </div>
           </div>
 
           {provider.data?.openTabs !== undefined && provider.data.openTabs > 0 && (
-            <div className="mt-3 rounded-lg border border-emerald-500/30 bg-emerald-950/20 px-3 py-2 text-xs text-emerald-300">
+            <div className="mt-3 rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-2 text-xs text-emerald-800 font-medium">
               Data is being fetched from {provider.data.openTabs} tab(s)
             </div>
           )}
 
           {provider.data?.lastDegraded && (
-            <div className="mt-3 rounded-lg border border-amber-500/30 bg-amber-950/20 px-3 py-2 text-xs text-amber-300">
+            <div className="mt-3 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800 font-medium">
               Adapter degraded: {provider.data.lastDegraded.site} — missing:{' '}
               {provider.data.lastDegraded.missing.join(', ')} (
               {new Date(provider.data.lastDegraded.at).toLocaleTimeString()})
@@ -240,25 +240,25 @@ export const ExtensionPage = () => {
         </Card>
       )}
 
-      {health === 'connected' && (
+      {(health === 'connected' || health === 'stale' || (matches.data && matches.data.length > 0)) && (
         <Card className="w-full">
-          <h2 className="font-heading text-lg font-semibold text-white">Your Matches</h2>
+          <h2 className="font-heading text-lg font-semibold text-slate-900">Your Matches</h2>
           {matches.data && matches.data.length > 0 ? (
             <ul className="mt-3 grid gap-2">
               {matches.data.map((m) => (
                 <li
                   key={m.id}
-                  className="flex items-center justify-between gap-3 rounded-[10px] border border-border px-3 py-2"
+                  className="flex items-center justify-between gap-3 rounded-[10px] border border-blue-200 bg-white px-3 py-2"
                 >
                   <div>
-                    <span className="truncate text-sm text-white">
+                    <span className="truncate text-sm text-slate-900 font-medium">
                       {m.title} · {m.score.runs}-{m.score.wkts}
                     </span>
                     <span
                       className={`ml-2 size-2 rounded-full inline-block ${
                         provider.data?.matches.find((pm) => pm.matchId === m.id)?.health === 'connected'
-                          ? 'bg-emerald-400'
-                          : 'bg-amber-400'
+                          ? 'bg-emerald-500'
+                          : 'bg-amber-500'
                       }`}
                     />
                   </div>
@@ -283,14 +283,14 @@ export const ExtensionPage = () => {
             </p>
           )}
 
-          <div className="mt-4 border-t border-border pt-4">
-            <h3 className="text-sm font-semibold text-white">Open a match by URL</h3>
+          <div className="mt-4 border-t border-blue-100 pt-4">
+            <h3 className="text-sm font-semibold text-blue-950">Open a match by URL</h3>
             <div className="mt-2 flex gap-2">
               <input
                 value={urlDraft}
                 onChange={(e) => setUrlDraft(e.target.value)}
                 placeholder="https://www.cricbuzz.com/live-cricket-scores/..."
-                className="flex-1 rounded-lg border border-border bg-[#0b1320] px-3 py-2 text-xs text-white"
+                className="flex-1 rounded-lg border border-blue-200 bg-white px-3 py-2 text-xs text-slate-800 placeholder-slate-400 focus:border-orange-500 focus:outline-none"
               />
               <Button
                 disabled={!urlDraft.trim() || openMatch.isPending}

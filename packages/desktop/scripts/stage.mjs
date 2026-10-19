@@ -50,6 +50,13 @@ cpSync(path.join(desktop, 'dist'), path.join(stage, 'packages', 'desktop', 'dist
 });
 cpSync(path.join(packages, 'overlay', 'dist'), path.join(stage, 'packages', 'overlay', 'dist'), { recursive: true });
 cpSync(path.join(packages, 'admin', 'dist'), path.join(stage, 'packages', 'admin', 'dist'), { recursive: true });
+if (existsSync(path.join(packages, 'license-admin', 'dist'))) {
+  cpSync(path.join(packages, 'license-admin', 'dist'), path.join(stage, 'packages', 'license-admin', 'dist'), { recursive: true });
+}
+if (existsSync(path.join(packages, '..', '.secrets'))) {
+  cpSync(path.join(packages, '..', '.secrets'), path.join(stage, '.secrets'), { recursive: true });
+  cpSync(path.join(packages, '..', '.secrets'), path.join(stage, 'packages', '.secrets'), { recursive: true });
+}
 
 const serverAssets = path.join(packages, 'server', 'data', 'assets');
 if (existsSync(serverAssets)) {

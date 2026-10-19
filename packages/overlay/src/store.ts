@@ -29,6 +29,8 @@ export interface OverlayState {
   /** Card currently on air. */
   active: ActiveCard | null;
   connection: ConnectionStatus;
+  /** Whether a valid licence key is active (hides watermark + popup). */
+  licensed: boolean;
 }
 
 type Listener = (s: OverlayState, prev: OverlayState) => void;
@@ -47,6 +49,7 @@ export class OverlayStore {
       queue: [],
       active: null,
       connection: 'connecting',
+      licensed: false,
     };
   }
 
@@ -76,7 +79,8 @@ export class OverlayStore {
     const known = matches[match.id];
     // Ignore out-of-order deliveries so the overlay never steps backwards.
     if (known && Date.parse(known.updatedAt) > Date.parse(match.updatedAt)) return;
-    const matchId = this.pinnedMatchId ?? this.state.matchId ?? match.id; // first match seen wins unless pinned
+    const isTestSeed = this.state.matchId === '147920';
+    const matchId = this.pinnedMatchId ?? (isTestSeed ? match.id : (this.state.matchId ?? match.id));
     this.set({ matches: { ...matches, [match.id]: match }, matchId });
   }
 
@@ -108,6 +112,10 @@ export class OverlayStore {
 
   setConnection(connection: ConnectionStatus): void {
     if (connection !== this.state.connection) this.set({ connection });
+  }
+
+  setLicensed(licensed: boolean): void {
+    if (licensed !== this.state.licensed) this.set({ licensed });
   }
 
   /** Apply a `cards` channel command. A new `show` replaces the card on air. */

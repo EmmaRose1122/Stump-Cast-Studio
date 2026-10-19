@@ -160,18 +160,25 @@ const normalise = (raw: Raw, prev: Prev | undefined, site = 'cricbuzz'): Normali
     ? slots
     : [{ team: 'battingTeam' as FieldKey, score: 'score' as FieldKey, overs: 'overs' as FieldKey }];
   for (const slot of active) {
+    const rawScore = text(slot.score);
     const score =
-      parseScore(text(slot.score)) ??
-      (isTest || hasNumbered ? parseScore(text(slot.score), { allowBare: true }) : undefined);
-    const overs = slot.overs ? parseOvers(text(slot.overs)) : undefined;
+      parseScore(rawScore) ??
+      (isTest || hasNumbered ? parseScore(rawScore, { allowBare: true }) : undefined);
+    let overs = slot.overs ? parseOvers(text(slot.overs)) : undefined;
+    if (!overs && rawScore) {
+      const oversFromScore = /\(\s*(\d{1,3}(?:\.\d)?)\s*(?:ov(?:ers?)?|ovs?)?\s*\)/i.exec(rawScore);
+      if (oversFromScore?.[1]) {
+        overs = parseOvers(oversFromScore[1]);
+      }
+    }
     // Overs are checked on their own so a broken score selector does not hide a good one.
     if (overs && overs.overs <= maxOvers) {
-      pass(slot.overs!, true);
+      if (slot.overs) pass(slot.overs, true);
       pass('overs', true);
     }
     if (!score) continue;
     innings.push({
-      team: (slot.team && text(slot.team)) || text('team1') || '',
+      team: (slot.team && text(slot.team)) || text('battingTeam') || text('team1') || '',
       runs: score.runs,
       wkts: score.wkts,
       overs: overs?.overs ?? 0,
@@ -203,7 +210,17 @@ const normalise = (raw: Raw, prev: Prev | undefined, site = 'cricbuzz'): Normali
           ? team2Name
           : undefined
       : undefined;
-    const teamName = site === 'crex' ? (text('battingTeam') || '') : (text('battingTeam') || tossWinner || team1Name || 'Batting');
+    const statusWinner = rawStatus
+      ? team1Name && new RegExp(`\\b${team1Name}\\b`, 'i').test(rawStatus)
+        ? team1Name
+        : team2Name && new RegExp(`\\b${team2Name}\\b`, 'i').test(rawStatus)
+          ? team2Name
+          : undefined
+      : undefined;
+    const teamName =
+      site === 'crex'
+        ? (text('battingTeam') || '')
+        : (tossWinner || statusWinner || text('battingTeam') || team1Name || 'Batting');
     innings.push({
       team: teamName,
       runs: 0,

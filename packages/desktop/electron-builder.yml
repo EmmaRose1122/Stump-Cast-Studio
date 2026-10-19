@@ -34,5 +34,6 @@ protocols:
 # Update feed read by electron-updater. Replace with the URL where you upload the release files
 # (latest.yml + the Setup exe). Until it exists, update checks fail quietly and are logged.
 publish:
-  - provider: generic
-    url: https://stumpcast.app/updates/
+  - provider: github
+    owner: EmmaRose1122
+    repo: Stump-Cast-Studio

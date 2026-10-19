@@ -4,6 +4,7 @@ import {
   ExtCommandSchema,
   PairRequestSchema,
   type ExtServerMessage,
+  type RawUpdate,
 } from '@stumpcast/shared';
 import type { WsHub } from '../ws/hub';
 import { bearerToken, type ExtensionAuth } from './auth';
@@ -11,6 +12,161 @@ import type { ExtensionProvider } from './provider';
 import type { SelectorService } from './selectors';
 
 const AUTH_TIMEOUT_MS = 5000;
+
+export function onAirHeroUpdateToRaw(payload: any): RawUpdate {
+  const matchId = String(payload.matchId || 'live');
+  const source: 'cricbuzz' | 'crex' =
+    payload.source === 'crex' || matchId.startsWith('crex_') ? 'crex' : 'cricbuzz';
+  const url =
+    payload.url && /^https?:\/\//i.test(payload.url)
+      ? payload.url
+      : source === 'crex'
+      ? `https://crex.com/match/${matchId}`
+      : `https://www.cricbuzz.com/live-cricket-scores/${matchId}`;
+
+  const parseOvers = (val: unknown): { overs: number; balls: number } => {
+    if (val == null) return { overs: 0, balls: 0 };
+    const parts = String(val).split('.');
+    const overs = Math.max(0, parseInt(parts[0] ?? '0', 10) || 0);
+    const balls = Math.min(5, Math.max(0, parts[1] ? parseInt(parts[1], 10) || 0 : 0));
+    return { overs, balls };
+  };
+
+  const inningsRaw: any[] = Array.isArray(payload.innings) ? payload.innings : [];
+  const innings = inningsRaw.map((inn) => {
+    const { overs, balls } = parseOvers(inn.overs);
+    const wktsRaw = inn.wickets ?? inn.wkts;
+    const wkts =
+      wktsRaw != null ? Math.min(10, Math.max(0, parseInt(wktsRaw, 10) || 0)) : inn.declared ? 0 : 10;
+    return {
+      team: String(inn.teamCode || inn.team || 'Team').trim(),
+      runs: Math.max(0, parseInt(inn.runs, 10) || 0),
+      wkts,
+      overs,
+      balls,
+    };
+  });
+
+  if (innings.length === 0 && payload.batting) {
+    const { overs, balls } = parseOvers(payload.batting.overs);
+    innings.push({
+      team: String(payload.batting.teamCode || payload.batting.team || 'Batting').trim(),
+      runs: Math.max(0, parseInt(payload.batting.runs, 10) || 0),
+      wkts: Math.min(10, Math.max(0, parseInt(payload.batting.wickets ?? payload.batting.wkts, 10) || 0)),
+      overs,
+      balls,
+    });
+  }
+
+  const battersRaw: any[] = Array.isArray(payload.batters) ? payload.batters : [];
+  const batters = battersRaw.map((b) => {
+    const rawName = String(b.name || '');
+    const cleanName = rawName.replace(/\s*\*\s*$/, '').trim();
+    const onStrike = Boolean(b.isStriker ?? b.onStrike ?? rawName.includes('*'));
+    return {
+      name: cleanName || 'Batter',
+      runs: Math.max(0, parseInt(b.runs, 10) || 0),
+      balls: Math.max(0, parseInt(b.balls, 10) || 0),
+      fours: Math.max(0, parseInt(b.fours, 10) || 0),
+      sixes: Math.max(0, parseInt(b.sixes, 10) || 0),
+      onStrike,
+    };
+  });
+
+  let bowler: RawUpdate['fields']['bowler'] | undefined = undefined;
+  if (payload.bowler && payload.bowler.name) {
+    const { overs, balls } = parseOvers(payload.bowler.overs);
+    const rawBowlerName = String(payload.bowler.name || '');
+    const cleanBowlerName = rawBowlerName.replace(/\s*\*\s*$/, '').trim();
+    bowler = {
+      name: cleanBowlerName || 'Bowler',
+      overs,
+      balls,
+      maidens: Math.max(0, parseInt(payload.bowler.maidens, 10) || 0),
+      runs: Math.max(0, parseInt(payload.bowler.runs, 10) || 0),
+      wkts: Math.min(10, Math.max(0, parseInt(payload.bowler.wickets ?? payload.bowler.wkts, 10) || 0)),
+    };
+  }
+
+  let teams: Array<{ name: string; short?: string }> = [];
+  if (Array.isArray(payload.teams) && payload.teams.length > 0) {
+    teams = payload.teams.slice(0, 2).map((t: any) =>
+      typeof t === 'string'
+        ? { name: t, short: t.slice(0, 4).toUpperCase() }
+        : { name: t.name || t.teamCode || 'Team', short: t.short || t.teamCode },
+    );
+  } else if (payload.title) {
+    const m = String(payload.title).match(
+      /^([A-Za-z0-9][A-Za-z0-9 .&'-]*?)\s+vs\.?\s+([A-Za-z0-9][A-Za-z0-9 .&'-]*?)(?:,|$)/i,
+    );
+    if (m && m[1] && m[2]) {
+      teams = [
+        { name: m[1].trim(), short: m[1].trim().slice(0, 4).toUpperCase() },
+        { name: m[2].trim(), short: m[2].trim().slice(0, 4).toUpperCase() },
+      ];
+    }
+  }
+  if (teams.length === 0 && innings.length > 0) {
+    const uniqueTeams = Array.from(new Set(innings.map((i) => i.team)));
+    teams = uniqueTeams.slice(0, 2).map((t) => ({ name: t, short: t.slice(0, 4).toUpperCase() }));
+  }
+
+  const recentBalls: string[] = Array.isArray(payload.recentBalls)
+    ? payload.recentBalls.map((b: any) => String(b).trim()).filter(Boolean)
+    : [];
+
+  let partnership: { runs: number; balls: number } | undefined = undefined;
+  const pData = payload.stats?.partnership || payload.partnership;
+  if (pData && (pData.runs != null || pData.balls != null)) {
+    partnership = {
+      runs: Math.max(0, parseInt(pData.runs, 10) || 0),
+      balls: Math.max(0, parseInt(pData.balls, 10) || 0),
+    };
+  }
+
+  const crr = payload.batting?.runRate ?? payload.crr;
+  const target = payload.target ? parseInt(payload.target, 10) : undefined;
+
+  const rawFormat = String(payload.format || payload.series || payload.title || '').toUpperCase();
+  let format: 'T20' | 'ODI' | 'TEST' | undefined = undefined;
+  if (rawFormat.includes('T20') || rawFormat.includes('TWENTY20')) format = 'T20';
+  else if (rawFormat.includes('ODI') || rawFormat.includes('ONE DAY')) format = 'ODI';
+  else if (rawFormat.includes('TEST')) format = 'TEST';
+
+  const commentaryLast =
+    payload.commentary?.text ||
+    (typeof payload.commentary === 'string' ? payload.commentary : undefined);
+
+  return {
+    source,
+    matchId,
+    url,
+    capturedAt: Date.now(),
+    confidence: 1,
+    fields: {
+      title: payload.title || undefined,
+      status: payload.statusText || payload.status || undefined,
+      venue: payload.venue || undefined,
+      toss: payload.toss || undefined,
+      teams,
+      innings,
+      batters,
+      bowler,
+      thisOver: recentBalls,
+      lastBalls: recentBalls,
+      partnership,
+      target: target && !isNaN(target) ? target : undefined,
+      crr: crr != null && !isNaN(Number(crr)) ? Number(crr) : undefined,
+      rrr: payload.rrr != null && !isNaN(Number(payload.rrr)) ? Number(payload.rrr) : undefined,
+      day: payload.day != null ? parseInt(payload.day, 10) : undefined,
+      session: payload.session || undefined,
+      resultText: payload.resultText || undefined,
+      commentaryLast: commentaryLast || undefined,
+      format,
+    },
+    missing: [],
+  };
+}
 
 export const SAMPLE_MATCH_UPDATE = {
   source: 'cricbuzz' as const,
@@ -133,13 +289,140 @@ export const registerExtRoutes = (
   });
 
   fastify.post('/api/ext/ingest', async (req, reply) => {
-    if (!auth.verify(bearerToken(req.headers.authorization))) {
+    const token = bearerToken(req.headers.authorization);
+    if (!token || !auth.verify(token)) {
       return reply.code(401).send({ error: 'Unauthorised' });
     }
     const msg = ExtClientMessageSchema.safeParse(req.body);
     if (!msg.success) return reply.code(400).send({ error: 'Invalid message' });
     handle(msg.data);
     return { ok: true };
+  });
+
+  // Zero-friction OnAirHero extension HTTP POST ingest
+  fastify.post('/ingest', async (req, reply) => {
+    const body: any = req.body;
+    if (!body) return reply.code(400).send({ error: 'Empty body' });
+    const payload = body.payload || body;
+    try {
+      const raw = onAirHeroUpdateToRaw(payload);
+      provider.ingest(raw);
+      provider.recordHeartbeat({
+        type: 'heartbeat',
+        extensionVersion: '1.2.0',
+        selectorsVersion: 1,
+        tabs: [
+          {
+            matchId: raw.matchId,
+            url: raw.url,
+            lastUpdateAt: Date.now(),
+            confidence: 1,
+          },
+        ],
+      });
+      return { ok: true, matchId: raw.matchId };
+    } catch (err: any) {
+      return reply.code(400).send({ error: err?.message || 'Invalid payload' });
+    }
+  });
+
+  // Zero-friction OnAirHero extension WebSocket ingest (cricstream-ingest/1)
+  fastify.get('/ingest', { websocket: true }, (socket) => {
+    hub.broadcast('health', 'extension-connected', {});
+    provider.recordHeartbeat({
+      type: 'heartbeat',
+      extensionVersion: '1.2.0',
+      selectorsVersion: 1,
+      tabs: [],
+    });
+
+    const sendMsg = (type: string, payload?: any) => {
+      if (socket.readyState === socket.OPEN) {
+        socket.send(
+          JSON.stringify({
+            protocol: 'cricstream-ingest/1',
+            type,
+            payload,
+            timestamp: Date.now(),
+          }),
+        );
+      }
+    };
+
+    provider.setCommandSender((cmd) => {
+      sendMsg(cmd.command, cmd);
+      return socket.readyState === socket.OPEN;
+    });
+
+    socket.on('message', (raw) => {
+      let json: any;
+      try {
+        json = JSON.parse(raw.toString());
+      } catch {
+        return;
+      }
+
+      const msgType = json.type;
+      const payload = json.payload || json;
+
+      if (msgType === 'hello') {
+        sendMsg('hello_ack', { ok: true });
+        sendMsg('request_meta');
+        hub.broadcast('health', 'extension-connected', {});
+        provider.recordHeartbeat({
+          type: 'heartbeat',
+          extensionVersion: payload.version || '1.2.0',
+          selectorsVersion: 1,
+          tabs: [],
+        });
+      } else if (msgType === 'match_meta') {
+        const mId = payload.matchId ? String(payload.matchId) : null;
+        if (mId) {
+          sendMsg('meta_ack', { matchId: mId });
+          sendMsg('on_air', { matchId: mId, url: payload.url });
+          provider.recordHeartbeat({
+            type: 'heartbeat',
+            extensionVersion: '1.2.0',
+            selectorsVersion: 1,
+            tabs: [
+              {
+                matchId: mId,
+                url: payload.url || `https://www.cricbuzz.com/live-cricket-scores/${mId}`,
+                lastUpdateAt: Date.now(),
+                confidence: 1,
+              },
+            ],
+          });
+        }
+      } else if (msgType === 'match_update') {
+        try {
+          const rawUpdate = onAirHeroUpdateToRaw(payload);
+          provider.ingest(rawUpdate);
+          provider.recordHeartbeat({
+            type: 'heartbeat',
+            extensionVersion: '1.2.0',
+            selectorsVersion: 1,
+            tabs: [
+              {
+                matchId: rawUpdate.matchId,
+                url: rawUpdate.url,
+                lastUpdateAt: Date.now(),
+                confidence: 1,
+              },
+            ],
+          });
+        } catch {
+          // Ignore transient parsing drops
+        }
+      } else if (msgType === 'ping') {
+        sendMsg('pong');
+      }
+    });
+
+    socket.on('close', () => {
+      provider.setCommandSender(null);
+      hub.broadcast('health', 'extension-disconnected', {});
+    });
   });
 
   const handle = (msg: ReturnType<typeof ExtClientMessageSchema.parse>) => {

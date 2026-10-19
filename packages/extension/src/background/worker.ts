@@ -108,7 +108,10 @@ chrome.runtime.onMessage.addListener((msg: unknown, sender, sendResponse) => {
   if (['score-update', 'tick', 'adapter-degraded'].includes(m.type ?? '')) {
     void connector
       .init()
-      .then(() => connector.onContentMessage(msg as ContentMessage, sender.tab?.id ?? null));
+      .then(() => connector.onContentMessage(msg as ContentMessage, sender.tab?.id ?? null))
+      .then(() => sendResponse({ ok: true }))
+      .catch((err) => sendResponse({ ok: false, error: String(err) }));
+    return true;
   }
   return false;
 });

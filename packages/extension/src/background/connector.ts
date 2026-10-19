@@ -248,10 +248,18 @@ export class Connector {
   }
 
   private async send(msg: ExtClientMessage): Promise<void> {
+    let sentWs = false;
     if (this.socket && this.socket.readyState === OPEN && this.authed) {
-      this.socket.send(JSON.stringify(msg));
-    } else {
-      await this.postIngest(msg); // WebSocket unavailable: fall back to HTTP
+      try {
+        this.socket.send(JSON.stringify(msg));
+        sentWs = true;
+      } catch {
+        sentWs = false;
+      }
+    }
+    // Always use HTTP postIngest for match score updates to guarantee immediate delivery
+    if (!sentWs || msg.type === 'update') {
+      await this.postIngest(msg);
     }
 
     // Replicate to other active local Studio instances (e.g. if both 4000 and 4002 are running)
@@ -276,7 +284,10 @@ export class Connector {
   }
 
   private async postIngest(msg: ExtClientMessage): Promise<void> {
-    if (!this.token) return;
+    if (!this.token) {
+      await this.autoPair();
+      if (!this.token) return;
+    }
     const port = this.port ?? (await this.discoverPort());
     if (port === null) return;
     try {
@@ -288,7 +299,20 @@ export class Connector {
         },
         body: JSON.stringify(msg),
       });
-      if (res.status === 401) await this.unpair(); // token revoked server-side
+      if (res.status === 401) {
+        await this.unpair(); // token revoked server-side
+        const rePaired = await this.autoPair();
+        if (rePaired && this.token) {
+          await this.deps.fetch(`http://127.0.0.1:${port}/api/ext/ingest`, {
+            method: 'POST',
+            headers: {
+              'content-type': 'application/json',
+              authorization: `Bearer ${this.token}`,
+            },
+            body: JSON.stringify(msg),
+          }).catch(() => undefined);
+        }
+      }
     } catch {
       /* server not reachable; the reconnect loop will recover */
     }

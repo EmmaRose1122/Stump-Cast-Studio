@@ -46,16 +46,16 @@ const OnStreamBanner = () => {
 
   if (!m) {
     return (
-      <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border-2 border-blue-600/60 bg-[#07132b] p-5 shadow-xl w-full">
+      <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border-2 border-blue-200 bg-white p-5 shadow-sm w-full">
         <div className="flex items-center gap-3">
-          <span className="rounded bg-red-600 px-3 py-1 font-mono text-xs font-black tracking-wider text-white">
+          <span className="rounded bg-orange-500 px-3 py-1 font-mono text-xs font-black tracking-wider text-white shadow-xs">
             ON STREAM
           </span>
           <div>
-            <h2 className="font-heading text-lg font-bold text-white">
+            <h2 className="font-heading text-lg font-bold text-slate-800">
               No live match selected yet
             </h2>
-            <p className="text-xs text-blue-400">
+            <p className="text-xs text-blue-700">
               Open a match link below or click &quot;Load Live Demo Feed&quot; to test.
             </p>
           </div>
@@ -68,36 +68,36 @@ const OnStreamBanner = () => {
   const nonStriker = m.batters.find((b) => !b.onStrike) ?? m.batters[1];
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border-2 border-blue-500/80 bg-gradient-to-r from-[#071538] via-[#0d2254] to-[#071538] p-5 shadow-2xl shadow-blue-950/60 w-full">
+    <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border-2 border-blue-200 bg-gradient-to-r from-blue-50/80 via-white to-orange-50/80 p-5 shadow-sm w-full">
       {/* Left Column: ON STREAM badge, Title, Situation */}
       <div className="min-w-0 max-w-2xl space-y-1.5 text-left">
         <div className="flex items-center gap-2">
-          <span className="rounded bg-red-600 px-2.5 py-0.5 font-mono text-[11px] font-black tracking-wider text-white shadow-sm">
+          <span className="rounded bg-orange-500 px-2.5 py-0.5 font-mono text-[11px] font-black tracking-wider text-white shadow-xs">
             ON STREAM
           </span>
-          <span className="text-xs font-bold text-amber-400">
+          <span className="text-xs font-bold text-orange-600">
             {m.venue || 'Live Cricket Broadcast'}
           </span>
         </div>
-        <h2 className="font-heading text-xl font-black text-white truncate">
+        <h2 className="font-heading text-xl font-black text-blue-950 truncate">
           {m.title}
         </h2>
-        <p className="font-sans text-sm font-semibold text-blue-300">
+        <p className="font-sans text-sm font-semibold text-blue-800">
           {m.status === 'live' ? `Live Match - CRR ${m.crr.toFixed(2)}` : m.status}
           {m.rrr !== undefined ? ` · Need ${m.rrr.toFixed(2)} RRR` : ''}
         </p>
       </div>
 
       {/* Right Column: Score Block */}
-      <div className="flex items-center gap-4 rounded-xl border border-blue-800/60 bg-[#040e24] px-5 py-3 shadow-inner">
+      <div className="flex items-center gap-4 rounded-xl border border-blue-200 bg-white px-5 py-3 shadow-xs">
         <div className="text-right">
-          <div className="font-heading text-4xl font-black tracking-tight text-white tabular-nums">
-            <span className="text-blue-400">{m.score.runs}</span>-{m.score.wkts}{' '}
-            <span className="text-xl font-bold text-slate-300">
+          <div className="font-heading text-4xl font-black tracking-tight text-slate-900 tabular-nums">
+            <span className="text-orange-500">{m.score.runs}</span>-{m.score.wkts}{' '}
+            <span className="text-xl font-bold text-blue-900">
               ({m.score.overs}.{m.score.balls} ov)
             </span>
           </div>
-          <div className="mt-1 flex items-center justify-end gap-3 font-mono text-xs text-slate-300">
+          <div className="mt-1 flex items-center justify-end gap-3 font-mono text-xs text-slate-600">
             <span>
               🏏 {striker?.name ?? '—'}: {striker?.runs ?? 0}* ({striker?.balls ?? 0})
               {nonStriker ? ` · ${nonStriker.name}: ${nonStriker.runs} (${nonStriker.balls})` : ''}
@@ -130,8 +130,8 @@ const QuickGraphicsBar = () => {
     );
 
   return (
-    <div className="flex flex-wrap items-center justify-center gap-2 rounded-xl border border-blue-900/60 bg-[#0b1736] p-3 w-full shadow-md">
-      <span className="font-heading text-xs font-extrabold uppercase tracking-wider text-slate-300 mr-2">
+    <div className="flex flex-wrap items-center justify-center gap-2 rounded-xl border border-blue-200 bg-white p-3 w-full shadow-sm">
+      <span className="font-heading text-xs font-extrabold uppercase tracking-wider text-blue-950 mr-2">
         QUICK GRAPHIC:
       </span>
       <div className="flex flex-wrap items-center justify-center gap-2">
@@ -144,8 +144,8 @@ const QuickGraphicsBar = () => {
               onClick={() => void show(q.id)}
               className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 font-heading text-xs font-bold uppercase tracking-wider transition ${
                 active
-                  ? 'bg-red-600 text-white shadow-md shadow-red-950 border border-red-500'
-                  : 'bg-[#102046] text-slate-200 border border-[#213f7a] hover:bg-[#18316a] hover:text-white'
+                  ? 'bg-orange-500 text-white shadow-md border border-orange-400 font-black'
+                  : 'bg-blue-50/80 text-blue-900 border border-blue-200 hover:bg-orange-50 hover:text-orange-600 hover:border-orange-300'
               }`}
             >
               <span>{q.icon}</span>
@@ -157,7 +157,7 @@ const QuickGraphicsBar = () => {
           <button
             type="button"
             onClick={() => void api.hideCard()}
-            className="rounded-lg bg-red-900/70 px-3 py-1.5 font-heading text-xs font-bold uppercase text-red-200 border border-red-600/60 hover:bg-red-800 transition"
+            className="rounded-lg bg-red-50 px-3 py-1.5 font-heading text-xs font-bold uppercase text-red-700 border border-red-300 hover:bg-red-100 transition"
           >
             Hide Card
           </button>
@@ -208,8 +208,8 @@ const YourMatchesSection = () => {
     <div className="space-y-3">
       {/* Header with Title and Action buttons */}
       <div className="flex items-center justify-between">
-        <h3 className="font-heading text-base font-extrabold uppercase tracking-wider text-white">
-          YOUR MATCHES <span className="text-slate-400">({list.length})</span>
+        <h3 className="font-heading text-base font-extrabold uppercase tracking-wider text-blue-950">
+          YOUR MATCHES <span className="text-slate-500">({list.length})</span>
         </h3>
         <div className="flex items-center gap-2">
           {list.length > 0 && (
@@ -225,7 +225,7 @@ const YourMatchesSection = () => {
                   toast({ title: errorText(e), kind: 'error' });
                 }
               }}
-              className="flex items-center gap-1 rounded-lg bg-red-950/60 px-3 py-1 text-xs font-bold text-red-300 border border-red-700/50 hover:bg-red-900/60 transition"
+              className="flex items-center gap-1 rounded-lg bg-red-50 px-3 py-1 text-xs font-bold text-red-700 border border-red-200 hover:bg-red-100 transition shadow-xs"
             >
               <span>🗑️</span> CLEAR ALL
             </button>
@@ -233,14 +233,14 @@ const YourMatchesSection = () => {
           <button
             type="button"
             onClick={seedSample}
-            className="flex items-center gap-1 rounded-lg bg-amber-600/30 px-3 py-1 text-xs font-bold text-amber-300 border border-amber-500/40 hover:bg-amber-600/50 transition"
+            className="flex items-center gap-1 rounded-lg bg-orange-500 px-3 py-1 text-xs font-bold text-white border border-orange-400 hover:bg-orange-600 transition shadow-xs"
           >
             <span>⚡</span> LOAD LIVE DEMO FEED
           </button>
           <button
             type="button"
             onClick={() => void qc.invalidateQueries({ queryKey: ['matches'] })}
-            className="flex items-center gap-1 rounded-lg bg-[#142033] px-3 py-1 text-xs font-semibold text-slate-300 border border-[#23354d] hover:bg-[#1e2f4a] transition"
+            className="flex items-center gap-1 rounded-lg bg-white px-3 py-1 text-xs font-semibold text-blue-800 border border-blue-200 hover:bg-blue-50 transition shadow-xs"
           >
             <span>🔄</span> REFRESH
           </button>
@@ -248,14 +248,14 @@ const YourMatchesSection = () => {
       </div>
 
       {list.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-[#1e2d42] bg-[#0c1424] p-8 text-center">
-          <p className="text-sm text-slate-400">
+        <div className="rounded-xl border border-dashed border-blue-200 bg-white p-8 text-center shadow-xs">
+          <p className="text-sm text-slate-600">
             No live matches detected yet. Click &quot;LOAD LIVE DEMO FEED&quot; above or open a Cricbuzz / Crex link below.
           </p>
           <button
             type="button"
             onClick={seedSample}
-            className="mt-3 rounded-lg bg-emerald-600 px-4 py-2 font-heading text-xs font-bold uppercase tracking-wider text-white hover:bg-emerald-500 transition"
+            className="mt-3 rounded-lg bg-orange-500 px-4 py-2 font-heading text-xs font-bold uppercase tracking-wider text-white hover:bg-orange-600 transition shadow-sm"
           >
             Load Live Match Now
           </button>
@@ -269,22 +269,22 @@ const YourMatchesSection = () => {
                 key={m.id}
                 className={`relative flex flex-col justify-between rounded-2xl border-2 p-5 transition ${
                   isLiveNow
-                    ? 'border-emerald-500 bg-[#091b1d] shadow-xl shadow-emerald-950/40'
-                    : 'border-[#1b2b40] bg-[#0c1524] hover:border-[#2f476a]'
+                    ? 'border-orange-500 bg-orange-50/30 shadow-md'
+                    : 'border-blue-200 bg-white hover:border-orange-300 hover:shadow-md shadow-xs'
                 }`}
               >
                 <div>
                   {/* Top Bar: Tour Name and Badges */}
                   <div className="flex items-center justify-between gap-2">
-                    <span className="font-heading text-xs font-bold text-amber-400 truncate">
+                    <span className="font-heading text-xs font-bold text-orange-600 truncate">
                       {m.venue || 'Tour Match'}
                     </span>
                     <div className="flex items-center gap-1.5 shrink-0">
-                      <span className="rounded bg-rose-600 px-2 py-0.5 font-mono text-[10px] font-black text-white">
+                      <span className="rounded bg-rose-600 px-2 py-0.5 font-mono text-[10px] font-black text-white shadow-xs">
                         LIVE
                       </span>
                       {isLiveNow && (
-                        <span className="rounded bg-cyan-950 px-2 py-0.5 font-mono text-[10px] font-bold text-cyan-400 border border-cyan-700/50">
+                        <span className="rounded bg-orange-100 px-2 py-0.5 font-mono text-[10px] font-bold text-orange-700 border border-orange-300">
                           FOCUSED
                         </span>
                       )}
@@ -302,7 +302,7 @@ const YourMatchesSection = () => {
                             toast({ title: errorText(err), kind: 'error' });
                           }
                         }}
-                        className="rounded p-1 text-slate-500 hover:text-red-400 hover:bg-red-950/40 transition"
+                        className="rounded p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 transition"
                       >
                         🗑️
                       </button>
@@ -310,18 +310,18 @@ const YourMatchesSection = () => {
                   </div>
 
                   {/* Match Title */}
-                  <h4 className="mt-2 font-heading text-base font-black text-white leading-snug">
+                  <h4 className="mt-2 font-heading text-base font-black text-slate-900 leading-snug">
                     {m.title}
                   </h4>
 
                   {/* Subtitle / Status */}
-                  <p className="mt-2 font-sans text-xs font-semibold text-emerald-400">
+                  <p className="mt-2 font-sans text-xs font-semibold text-blue-700">
                     {m.status === 'live'
                       ? `${m.score.runs}-${m.score.wkts} (${m.score.overs}.${m.score.balls} ov) · CRR ${m.crr.toFixed(2)}`
                       : m.status}
                   </p>
 
-                  <p className="mt-1 font-mono text-[11px] text-slate-400">
+                  <p className="mt-1 font-mono text-[11px] text-slate-500">
                     ID: {m.id} · seen live
                   </p>
                 </div>
@@ -329,8 +329,8 @@ const YourMatchesSection = () => {
                 {/* Bottom Action Button */}
                 <div className="mt-5">
                   {isLiveNow ? (
-                    <div className="flex items-center justify-center gap-2 rounded-xl bg-emerald-950/80 py-2.5 font-heading text-xs font-black uppercase tracking-wider text-emerald-400 border border-emerald-600/50">
-                      <span className="size-2 rounded-full bg-emerald-400 animate-pulse" />
+                    <div className="flex items-center justify-center gap-2 rounded-xl bg-orange-50 py-2.5 font-heading text-xs font-black uppercase tracking-wider text-orange-700 border border-orange-300">
+                      <span className="size-2 rounded-full bg-orange-500 animate-pulse" />
                       <span>ON AIR NOW</span>
                     </div>
                   ) : (
@@ -338,7 +338,7 @@ const YourMatchesSection = () => {
                       type="button"
                       disabled={!settings.data || put.isPending}
                       onClick={() => put.mutate(m.id)}
-                      className="w-full flex items-center justify-center gap-2 rounded-xl bg-emerald-600 py-2.5 font-heading text-xs font-black uppercase tracking-wider text-white hover:bg-emerald-500 transition shadow-md shadow-emerald-950"
+                      className="w-full flex items-center justify-center gap-2 rounded-xl bg-orange-500 py-2.5 font-heading text-xs font-black uppercase tracking-wider text-white hover:bg-orange-600 transition shadow-sm border border-orange-400"
                     >
                       <span>📺</span>
                       <span>SHOW ON OVERLAY</span>
@@ -389,12 +389,12 @@ const OpenAnotherMatchCard = () => {
   };
 
   return (
-    <div className="rounded-2xl border border-[#1b2b42] bg-[#0c1424] p-5 shadow-lg">
-      <div className="flex items-center gap-2 font-heading text-sm font-extrabold uppercase tracking-wider text-white">
+    <div className="rounded-2xl border border-blue-200 bg-white p-5 shadow-sm">
+      <div className="flex items-center gap-2 font-heading text-sm font-extrabold uppercase tracking-wider text-blue-950">
         <span>🔌</span>
         <span>OPEN ANOTHER MATCH</span>
       </div>
-      <p className="mt-1 text-xs text-slate-400">
+      <p className="mt-1 text-xs text-slate-600">
         Paste a Cricbuzz or Crex match link — it opens in Chrome and shows up in Your matches above.
       </p>
 
@@ -404,13 +404,13 @@ const OpenAnotherMatchCard = () => {
           value={url}
           onChange={(e) => setUrl(e.target.value)}
           placeholder="https://www.cricbuzz.com/live-cricket-scores/..."
-          className="flex-1 min-w-[280px] rounded-xl border border-[#23354d] bg-[#060a12] px-4 py-2.5 font-mono text-xs text-white placeholder-slate-600 focus:border-emerald-500 focus:outline-none"
+          className="flex-1 min-w-[280px] rounded-xl border border-blue-200 bg-white px-4 py-2.5 font-mono text-xs text-slate-800 placeholder-slate-400 focus:border-orange-500 focus:outline-none"
         />
         <button
           type="button"
           onClick={openMatch}
           disabled={loading}
-          className="flex items-center gap-1.5 rounded-xl bg-[#14263d] px-5 py-2.5 font-heading text-xs font-bold uppercase tracking-wider text-white border border-[#25426b] hover:bg-[#1b3454] transition"
+          className="flex items-center gap-1.5 rounded-xl bg-orange-500 px-5 py-2.5 font-heading text-xs font-bold uppercase tracking-wider text-white border border-orange-400 hover:bg-orange-600 transition shadow-sm"
         >
           <span>▶</span>
           <span>OPEN IN CHROME</span>
@@ -439,35 +439,35 @@ const CrowdAudioBar = () => {
   };
 
   return (
-    <div className="flex flex-wrap items-center gap-2 rounded-xl border border-[#1b2b42] bg-[#09101c] p-2.5 text-xs">
-      <span className="font-heading font-extrabold uppercase tracking-wider text-slate-400 mr-2">
+    <div className="flex flex-wrap items-center gap-2 rounded-xl border border-blue-200 bg-white p-2.5 text-xs shadow-sm">
+      <span className="font-heading font-extrabold uppercase tracking-wider text-blue-950 mr-2">
         CROWD:
       </span>
       <button
         type="button"
         onClick={() => triggerSound('cheer')}
-        className="flex items-center gap-1 rounded-lg bg-[#142033] px-3 py-1 font-semibold text-rose-300 border border-[#23354d] hover:bg-[#1e2f4a] transition"
+        className="flex items-center gap-1 rounded-lg bg-rose-50 px-3 py-1 font-semibold text-rose-700 border border-rose-200 hover:bg-rose-100 transition"
       >
         <span>📢</span> Cheer
       </button>
       <button
         type="button"
         onClick={() => triggerSound('clap')}
-        className="flex items-center gap-1 rounded-lg bg-[#142033] px-3 py-1 font-semibold text-amber-300 border border-[#23354d] hover:bg-[#1e2f4a] transition"
+        className="flex items-center gap-1 rounded-lg bg-amber-50 px-3 py-1 font-semibold text-amber-800 border border-amber-200 hover:bg-amber-100 transition"
       >
         <span>👏</span> Clap
       </button>
       <button
         type="button"
         onClick={() => triggerSound('four')}
-        className="flex items-center gap-1 rounded-lg bg-[#142033] px-3 py-1 font-semibold text-emerald-300 border border-[#23354d] hover:bg-[#1e2f4a] transition"
+        className="flex items-center gap-1 rounded-lg bg-blue-50 px-3 py-1 font-semibold text-blue-800 border border-blue-200 hover:bg-blue-100 transition"
       >
         <span>🎺</span> Four
       </button>
       <button
         type="button"
         onClick={() => triggerSound('mute')}
-        className="flex items-center gap-1 rounded-lg bg-[#142033] px-3 py-1 font-semibold text-slate-400 border border-[#23354d] hover:bg-[#1e2f4a] transition"
+        className="flex items-center gap-1 rounded-lg bg-slate-100 px-3 py-1 font-semibold text-slate-700 border border-slate-200 hover:bg-slate-200 transition"
       >
         <span className="size-2 rounded-full bg-rose-500 inline-block" /> Mute
       </button>
@@ -1124,15 +1124,15 @@ export const LivePage = () => {
       </div>
 
       {/* 6. Optional Manual Scoring & Event Feed Drawer */}
-      <div className="w-full rounded-xl border border-blue-900/60 bg-[#0a1636] p-4">
+      <div className="w-full rounded-xl border border-blue-200 bg-white p-4 shadow-sm">
         <div className="flex items-center justify-between">
-          <span className="font-heading text-xs font-bold uppercase tracking-wider text-slate-300">
+          <span className="font-heading text-xs font-bold uppercase tracking-wider text-blue-950">
             ADVANCED OPERATOR CONTROLS
           </span>
           <button
             type="button"
             onClick={() => setShowManual((v) => !v)}
-            className="rounded px-3 py-1 font-mono text-xs font-bold text-blue-400 hover:bg-blue-950/80 border border-blue-700/50 transition"
+            className="rounded px-3 py-1 font-mono text-xs font-bold text-orange-600 hover:bg-orange-50 border border-orange-200 transition"
           >
             {showManual ? 'Hide Manual Panel' : 'Show Manual Scoring & Event Feed'}
           </button>

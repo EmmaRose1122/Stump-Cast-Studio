@@ -161,7 +161,7 @@ const createPlayerAvatarFile = (name: string, teamShort = ''): File => {
   <defs>
     <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0%" stop-color="${c1}" />
-      <stop offset="100%" stop-color="#090d16" />
+      <stop offset="100%" stop-color="#1e3a8a" />
     </linearGradient>
   </defs>
   <circle cx="150" cy="100" r="50" fill="#e2e8f0" stroke="${c2}" stroke-width="4"/>
@@ -467,15 +467,15 @@ export const PlayersPage = () => {
       />
 
       {/* Header Card */}
-      <div className="w-full rounded-xl border border-[#213f77] bg-[#0c1836] p-5 shadow-lg">
+      <div className="w-full rounded-xl border border-blue-200 bg-white p-5 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <span className="text-blue-400 text-2xl">👤</span>
+            <span className="text-orange-500 text-2xl">👤</span>
             <div>
-              <h1 className="font-heading text-base font-bold uppercase tracking-wider text-white">
+              <h1 className="font-heading text-base font-bold uppercase tracking-wider text-blue-950">
                 PLAYER CUTOUTS &amp; ASSET MANAGEMENT
               </h1>
-              <p className="mt-1 text-xs text-muted">
+              <p className="mt-1 text-xs text-slate-500">
                 Official team crests and transparent player cutouts. Saved to disk and synced instantly with live broadcast overlays in OBS Studio.
               </p>
             </div>
@@ -483,13 +483,13 @@ export const PlayersPage = () => {
           <div className="flex flex-wrap items-center gap-2">
             <button
               onClick={() => squadFileInputRef.current?.click()}
-              className="flex items-center gap-1.5 rounded-lg border border-red-500/50 bg-red-950/40 px-3.5 py-2 text-xs font-bold uppercase tracking-wider text-red-200 transition hover:bg-red-900/60 shadow"
+              className="flex items-center gap-1.5 rounded-lg border border-blue-200 bg-white px-3.5 py-2 text-xs font-bold uppercase tracking-wider text-blue-700 transition hover:bg-blue-50 shadow-xs"
             >
               <span>📋</span> BULK IMPORT SQUAD (CSV / JSON)
             </button>
             <button
               onClick={handleAutoFetchAll}
-              className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-xs font-bold uppercase tracking-wider text-white transition hover:bg-blue-500 shadow"
+              className="flex items-center gap-1.5 rounded-lg bg-orange-500 px-4 py-2 text-xs font-bold uppercase tracking-wider text-white transition hover:bg-orange-600 shadow-xs border border-orange-400"
             >
               <span>✨</span> AUTO-FETCH ALL MISSING ASSETS
             </button>
@@ -498,20 +498,20 @@ export const PlayersPage = () => {
       </div>
 
       {/* 1. CURRENT ON-PITCH PLAYERS */}
-      <div className="w-full rounded-xl border border-[#213f77] bg-[#0c1836] p-5 shadow-lg">
-        <div className="flex items-center justify-between border-b border-border/50 pb-3">
+      <div className="w-full rounded-xl border border-blue-200 bg-white p-5 shadow-sm">
+        <div className="flex items-center justify-between border-b border-blue-100 pb-3">
           <div className="flex items-center gap-2">
-            <span className="text-yellow-400">🏟️</span>
+            <span className="text-orange-500">🏟️</span>
             <div>
-              <h2 className="font-heading text-sm font-bold uppercase tracking-wider text-blue-400">
+              <h2 className="font-heading text-sm font-bold uppercase tracking-wider text-blue-950">
                 CURRENT ON-PITCH PLAYERS
               </h2>
-              <p className="text-xs text-muted">
+              <p className="text-xs text-slate-500">
                 Active batters and bowler on stream. Upload photos to hot-swap live player lower thirds in OBS.
               </p>
             </div>
           </div>
-          <span className="text-xs font-bold text-muted uppercase">
+          <span className="text-xs font-bold text-orange-600 uppercase">
             {onPitchReadyCount}/{onPitchPlayers.length} READY
           </span>
         </div>
@@ -526,15 +526,15 @@ export const PlayersPage = () => {
               <div
                 key={title}
                 className={clsx(
-                  'rounded-xl border p-4 flex flex-col justify-between transition',
+                  'rounded-xl border p-4 flex flex-col justify-between transition shadow-xs',
                   hasCutout
-                    ? 'border-emerald-500/40 bg-[#111a28]'
-                    : 'border-amber-500/40 bg-[#111a28]',
+                    ? 'border-emerald-300 bg-emerald-50/40'
+                    : 'border-orange-300 bg-orange-50/40',
                 )}
               >
                 <div>
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-bold text-blue-400 uppercase tracking-wider">
+                    <span className="text-[11px] font-bold text-blue-900 uppercase tracking-wider">
                       {title}
                     </span>
                     <span
@@ -552,20 +552,20 @@ export const PlayersPage = () => {
                   <div className="mt-3 flex items-center gap-3">
                     <div
                       className={clsx(
-                        'flex size-16 items-center justify-center rounded-xl border border-border/60 shadow p-1',
+                        'flex size-16 items-center justify-center rounded-xl border border-blue-200 bg-white shadow-xs p-1',
                         CHECKER,
                       )}
                     >
                       <PlayerAvatar name={player.name} className="max-h-full max-w-full" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-heading text-sm font-bold text-white truncate" title={player.name}>
+                      <h3 className="font-heading text-sm font-bold text-slate-900 truncate" title={player.name}>
                         {player.name}
                       </h3>
-                      <p className="text-[11px] text-muted truncate">
+                      <p className="text-[11px] text-slate-500 truncate">
                         {team.name} ({team.short})
                       </p>
-                      <p className="text-[11px] font-mono text-cyan-400 mt-0.5">
+                      <p className="text-[11px] font-mono text-blue-700 font-semibold mt-0.5">
                         {isBatter
                           ? `${(player as typeof striker).runs} (${(player as typeof striker).balls}b) • ${(player as typeof striker).fours}x4, ${(player as typeof striker).sixes}x6`
                           : `${(player as typeof bowler).overs}.${(player as typeof bowler).balls} ov • ${(player as typeof bowler).runs}r • ${(player as typeof bowler).wkts}w`}
@@ -573,21 +573,21 @@ export const PlayersPage = () => {
                     </div>
                   </div>
 
-                  <p className="mt-3 text-[11px] text-muted">
+                  <p className="mt-3 text-[11px] text-slate-500">
                     Upload transparent player cutout (PNG/WebP):
                   </p>
 
                   <div className="mt-2 flex items-center gap-2">
                     <button
                       onClick={() => handlePickFile({ type: 'player', name: player.name })}
-                      className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-bold uppercase text-white hover:bg-emerald-500"
+                      className="rounded-lg bg-orange-500 px-3 py-1.5 text-xs font-bold uppercase text-white hover:bg-orange-600 transition shadow-xs border border-orange-400"
                     >
                       Choose File
                     </button>
                     {!hasCutout && (
                       <button
                         onClick={() => handleImportPlayerAvatar(player.name, team.short)}
-                        className="rounded-lg border border-blue-500/60 bg-blue-900/40 px-2.5 py-1.5 text-xs font-bold uppercase text-blue-200 hover:bg-blue-800/60"
+                        className="rounded-lg border border-blue-200 bg-white px-2.5 py-1.5 text-xs font-bold uppercase text-blue-700 hover:bg-blue-50 transition shadow-xs"
                       >
                         Auto-Gen
                       </button>
@@ -600,7 +600,7 @@ export const PlayersPage = () => {
                     value={currentUrl}
                     onChange={(e) => setCardUrls((prev) => ({ ...prev, [cardKey]: e.target.value }))}
                     placeholder="Or paste image URL..."
-                    className="flex-1 min-w-0 rounded-lg border border-border bg-[#0b1320] px-3 py-1.5 text-xs text-white"
+                    className="flex-1 min-w-0 rounded-lg border border-blue-200 bg-white px-3 py-1.5 text-xs text-slate-800 placeholder-slate-400 focus:border-orange-500 focus:outline-none"
                   />
                   <button
                     disabled={!currentUrl.trim() || registerByUrl.isPending}
@@ -610,7 +610,7 @@ export const PlayersPage = () => {
                         setCardUrls((prev) => ({ ...prev, [cardKey]: '' }));
                       }
                     }}
-                    className="rounded-lg border border-border bg-surface-2 px-3 py-1.5 text-xs font-bold uppercase text-white hover:bg-surface disabled:opacity-40"
+                    className="rounded-lg border border-blue-200 bg-white px-3 py-1.5 text-xs font-bold uppercase text-blue-700 hover:bg-blue-50 disabled:opacity-40 shadow-xs"
                   >
                     SAVE
                   </button>
@@ -622,14 +622,14 @@ export const PlayersPage = () => {
       </div>
 
       {/* 2. TEAM LOGOS & CRESTS */}
-      <div className="w-full rounded-xl border border-[#213f77] bg-[#0c1836] p-5 shadow-lg">
-        <div className="flex items-center gap-2 border-b border-border/50 pb-3">
-          <span className="text-blue-400 text-lg">🛡️</span>
+      <div className="w-full rounded-xl border border-blue-200 bg-white p-5 shadow-sm">
+        <div className="flex items-center gap-2 border-b border-blue-100 pb-3">
+          <span className="text-orange-500 text-lg">🛡️</span>
           <div>
-            <h2 className="font-heading text-sm font-bold uppercase tracking-wider text-blue-400">
+            <h2 className="font-heading text-sm font-bold uppercase tracking-wider text-blue-950">
               TEAM LOGOS &amp; CRESTS
             </h2>
-            <p className="text-xs text-muted">
+            <p className="text-xs text-slate-500">
               Live match crests for scoreboard &amp; graphics. Saved to /assets/teams/ and hot-swapped into OBS immediately.
             </p>
           </div>
@@ -637,25 +637,25 @@ export const PlayersPage = () => {
 
         <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
           {/* Batting Team Card */}
-          <div className="rounded-xl border border-border/80 bg-[#111a28] p-4 flex flex-col justify-between">
+          <div className="rounded-xl border border-blue-200 bg-white p-4 flex flex-col justify-between shadow-xs">
             <div>
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold text-muted uppercase tracking-wider">
+                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                   BATTING TEAM CREST ({battingTeam.short})
                 </span>
-                <span className="rounded bg-emerald-500/20 px-2 py-0.5 text-[10px] font-bold text-emerald-400 uppercase">
+                <span className="rounded bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800 uppercase">
                   ✓ CREST READY
                 </span>
               </div>
 
               <div className="mt-3 flex items-center gap-4">
-                <div className="flex size-16 items-center justify-center rounded-xl bg-[#0b1320] border border-border/60 shadow p-2">
+                <div className="flex size-16 items-center justify-center rounded-xl bg-blue-50/50 border border-blue-200 shadow-xs p-2">
                   <TeamCrest team={battingTeam} className="max-h-full max-w-full" />
                 </div>
                 <div>
-                  <h3 className="font-heading text-base font-bold text-white">{battingTeam.name}</h3>
-                  <p className="text-xs text-muted">ID: team-{normalizeTeamCode(battingTeam.short)}</p>
-                  <p className="text-xs text-cyan-400">Team: {battingTeam.short} (Batting Side)</p>
+                  <h3 className="font-heading text-base font-bold text-slate-900">{battingTeam.name}</h3>
+                  <p className="text-xs text-slate-500">ID: team-{normalizeTeamCode(battingTeam.short)}</p>
+                  <p className="text-xs text-orange-600 font-bold">Team: {battingTeam.short} (Batting Side)</p>
                 </div>
               </div>
 
@@ -678,7 +678,7 @@ export const PlayersPage = () => {
                   setCardUrls((prev) => ({ ...prev, [`team-${battingTeam.short}`]: e.target.value }))
                 }
                 placeholder="Or paste logo URL..."
-                className="flex-1 min-w-0 rounded-lg border border-border bg-[#0b1320] px-3 py-1.5 text-xs text-white"
+                className="flex-1 min-w-0 rounded-lg border border-blue-200 bg-white px-3 py-1.5 text-xs text-slate-800 placeholder-slate-400 focus:border-orange-500 focus:outline-none"
               />
               <button
                 disabled={!cardUrls[`team-${battingTeam.short}`]?.trim() || registerByUrl.isPending}
@@ -694,7 +694,7 @@ export const PlayersPage = () => {
                     setCardUrls((prev) => ({ ...prev, [`team-${battingTeam.short}`]: '' }));
                   }
                 }}
-                className="rounded-lg border border-border bg-surface-2 px-3 py-1.5 text-xs font-bold uppercase text-white hover:bg-surface disabled:opacity-40"
+                className="rounded-lg border border-blue-200 bg-white px-3 py-1.5 text-xs font-bold uppercase text-blue-700 hover:bg-blue-50 disabled:opacity-40 shadow-xs"
               >
                 SAVE
               </button>
@@ -702,37 +702,37 @@ export const PlayersPage = () => {
           </div>
 
           {/* Bowling Team Card */}
-          <div className="rounded-xl border border-border/80 bg-[#111a28] p-4 flex flex-col justify-between">
+          <div className="rounded-xl border border-blue-200 bg-white p-4 flex flex-col justify-between shadow-xs">
             <div>
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold text-muted uppercase tracking-wider">
+                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                   BOWLING TEAM CREST ({bowlingTeam.short})
                 </span>
-                <span className="rounded bg-emerald-500/20 px-2 py-0.5 text-[10px] font-bold text-emerald-400 uppercase">
+                <span className="rounded bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800 uppercase">
                   ✓ CREST READY
                 </span>
               </div>
 
               <div className="mt-3 flex items-center gap-4">
-                <div className="flex size-16 items-center justify-center rounded-xl bg-[#0b1320] border border-border/60 shadow p-2">
+                <div className="flex size-16 items-center justify-center rounded-xl bg-blue-50/50 border border-blue-200 shadow-xs p-2">
                   <TeamCrest team={bowlingTeam} className="max-h-full max-w-full" />
                 </div>
                 <div>
-                  <h3 className="font-heading text-base font-bold text-white">{bowlingTeam.name}</h3>
-                  <p className="text-xs text-muted">ID: team-{normalizeTeamCode(bowlingTeam.short)}</p>
-                  <p className="text-xs text-cyan-400">Team: {bowlingTeam.short} (Bowling Side)</p>
+                  <h3 className="font-heading text-base font-bold text-slate-900">{bowlingTeam.name}</h3>
+                  <p className="text-xs text-slate-500">ID: team-{normalizeTeamCode(bowlingTeam.short)}</p>
+                  <p className="text-xs text-blue-700 font-semibold">Team: {bowlingTeam.short} (Bowling Side)</p>
                 </div>
               </div>
 
-              <p className="mt-3 text-[11px] text-muted">Upload Custom Logo (PNG/SVG):</p>
+              <p className="mt-3 text-[11px] text-slate-500">Upload Custom Logo (PNG/SVG):</p>
               <div className="mt-2 flex items-center gap-2">
                 <button
                   onClick={() => handlePickFile({ type: 'team', short: bowlingTeam.short, name: bowlingTeam.name })}
-                  className="rounded-lg bg-cyan-600 px-3 py-1.5 text-xs font-bold uppercase text-white hover:bg-cyan-500"
+                  className="rounded-lg bg-orange-500 px-3 py-1.5 text-xs font-bold uppercase text-white hover:bg-orange-600 transition shadow-xs border border-orange-400"
                 >
                   Choose File
                 </button>
-                <span className="text-xs text-muted">Replace crest file</span>
+                <span className="text-xs text-slate-500">Replace crest file</span>
               </div>
             </div>
 
@@ -743,7 +743,7 @@ export const PlayersPage = () => {
                   setCardUrls((prev) => ({ ...prev, [`team-${bowlingTeam.short}`]: e.target.value }))
                 }
                 placeholder="Or paste logo URL..."
-                className="flex-1 min-w-0 rounded-lg border border-border bg-[#0b1320] px-3 py-1.5 text-xs text-white"
+                className="flex-1 min-w-0 rounded-lg border border-blue-200 bg-white px-3 py-1.5 text-xs text-slate-800 placeholder-slate-400 focus:border-orange-500 focus:outline-none"
               />
               <button
                 disabled={!cardUrls[`team-${bowlingTeam.short}`]?.trim() || registerByUrl.isPending}
@@ -759,7 +759,7 @@ export const PlayersPage = () => {
                     setCardUrls((prev) => ({ ...prev, [`team-${bowlingTeam.short}`]: '' }));
                   }
                 }}
-                className="rounded-lg border border-border bg-surface-2 px-3 py-1.5 text-xs font-bold uppercase text-white hover:bg-surface disabled:opacity-40"
+                className="rounded-lg border border-blue-200 bg-white px-3 py-1.5 text-xs font-bold uppercase text-blue-700 hover:bg-blue-50 disabled:opacity-40 shadow-xs"
               >
                 SAVE
               </button>
@@ -769,15 +769,15 @@ export const PlayersPage = () => {
       </div>
 
       {/* 3. FULL MATCH SQUADS */}
-      <div className="w-full rounded-xl border border-[#213f77] bg-[#0c1836] p-5 shadow-lg">
-        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border/50 pb-3">
+      <div className="w-full rounded-xl border border-blue-200 bg-white p-5 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-blue-100 pb-3">
           <div className="flex items-center gap-2">
-            <span className="text-blue-400 text-lg">👥</span>
+            <span className="text-orange-500 text-lg">👥</span>
             <div>
-              <h2 className="font-heading text-sm font-bold uppercase tracking-wider text-blue-400">
+              <h2 className="font-heading text-sm font-bold uppercase tracking-wider text-blue-950">
                 FULL MATCH SQUADS
               </h2>
-              <p className="text-xs text-muted">
+              <p className="text-xs text-slate-500">
                 Every player in both squads for the live match. Import official photos or auto-generate cutouts before they walk out to bat.
               </p>
             </div>
@@ -785,7 +785,7 @@ export const PlayersPage = () => {
           <div className="flex items-center gap-2">
             <button
               onClick={handleAutoFetchAll}
-              className="rounded-lg bg-blue-600 px-3.5 py-1.5 text-xs font-bold uppercase text-white hover:bg-blue-500 flex items-center gap-1 shadow"
+              className="rounded-lg bg-orange-500 px-3.5 py-1.5 text-xs font-bold uppercase text-white hover:bg-orange-600 flex items-center gap-1 shadow-xs border border-orange-400"
             >
               <span>✨</span> AUTO-FETCH MISSING ASSETS
             </button>
@@ -795,7 +795,7 @@ export const PlayersPage = () => {
                 void qc.invalidateQueries({ queryKey: ['missing'] });
                 toast({ title: 'Squads reloaded from disk', kind: 'info' });
               }}
-              className="rounded-lg border border-border bg-surface-2 px-3 py-1.5 text-xs font-bold uppercase text-white hover:bg-surface flex items-center gap-1"
+              className="rounded-lg border border-blue-200 bg-white px-3.5 py-1.5 text-xs font-bold uppercase text-blue-700 hover:bg-blue-50 flex items-center gap-1 shadow-xs"
             >
               <span>🔄</span> RELOAD SQUADS
             </button>
@@ -824,47 +824,47 @@ export const PlayersPage = () => {
                 return (
                   <div
                     key={player.name}
-                    className="flex items-center justify-between rounded-xl border border-border/80 bg-[#111a28] p-2.5 transition hover:border-border"
+                    className="flex items-center justify-between rounded-xl border border-blue-100 bg-white p-2.5 transition hover:border-orange-300 shadow-xs"
                   >
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-surface-2 border border-border/50 p-0.5">
+                      <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-blue-50/50 border border-blue-200 p-0.5">
                         <PlayerAvatar name={player.name} className="max-h-full max-w-full" />
                       </div>
                       <div className="min-w-0 truncate">
                         <div className="flex items-center gap-1.5 truncate">
-                          <span className="text-xs font-bold text-white truncate">{player.name}</span>
+                          <span className="text-xs font-bold text-slate-900 truncate">{player.name}</span>
                           {isCurrentStriker && (
-                            <span className="rounded bg-yellow-500/20 px-1 py-0.2 text-[9px] font-bold text-yellow-400">
+                            <span className="rounded bg-orange-100 px-1 py-0.2 text-[9px] font-bold text-orange-700">
                               *
                             </span>
                           )}
                           {player.tag && (
-                            <span className="rounded bg-amber-500/20 px-1 py-0.2 text-[9px] font-bold text-amber-400">
+                            <span className="rounded bg-blue-100 px-1 py-0.2 text-[9px] font-bold text-blue-700">
                               ({player.tag})
                             </span>
                           )}
                         </div>
-                        <span className="text-[11px] text-muted">{player.role}</span>
+                        <span className="text-[11px] text-slate-500">{player.role}</span>
                       </div>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       <span
                         className={clsx(
                           'rounded px-1.5 py-0.5 text-[9px] font-bold uppercase hidden sm:inline-block',
-                          hasCutout ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400',
+                          hasCutout ? 'bg-emerald-100 text-emerald-800' : 'bg-orange-100 text-orange-800',
                         )}
                       >
                         {hasCutout ? '✓ READY' : 'MISSING'}
                       </span>
                       <button
                         onClick={() => handleImportPlayerAvatar(player.name, battingTeam.short)}
-                        className="rounded-lg bg-emerald-600 px-3 py-1 text-xs font-bold uppercase text-white hover:bg-emerald-500"
+                        className="rounded-lg bg-orange-500 px-3 py-1 text-xs font-bold uppercase text-white hover:bg-orange-600 transition shadow-xs border border-orange-400"
                       >
                         IMPORT
                       </button>
                       <button
                         onClick={() => handlePickFile({ type: 'player', name: player.name })}
-                        className="rounded-lg border border-border bg-surface-2 px-3 py-1 text-xs font-bold uppercase text-muted hover:text-white"
+                        className="rounded-lg border border-blue-200 bg-white px-3 py-1 text-xs font-bold uppercase text-blue-700 hover:bg-blue-50 transition shadow-xs"
                       >
                         UPLOAD
                       </button>
@@ -877,14 +877,14 @@ export const PlayersPage = () => {
 
           {/* Squad 2: Bowling Team */}
           <div>
-            <div className="flex items-center justify-between border-b border-border/40 pb-2 mb-3">
+            <div className="flex items-center justify-between border-b border-blue-100 pb-2 mb-3">
               <div className="flex items-center gap-2">
                 <TeamCrest team={bowlingTeam} className="size-6 rounded" />
-                <span className="font-heading text-sm font-bold text-white">
+                <span className="font-heading text-sm font-bold text-blue-950">
                   {bowlingTeam.name} ({bowlingTeam.short})
                 </span>
               </div>
-              <span className="text-xs font-semibold text-muted">
+              <span className="text-xs font-semibold text-slate-500">
                 {squad2.filter((p) => hasPlayerCutout(p.name)).length}/{squad2.length} cutouts ready
               </span>
             </div>
@@ -896,47 +896,47 @@ export const PlayersPage = () => {
                 return (
                   <div
                     key={player.name}
-                    className="flex items-center justify-between rounded-xl border border-border/80 bg-[#111a28] p-2.5 transition hover:border-border"
+                    className="flex items-center justify-between rounded-xl border border-blue-100 bg-white p-2.5 transition hover:border-orange-300 shadow-xs"
                   >
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-surface-2 border border-border/50 p-0.5">
+                      <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-blue-50/50 border border-blue-200 p-0.5">
                         <PlayerAvatar name={player.name} className="max-h-full max-w-full" />
                       </div>
                       <div className="min-w-0 truncate">
                         <div className="flex items-center gap-1.5 truncate">
-                          <span className="text-xs font-bold text-white truncate">{player.name}</span>
+                          <span className="text-xs font-bold text-slate-900 truncate">{player.name}</span>
                           {isCurrentBowler && (
-                            <span className="rounded bg-cyan-500/20 px-1 py-0.2 text-[9px] font-bold text-cyan-400">
+                            <span className="rounded bg-orange-100 px-1 py-0.2 text-[9px] font-bold text-orange-700">
                               (BOWLING)
                             </span>
                           )}
                           {player.tag && (
-                            <span className="rounded bg-cyan-500/20 px-1 py-0.2 text-[9px] font-bold text-cyan-400">
+                            <span className="rounded bg-blue-100 px-1 py-0.2 text-[9px] font-bold text-blue-700">
                               ({player.tag})
                             </span>
                           )}
                         </div>
-                        <span className="text-[11px] text-muted">{player.role}</span>
+                        <span className="text-[11px] text-slate-500">{player.role}</span>
                       </div>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       <span
                         className={clsx(
                           'rounded px-1.5 py-0.5 text-[9px] font-bold uppercase hidden sm:inline-block',
-                          hasCutout ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400',
+                          hasCutout ? 'bg-emerald-100 text-emerald-800' : 'bg-orange-100 text-orange-800',
                         )}
                       >
                         {hasCutout ? '✓ READY' : 'MISSING'}
                       </span>
                       <button
                         onClick={() => handleImportPlayerAvatar(player.name, bowlingTeam.short)}
-                        className="rounded-lg bg-emerald-600 px-3 py-1 text-xs font-bold uppercase text-white hover:bg-emerald-500"
+                        className="rounded-lg bg-orange-500 px-3 py-1 text-xs font-bold uppercase text-white hover:bg-orange-600 transition shadow-xs border border-orange-400"
                       >
                         IMPORT
                       </button>
                       <button
                         onClick={() => handlePickFile({ type: 'player', name: player.name })}
-                        className="rounded-lg border border-border bg-surface-2 px-3 py-1 text-xs font-bold uppercase text-muted hover:text-white"
+                        className="rounded-lg border border-blue-200 bg-white px-3 py-1 text-xs font-bold uppercase text-blue-700 hover:bg-blue-50 transition shadow-xs"
                       >
                         UPLOAD
                       </button>
@@ -950,14 +950,14 @@ export const PlayersPage = () => {
       </div>
 
       {/* 4. ADD ANY PLAYER TO PERMANENT CUTOUT LIBRARY */}
-      <div className="w-full rounded-xl border border-[#213f77] bg-[#0c1836] p-5 shadow-lg">
+      <div className="w-full rounded-xl border border-blue-200 bg-white p-5 shadow-sm">
         <div className="flex items-center gap-2">
-          <span className="text-blue-400 font-bold text-lg">+</span>
-          <h2 className="font-heading text-sm font-bold uppercase tracking-wider text-white">
+          <span className="text-orange-500 font-bold text-lg">+</span>
+          <h2 className="font-heading text-sm font-bold uppercase tracking-wider text-blue-950">
             ADD ANY PLAYER TO PERMANENT CUTOUT LIBRARY
           </h2>
         </div>
-        <p className="mt-1 text-xs text-muted">
+        <p className="mt-1 text-xs text-slate-500">
           Pre-load cutouts for tournament superstars. Once saved, anytime this player steps onto the pitch in any future match, their cutout appears automatically!
         </p>
 
@@ -975,7 +975,7 @@ export const PlayersPage = () => {
             onChange={(e) => setRegisterName(e.target.value)}
             placeholder="Player Full Name (e.g. Babar Azam, Harry Brook)..."
             required
-            className="flex-1 min-w-[220px] rounded-lg border border-border bg-[#111a28] px-3.5 py-2 text-xs text-white"
+            className="flex-1 min-w-[220px] rounded-lg border border-blue-200 bg-white px-3.5 py-2 text-xs text-slate-800 placeholder-slate-400 focus:border-orange-500 focus:outline-none"
           />
           <input
             value={registerUrl}
@@ -983,12 +983,12 @@ export const PlayersPage = () => {
             placeholder="Image URL (transparent PNG)..."
             type="url"
             required
-            className="flex-1 min-w-[260px] rounded-lg border border-border bg-[#111a28] px-3.5 py-2 text-xs text-white"
+            className="flex-1 min-w-[260px] rounded-lg border border-blue-200 bg-white px-3.5 py-2 text-xs text-slate-800 placeholder-slate-400 focus:border-orange-500 focus:outline-none"
           />
           <button
             type="submit"
             disabled={registerByUrl.isPending}
-            className="rounded-lg bg-red-600 px-5 py-2 text-xs font-bold uppercase tracking-wider text-white hover:bg-red-500 shadow disabled:opacity-40"
+            className="rounded-lg bg-orange-500 px-5 py-2 text-xs font-bold uppercase tracking-wider text-white hover:bg-orange-600 transition shadow-sm border border-orange-400 disabled:opacity-40"
           >
             REGISTER PLAYER CUTOUT
           </button>
@@ -996,22 +996,22 @@ export const PlayersPage = () => {
       </div>
 
       {/* 5. SAVED ASSET LIBRARY */}
-      <div className="w-full rounded-xl border border-[#213f77] bg-[#0c1836] p-5 shadow-lg">
-        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border/50 pb-3">
+      <div className="w-full rounded-xl border border-blue-200 bg-white p-5 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-blue-100 pb-3">
           <div className="flex items-center gap-2">
-            <span className="text-blue-400 text-lg">📚</span>
+            <span className="text-orange-500 text-lg">📚</span>
             <div className="flex items-center gap-2">
-              <h2 className="font-heading text-sm font-bold uppercase tracking-wider text-white">
+              <h2 className="font-heading text-sm font-bold uppercase tracking-wider text-blue-950">
                 SAVED ASSET LIBRARY
               </h2>
-              <span className="rounded bg-surface-2 px-2 py-0.5 text-[10px] font-bold text-muted uppercase">
+              <span className="rounded bg-blue-100 px-2 py-0.5 text-[10px] font-bold text-blue-800 uppercase">
                 {totalAssets} ASSETS
               </span>
             </div>
           </div>
           <button
             onClick={() => void qc.invalidateQueries({ queryKey: ['assets'] })}
-            className="flex items-center gap-1.5 rounded-lg border border-[#213f77] bg-[#0e1d40] px-3 py-1.5 text-xs font-bold uppercase text-white hover:bg-[#152a5c]"
+            className="flex items-center gap-1.5 rounded-lg border border-blue-200 bg-white px-3 py-1.5 text-xs font-bold uppercase text-blue-700 hover:bg-blue-50 transition shadow-xs"
           >
             <span>🔄</span> REFRESH LIBRARY
           </button>
@@ -1029,10 +1029,10 @@ export const PlayersPage = () => {
                 setPage(1);
               }}
               className={clsx(
-                'rounded-lg px-3 py-1.5 text-xs font-bold uppercase transition',
+                'rounded-lg px-3 py-1.5 text-xs font-bold uppercase transition shadow-xs',
                 activeTab === 'all'
-                  ? 'bg-blue-600 text-white'
-                  : 'border border-border bg-[#111a28] text-muted hover:text-white',
+                  ? 'bg-orange-500 text-white'
+                  : 'border border-blue-200 bg-white text-blue-900 hover:bg-blue-50',
               )}
             >
               ALL ({totalAssets})
@@ -1043,10 +1043,10 @@ export const PlayersPage = () => {
                 setPage(1);
               }}
               className={clsx(
-                'rounded-lg px-3 py-1.5 text-xs font-bold uppercase transition',
+                'rounded-lg px-3 py-1.5 text-xs font-bold uppercase transition shadow-xs',
                 activeTab === 'players'
-                  ? 'bg-blue-600 text-white'
-                  : 'border border-border bg-[#111a28] text-muted hover:text-white',
+                  ? 'bg-orange-500 text-white'
+                  : 'border border-blue-200 bg-white text-blue-900 hover:bg-blue-50',
               )}
             >
               PLAYERS
@@ -1057,10 +1057,10 @@ export const PlayersPage = () => {
                 setPage(1);
               }}
               className={clsx(
-                'rounded-lg px-3 py-1.5 text-xs font-bold uppercase transition',
+                'rounded-lg px-3 py-1.5 text-xs font-bold uppercase transition shadow-xs',
                 activeTab === 'teams'
-                  ? 'bg-emerald-600 text-white'
-                  : 'border border-border bg-[#111a28] text-muted hover:text-white',
+                  ? 'bg-orange-500 text-white'
+                  : 'border border-blue-200 bg-white text-blue-900 hover:bg-blue-50',
               )}
             >
               TEAMS
@@ -1075,12 +1075,12 @@ export const PlayersPage = () => {
                 setPage(1);
               }}
               placeholder="🔍 Search name or ID..."
-              className="w-48 rounded-lg border border-border bg-[#111a28] px-3 py-1.5 text-xs text-white"
+              className="w-48 rounded-lg border border-blue-200 bg-white px-3 py-1.5 text-xs text-slate-800 placeholder-slate-400 focus:border-orange-500 focus:outline-none"
             />
             <select
               value={sortOrder}
               onChange={(e) => setSortOrder(e.target.value as typeof sortOrder)}
-              className="rounded-lg border border-border bg-[#111a28] px-3 py-1.5 text-xs text-white"
+              className="rounded-lg border border-blue-200 bg-white px-3 py-1.5 text-xs text-slate-800 focus:border-orange-500 focus:outline-none"
             >
               <option value="name">Name (A → Z)</option>
               <option value="newest">Newest first</option>
@@ -1092,7 +1092,7 @@ export const PlayersPage = () => {
                 setPageSize(Number(e.target.value));
                 setPage(1);
               }}
-              className="rounded-lg border border-border bg-[#111a28] px-3 py-1.5 text-xs text-white"
+              className="rounded-lg border border-blue-200 bg-white px-3 py-1.5 text-xs text-slate-800 focus:border-orange-500 focus:outline-none"
             >
               <option value="24">24 / page</option>
               <option value="48">48 / page</option>
@@ -1101,12 +1101,12 @@ export const PlayersPage = () => {
           </div>
         </div>
 
-        <div className="mt-3 text-[11px] text-muted">
+        <div className="mt-3 text-[11px] text-slate-500">
           Showing{' '}
-          <span className="text-white font-bold">
+          <span className="text-slate-900 font-bold">
             {totalAssets === 0 ? 0 : (page - 1) * pageSize + 1}–{Math.min(page * pageSize, totalAssets)}
           </span>{' '}
-          of <span className="text-white font-bold">{totalAssets}</span> matching assets
+          of <span className="text-slate-900 font-bold">{totalAssets}</span> matching assets
         </div>
 
         {/* Asset cards grid */}
@@ -1114,7 +1114,7 @@ export const PlayersPage = () => {
           {(libraryAssets.data?.items ?? []).map((asset) => (
             <div
               key={asset.id}
-              className="group flex flex-col justify-between rounded-xl border border-border/80 bg-[#111a28] p-2.5 transition hover:border-border"
+              className="group flex flex-col justify-between rounded-xl border border-blue-100 bg-[#f8fafc] p-2.5 transition hover:border-orange-400 hover:shadow-xs"
             >
               <div>
                 <div className="flex items-center justify-between">

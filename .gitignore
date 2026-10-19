@@ -9,3 +9,5 @@ dist-tsc
 .secrets
 release
 packages/desktop/build
+err.txt
+out.txt

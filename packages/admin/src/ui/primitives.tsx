@@ -5,7 +5,7 @@ import * as RSwitch from '@radix-ui/react-switch';
 import * as RTabs from '@radix-ui/react-tabs';
 import * as RTooltip from '@radix-ui/react-tooltip';
 import clsx from 'clsx';
-import type { ButtonHTMLAttributes, ReactNode } from 'react';
+import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from 'react';
 
 /* Button ------------------------------------------------------------------------------------ */
 
@@ -13,11 +13,12 @@ type Variant = 'primary' | 'secondary' | 'danger' | 'ghost';
 type Size = 'md' | 'lg';
 
 const VARIANTS: Record<Variant, string> = {
-  primary: 'bg-blue-600 text-white hover:bg-blue-500 shadow-md shadow-blue-900/40 border border-blue-500/50',
-  secondary: 'bg-[#f8fafc] text-[#0f172a] border border-[#e2e8f0] hover:border-blue-500 hover:bg-[#f1f5f9]',
+  primary: 'bg-orange-500 text-white hover:bg-orange-600 shadow-md shadow-orange-500/20 border border-orange-400 font-bold',
+  secondary: 'bg-white text-blue-900 border border-blue-200 hover:border-blue-400 hover:bg-blue-50 font-semibold shadow-sm',
   danger: 'bg-red-600 text-white hover:bg-red-500 shadow-md shadow-red-900/40 border border-red-500/50',
-  ghost: 'bg-transparent text-[#0f172a] hover:bg-[#f8fafc]',
+  ghost: 'bg-transparent text-slate-700 hover:bg-slate-100',
 };
+
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: Variant;
@@ -25,14 +26,15 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   size?: Size;
 }
 
-export const Button = ({
+export const Button = forwardRef<HTMLButtonElement, ButtonProps>(({
   variant = 'secondary',
   size = 'md',
   className,
   type = 'button',
   ...rest
-}: ButtonProps) => (
+}, ref) => (
   <button
+    ref={ref}
     type={type}
     className={clsx(
       'inline-flex items-center justify-center gap-2 rounded-[10px] font-semibold transition disabled:cursor-not-allowed disabled:opacity-50',
@@ -42,7 +44,8 @@ export const Button = ({
     )}
     {...rest}
   />
-);
+));
+Button.displayName = 'Button';
 
 export interface IconButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   /** Required: icon-only buttons need an accessible name. */
@@ -84,16 +87,17 @@ export const Card = ({
   children: ReactNode;
   className?: string;
 }) => (
-  <section className={clsx('rounded-card border border-[#1e3a75] bg-[#0d1a38] p-5 shadow-lg', className)}>
+  <section className={clsx('rounded-card border border-blue-100 bg-white p-5 shadow-sm', className)}>
     {(title || actions) && (
       <header className="mb-3 flex items-center justify-between gap-3">
-        {title && <h2 className="font-heading text-lg font-bold text-white">{title}</h2>}
+        {title && <h2 className="font-heading text-lg font-bold text-blue-950">{title}</h2>}
         {actions}
       </header>
     )}
     {children}
   </section>
 );
+
 
 /* Tabs -------------------------------------------------------------------------------------- */
 
@@ -114,7 +118,7 @@ export const Tabs = ({
         <RTabs.Trigger
           key={t.value}
           value={t.value}
-          className="-mb-px border-b-2 border-transparent px-4 py-2 text-sm font-medium text-muted data-[state=active]:border-teal data-[state=active]:text-text"
+          className="-mb-px border-b-2 border-transparent px-4 py-2 text-sm font-medium text-slate-500 hover:text-slate-800 data-[state=active]:border-orange-500 data-[state=active]:text-orange-600 data-[state=active]:font-bold"
         >
           {t.label}
         </RTabs.Trigger>
@@ -267,14 +271,15 @@ export const Dialog = ({
     <RDialog.Root open={open} onOpenChange={onOpenChange}>
       <RDialog.Portal>
         <RDialog.Overlay className="fixed inset-0 z-40 bg-black/75 backdrop-blur-sm" />
-        <RDialog.Content className="fixed left-1/2 top-1/2 z-50 w-[min(92vw,30rem)] -translate-x-1/2 -translate-y-1/2 rounded-card border border-[#1e3a75] bg-[#0d1a38] p-6 shadow-2xl">
-          <RDialog.Title className="font-heading text-xl font-bold text-white">{title}</RDialog.Title>
-          <RDialog.Description className="mt-1 text-sm text-slate-300">
+        <RDialog.Content className="fixed left-1/2 top-1/2 z-50 w-[min(92vw,32rem)] -translate-x-1/2 -translate-y-1/2 rounded-card border border-blue-200 bg-white p-6 shadow-2xl text-slate-800">
+          <RDialog.Title className="font-heading text-xl font-bold text-blue-950">{title}</RDialog.Title>
+          <RDialog.Description className="mt-1 text-sm text-slate-600">
             {description ?? ''}
           </RDialog.Description>
           <div className="mt-4">{children}</div>
           {f && <div className="mt-6 flex justify-end gap-2">{f}</div>}
         </RDialog.Content>
+
       </RDialog.Portal>
     </RDialog.Root>
   );

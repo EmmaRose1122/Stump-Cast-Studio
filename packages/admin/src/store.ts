@@ -12,7 +12,7 @@ export const readTheme = (): Theme => {
   } catch {
     /* storage unavailable */
   }
-  return 'dark';
+  return 'light';
 };
 
 export const applyTheme = (theme: Theme, root: HTMLElement = document.documentElement): void => {

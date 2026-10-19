@@ -41,7 +41,7 @@ export const parseScore = (
   const allOut = /^\s*(\d{1,4})\s*(?:all out|ao|a\/o)\s*$/i.exec(input);
   if (allOut) return { runs: Number(allOut[1]), wkts: 10 };
   if (options?.allowBare) {
-    const bare = /^(?:[A-Za-z]+\s+)?(\d{1,4})$/.exec(input.trim());
+    const bare = /^(?:[A-Za-z]+\s+)?(\d{1,4})(?:\s*\(.*?\))?$/.exec(input.trim());
     if (bare) return { runs: Number(bare[1]), wkts: 10 };
   }
   return undefined;
