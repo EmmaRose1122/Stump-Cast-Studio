@@ -145,14 +145,43 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
     releaseUrl: 'https://github.com/stumpcast/studio/releases',
   }));
 
-  fastify.get('/api/app/update-check', async () => {
+  let simulatedUpdate = false;
+  let serverDownloadProgress = {
+    status: 'idle' as 'idle' | 'downloading' | 'ready' | 'error',
+    percent: 0,
+    transferred: 0,
+    total: 129412818,
+    bytesPerSecond: 0,
+    error: null as string | null,
+    installerPath: null as string | null,
+  };
+
+  fastify.get('/api/app/update-check', async (req) => {
+    const query = req.query as { simulate?: string; url?: string } | undefined;
     let latestVersion = APP_VERSION;
     let releaseNotes = '';
     let updateAvailable = false;
     let downloadUrl = '';
 
+    if (query?.simulate === '1' || simulatedUpdate || process.env.STUMPCAST_UPDATE_SIMULATE === '1') {
+      return {
+        currentVersion: APP_VERSION,
+        latestVersion: '1.0.2',
+        updateAvailable: true,
+        releaseNotes:
+          '• Direct In-App Desktop Updater with live transfer progress bar\n• Ultra-fast Cricbuzz & Crex match state scrapers\n• Red, White & Blue studio broadcast overlays\n• Center-aligned operator control room layout\n• Automatic background installer updates',
+        downloadUrl: '/api/app/update-download-file',
+        fileSize: 129412818,
+      };
+    }
+
     try {
-      const res = await fetch('https://api.github.com/repos/stumpcast/studio/releases/latest', {
+      const checkUrl =
+        query?.url ||
+        process.env.STUMPCAST_UPDATE_URL ||
+        'https://api.github.com/repos/stumpcast/studio/releases/latest';
+
+      const res = await fetch(checkUrl, {
         headers: { 'User-Agent': 'StumpCast-Studio' },
         signal: AbortSignal.timeout(3000),
       });
@@ -162,8 +191,16 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
           body?: string;
           html_url?: string;
           assets?: Array<{ browser_download_url?: string }>;
+          latestVersion?: string;
+          updateAvailable?: boolean;
+          releaseNotes?: string;
         };
-        if (data.tag_name) {
+        if (data.latestVersion) {
+          latestVersion = data.latestVersion;
+          releaseNotes = data.releaseNotes ?? '';
+          updateAvailable = Boolean(data.updateAvailable);
+          downloadUrl = data.assets?.[0]?.browser_download_url ?? '';
+        } else if (data.tag_name) {
           latestVersion = data.tag_name.replace(/^v/, '');
           releaseNotes = data.body ?? '';
           downloadUrl = data.assets?.[0]?.browser_download_url ?? data.html_url ?? '';
@@ -191,12 +228,57 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
     };
   });
 
+  fastify.post('/api/app/update-simulate', async (req) => {
+    const body = (req.body as { active?: boolean } | undefined) ?? {};
+    simulatedUpdate = body.active !== undefined ? body.active : !simulatedUpdate;
+    return {
+      simulated: simulatedUpdate,
+      currentVersion: APP_VERSION,
+      latestVersion: simulatedUpdate ? '1.0.2' : APP_VERSION,
+    };
+  });
+
+  fastify.get('/api/app/update-progress', async () => serverDownloadProgress);
+
+  fastify.post('/api/app/update-download', async () => {
+    serverDownloadProgress = {
+      status: 'downloading',
+      percent: 0,
+      transferred: 0,
+      total: 129412818,
+      bytesPerSecond: 4200000,
+      error: null,
+      installerPath: null,
+    };
+
+    setTimeout(async () => {
+      for (let p = 15; p <= 100; p += 15) {
+        await new Promise((r) => setTimeout(r, 120));
+        serverDownloadProgress.percent = p;
+        serverDownloadProgress.transferred = Math.round((p / 100) * serverDownloadProgress.total);
+      }
+      serverDownloadProgress.status = 'ready';
+      serverDownloadProgress.percent = 100;
+    }, 50);
+
+    return { status: 'downloading', message: 'Update download started.' };
+  });
+
   fastify.post('/api/app/update-trigger', async () => {
+    serverDownloadProgress.status = 'ready';
     return {
       status: 'update-triggered',
       message: 'Update download started. The application will restart to install.',
     };
   });
+
+  fastify.post('/api/app/update-install', async () => {
+    return {
+      status: 'installing',
+      message: 'Installer launched. Application restarting...',
+    };
+  });
+
 
   fastify.get('/api/settings', async () => loadSettings());
 

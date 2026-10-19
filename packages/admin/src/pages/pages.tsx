@@ -141,6 +141,83 @@ export const SettingsPage = () => {
         </button>
       </div>
 
+      {/* APP UPDATES & SOFTWARE RELEASE */}
+      <div className="w-full rounded-xl border border-[#213f77] bg-[#0c1836] p-5 shadow-lg space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <span className="text-2xl">🚀</span>
+            <div className="text-left">
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="font-heading text-sm font-bold uppercase tracking-wider text-white">
+                  App Updates &amp; Software Release
+                </h2>
+                <span className="rounded bg-blue-500/20 px-2 py-0.5 text-[10px] font-mono font-bold text-blue-300 border border-blue-500/30">
+                  INSTALLED: v1.0.1
+                </span>
+                <span className="rounded bg-emerald-500/20 px-2 py-0.5 text-[10px] font-mono font-bold text-emerald-400 border border-emerald-500/30">
+                  STABLE CHANNEL
+                </span>
+              </div>
+              <p className="text-xs text-muted mt-1">
+                StumpCast Studio checks for new versions automatically. Click below to verify or trigger update downloads directly from the app.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={async () => {
+                toast({ title: 'Checking release server for updates...', kind: 'info' });
+                try {
+                  const res = await fetch('/api/app/update-check');
+                  const data = (await res.json()) as { updateAvailable?: boolean; latestVersion?: string };
+                  if (data.updateAvailable) {
+                    toast({
+                      title: `New version v${data.latestVersion} available! Click update badge in top header.`,
+                      kind: 'success',
+                    });
+                    void qc.invalidateQueries({ queryKey: ['app-update'] });
+                  } else {
+                    toast({
+                      title: 'StumpCast Studio is running the latest version (v1.0.1)',
+                      kind: 'info',
+                    });
+                  }
+                } catch {
+                  toast({ title: 'Could not connect to update feed', kind: 'error' });
+                }
+              }}
+              className="rounded-lg border border-[#213f77] bg-[#0e1d40] px-3.5 py-1.5 text-xs font-bold text-white hover:bg-[#152a5c] transition"
+            >
+              🔄 Check for Updates
+            </button>
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  await fetch('/api/app/update-simulate', {
+                    method: 'POST',
+                    headers: { 'content-type': 'application/json' },
+                    body: JSON.stringify({ active: true }),
+                  });
+                  toast({
+                    title: 'Simulated v1.0.2 update enabled! Click update badge in top header.',
+                    kind: 'success',
+                  });
+                  void qc.invalidateQueries({ queryKey: ['app-update'] });
+                } catch {
+                  toast({ title: 'Simulation toggle failed', kind: 'error' });
+                }
+              }}
+              className="rounded-lg bg-red-600/20 px-3.5 py-1.5 text-xs font-bold text-red-300 border border-red-500/40 hover:bg-red-600/30 transition"
+            >
+              ⚡ Test Update v1.0.2
+            </button>
+          </div>
+        </div>
+      </div>
+
+
       {/* DATA SOURCE & SELECTORS (X5) */}
       <div className="w-full rounded-xl border border-[#213f77] bg-[#0c1836] p-5 shadow-lg space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-4">

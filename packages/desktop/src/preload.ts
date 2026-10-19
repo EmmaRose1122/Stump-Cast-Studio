@@ -10,12 +10,51 @@ const api = {
     ipcRenderer.invoke('stumpcast:get-secret', key),
   setSecret: (key: 'apiKey' | 'licenceToken', value?: string): Promise<boolean> =>
     ipcRenderer.invoke('stumpcast:set-secret', key, value),
-  checkUpdate: (): Promise<{ updateAvailable: boolean; version?: string; error?: string }> =>
-    ipcRenderer.invoke('stumpcast:check-update'),
+  checkUpdate: (
+    customUrl?: string,
+  ): Promise<{
+    updateAvailable: boolean;
+    version?: string;
+    currentVersion?: string;
+    latestVersion?: string;
+    releaseNotes?: string;
+    downloadUrl?: string;
+    error?: string;
+  }> => ipcRenderer.invoke('stumpcast:check-update', customUrl),
+  downloadUpdate: (
+    downloadUrl?: string,
+  ): Promise<{ success: boolean; filePath?: string; error?: string }> =>
+    ipcRenderer.invoke('stumpcast:download-update', downloadUrl),
   installUpdate: (): Promise<boolean> =>
     ipcRenderer.invoke('stumpcast:install-update'),
+  onUpdateProgress: (
+    callback: (progress: {
+      percent: number;
+      transferred: number;
+      total: number;
+      bytesPerSecond: number;
+      status: string;
+      error?: string | null;
+    }) => void,
+  ): (() => void) => {
+    const handler = (
+      _event: Electron.IpcRendererEvent,
+      progress: {
+        percent: number;
+        transferred: number;
+        total: number;
+        bytesPerSecond: number;
+        status: string;
+        error?: string | null;
+      },
+    ) => callback(progress);
+    ipcRenderer.on('stumpcast:update-progress', handler);
+    return () => {
+      ipcRenderer.removeListener('stumpcast:update-progress', handler);
+    };
+  },
 };
 
 contextBridge.exposeInMainWorld('stumpcast', api);
 
-export type StumpCastDesktopApi = typeof api;
+export type StumpCastDesktopApi = typeof api;

@@ -54,4 +54,25 @@ describe('auto update', () => {
     expect(releaseNotesText([{ note: 'a' }, { note: 'b' }])).toBe('a\nb');
     expect(releaseNotesText(null)).toBe('');
   });
+
+  it('correctly compares version numbers', async () => {
+    const { isVersionNewer } = await import('./updater');
+    expect(isVersionNewer('1.0.2', '1.0.1')).toBe(true);
+    expect(isVersionNewer('1.1.0', '1.0.9')).toBe(true);
+    expect(isVersionNewer('2.0.0', '1.9.9')).toBe(true);
+    expect(isVersionNewer('v1.0.2', 'v1.0.1')).toBe(true);
+    expect(isVersionNewer('1.0.1', '1.0.1')).toBe(false);
+    expect(isVersionNewer('1.0.0', '1.0.1')).toBe(false);
+  });
+
+  it('launches installer and exits correctly', async () => {
+    const { launchInstallerAndExit } = await import('./updater');
+    const spawnMock = vi.fn(() => ({ unref: vi.fn() }));
+    const exitMock = vi.fn();
+    const result = launchInstallerAndExit('test-setup.exe', spawnMock, exitMock);
+    expect(result).toBe(true);
+    expect(spawnMock).toHaveBeenCalledWith('test-setup.exe', [], { detached: true, stdio: 'ignore' });
+    expect(exitMock).toHaveBeenCalled();
+  });
 });
+

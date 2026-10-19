@@ -5,7 +5,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.0.2] - 2026-10-19
+
+### Added
+- **In-App Desktop Updater**: Direct one-click update button in the installed `.exe` desktop application.
+- **Real-Time Transfer Progress**: Live visual progress bar with percentage, downloaded MB/total MB, and transfer speed.
+- **Background Installer Execution**: Automated detached Windows NSIS installer execution with clean application restart.
+- **Update Simulation & Feed Config**: Ability to test the update flow offline and configure custom release feeds.
+- **Dual Update Engine**: Supports both native `electron-updater` and direct HTTP streaming fallbacks.
+
+---
+
 ## [1.0.1] - 2026-10-19
+
 
 ### Added
 - **WCAG AA Compliance**: Comprehensive contrast token audit ensuring 4.5:1 ratio across dark and light admin themes.

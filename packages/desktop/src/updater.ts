@@ -23,7 +23,28 @@ export interface UpdateHooks {
   log(message: string): void;
 }
 
+export interface UpdateProgress {
+  percent: number;
+  transferred: number;
+  total: number;
+  bytesPerSecond: number;
+  status: 'idle' | 'checking' | 'available' | 'downloading' | 'ready' | 'error';
+  error?: string | null;
+}
+
 export const CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000;
+
+export const isVersionNewer = (latest: string, current: string): boolean => {
+  const cleanLat = latest.replace(/^v/, '').split('.').map(Number);
+  const cleanCur = current.replace(/^v/, '').split('.').map(Number);
+  for (let i = 0; i < Math.max(cleanLat.length, cleanCur.length); i++) {
+    const lat = cleanLat[i] ?? 0;
+    const cur = cleanCur[i] ?? 0;
+    if (lat > cur) return true;
+    if (lat < cur) return false;
+  }
+  return false;
+};
 
 export const releaseNotesText = (notes: UpdateInfo['releaseNotes']): string => {
   if (!notes) return '';
@@ -66,3 +87,26 @@ export function setupAutoUpdate(
   timers.setInterval(() => void check(), CHECK_INTERVAL_MS);
   return { check };
 }
+
+export interface DirectDownloadOptions {
+  downloadUrl: string;
+  destFilePath: string;
+  onProgress?: (progress: UpdateProgress) => void;
+  signal?: AbortSignal;
+}
+
+export const launchInstallerAndExit = (
+  installerPath: string,
+  spawnFn: (command: string, args: string[], options: unknown) => { unref: () => void },
+  exitFn: () => void = () => process.exit(0),
+): boolean => {
+  try {
+    const child = spawnFn(installerPath, [], { detached: true, stdio: 'ignore' });
+    child.unref();
+    exitFn();
+    return true;
+  } catch {
+    return false;
+  }
+};
+

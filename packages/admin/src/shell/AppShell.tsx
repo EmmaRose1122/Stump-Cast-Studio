@@ -103,8 +103,17 @@ export const AlarmBanner = () => {
   );
 };
 
+export const formatBytes = (bytes: number): string => {
+  if (!bytes || bytes <= 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return `${(bytes / Math.pow(k, i)).toFixed(1)} ${sizes[i]}`;
+};
+
 export const AppShell = ({ route, children }: { route: string; children: React.ReactNode }) => {
   const { t } = useTranslation();
+
   const theme = useAdmin((s) => s.theme);
   const setTheme = useAdmin((s) => s.setTheme);
   const alarm = useAdmin((s) => s.alarm);
@@ -118,7 +127,18 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
   const [licenceOpen, setLicenceOpen] = useState(false);
   const [licenceInput, setLicenceInput] = useState('');
   const [updateModalOpen, setUpdateModalOpen] = useState(false);
-  const [isUpdating, setIsUpdating] = useState(false);
+  const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [updateReady, setUpdateReady] = useState(false);
+  const [isInstalling, setIsInstalling] = useState(false);
+  const [updateProgress, setUpdateProgress] = useState<{
+    percent: number;
+    transferred: number;
+    total: number;
+    bytesPerSecond: number;
+    status: string;
+    error?: string | null;
+  } | null>(null);
 
   const provider = useQuery({
     queryKey: ['provider'],
@@ -143,16 +163,21 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
   const updateQuery = useQuery({
     queryKey: ['app-update'],
     queryFn: async () => {
-      if (typeof window !== 'undefined' && (window as unknown as { stumpcast?: { checkUpdate?: () => Promise<{ updateAvailable: boolean; version?: string }> } }).stumpcast?.checkUpdate) {
+      if (
+        typeof window !== 'undefined' &&
+        (window as unknown as { stumpcast?: { checkUpdate?: () => Promise<{ updateAvailable: boolean; latestVersion?: string; version?: string; releaseNotes?: string; downloadUrl?: string }> } }).stumpcast?.checkUpdate
+      ) {
         try {
-          const res = await (window as unknown as { stumpcast: { checkUpdate: () => Promise<{ updateAvailable: boolean; version?: string }> } }).stumpcast.checkUpdate();
+          const res = await (window as unknown as { stumpcast: { checkUpdate: () => Promise<{ updateAvailable: boolean; latestVersion?: string; version?: string; releaseNotes?: string; downloadUrl?: string }> } }).stumpcast.checkUpdate();
           if (res?.updateAvailable) {
             return {
               updateAvailable: true,
-              latestVersion: res.version ?? '1.0.2',
+              latestVersion: res.latestVersion ?? res.version ?? '1.0.2',
               currentVersion: '1.0.1',
-              releaseNotes: '• Enhanced live match scraping\n• Red, White & Blue studio broadcast theme\n• Center-aligned layout',
-              downloadUrl: '',
+              releaseNotes:
+                res.releaseNotes ||
+                '• Direct In-App Desktop Updater with live transfer progress bar\n• Ultra-fast Cricbuzz & Crex match state scrapers\n• Red, White & Blue studio broadcast overlays\n• Center-aligned operator control room layout',
+              downloadUrl: res.downloadUrl ?? '',
             };
           }
         } catch {
@@ -173,25 +198,153 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
       } catch {
         // ignore
       }
-      return { updateAvailable: false, latestVersion: '1.0.1', currentVersion: '1.0.1', releaseNotes: '', downloadUrl: '' };
+      return {
+        updateAvailable: false,
+        latestVersion: '1.0.1',
+        currentVersion: '1.0.1',
+        releaseNotes: '',
+        downloadUrl: '',
+      };
     },
     refetchInterval: 30000,
   });
 
-  const triggerUpdate = async () => {
-    setIsUpdating(true);
+  const handleCheckUpdate = async (simulate = false) => {
+    setIsCheckingUpdate(true);
     try {
-      if (typeof window !== 'undefined' && (window as unknown as { stumpcast?: { installUpdate?: () => Promise<boolean> } }).stumpcast?.installUpdate) {
+      if (simulate) {
+        await fetch('/api/app/update-simulate', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ active: true }),
+        });
+      }
+      await qc.invalidateQueries({ queryKey: ['app-update'] });
+      const refreshed = await updateQuery.refetch();
+      if (refreshed.data?.updateAvailable) {
+        toast({
+          title: `Update found: v${refreshed.data.latestVersion}!`,
+          kind: 'success',
+        });
+      } else {
+        toast({ title: 'StumpCast Studio is up to date (v1.0.1)', kind: 'info' });
+      }
+    } catch {
+      toast({ title: 'Failed to check for updates', kind: 'error' });
+    } finally {
+      setIsCheckingUpdate(false);
+    }
+  };
+
+  const handleDownloadUpdate = async () => {
+    setIsDownloading(true);
+    setUpdateReady(false);
+    setUpdateProgress({
+      percent: 5,
+      transferred: 6470640,
+      total: 129412818,
+      bytesPerSecond: 4200000,
+      status: 'downloading',
+    });
+
+    const isDesktop =
+      typeof window !== 'undefined' &&
+      Boolean(
+        (window as unknown as { stumpcast?: { downloadUpdate?: (url?: string) => Promise<{ success: boolean; filePath?: string; error?: string }>; onUpdateProgress?: (cb: (p: { percent: number; transferred: number; total: number; bytesPerSecond: number; status: string; error?: string | null }) => void) => () => void } }).stumpcast?.downloadUpdate,
+      );
+
+    if (isDesktop) {
+      const desktopApi = (window as unknown as {
+        stumpcast: {
+          downloadUpdate: (url?: string) => Promise<{ success: boolean; filePath?: string; error?: string }>;
+          onUpdateProgress: (cb: (p: { percent: number; transferred: number; total: number; bytesPerSecond: number; status: string; error?: string | null }) => void) => () => void;
+        };
+      }).stumpcast;
+
+      const unsubscribe = desktopApi.onUpdateProgress((p) => {
+        setUpdateProgress(p);
+        if (p.status === 'ready' || p.percent >= 100) {
+          setUpdateReady(true);
+          setIsDownloading(false);
+          toast({ title: 'Update downloaded! Ready to install.', kind: 'success' });
+        } else if (p.status === 'error') {
+          setIsDownloading(false);
+          toast({ title: p.error || 'Failed to download update', kind: 'error' });
+        }
+      });
+
+      try {
+        const res = await desktopApi.downloadUpdate(updateQuery.data?.downloadUrl);
+        if (res.success) {
+          setUpdateReady(true);
+          setIsDownloading(false);
+        } else if (res.error) {
+          setIsDownloading(false);
+          toast({ title: res.error, kind: 'error' });
+        }
+      } catch (err: unknown) {
+        setIsDownloading(false);
+        toast({ title: String(err), kind: 'error' });
+      } finally {
+        unsubscribe();
+      }
+    } else {
+      try {
+        await fetch('/api/app/update-download', { method: 'POST' });
+        const timer = setInterval(async () => {
+          try {
+            const res = await fetch('/api/app/update-progress');
+            if (res.ok) {
+              const data = (await res.json()) as {
+                percent: number;
+                transferred: number;
+                total: number;
+                bytesPerSecond: number;
+                status: string;
+                error?: string | null;
+              };
+              setUpdateProgress(data);
+              if (data.status === 'ready' || data.percent >= 100) {
+                clearInterval(timer);
+                setUpdateReady(true);
+                setIsDownloading(false);
+                toast({ title: 'Update downloaded and verified!', kind: 'success' });
+              } else if (data.status === 'error') {
+                clearInterval(timer);
+                setIsDownloading(false);
+                toast({ title: data.error || 'Download error', kind: 'error' });
+              }
+            }
+          } catch {
+            // Keep checking
+          }
+        }, 150);
+      } catch {
+        setIsDownloading(false);
+        toast({ title: 'Network error downloading update', kind: 'error' });
+      }
+    }
+  };
+
+  const handleInstallUpdate = async () => {
+    setIsInstalling(true);
+    toast({ title: 'Restarting StumpCast Studio to apply update...', kind: 'success' });
+    try {
+      if (
+        typeof window !== 'undefined' &&
+        (window as unknown as { stumpcast?: { installUpdate?: () => Promise<boolean> } }).stumpcast?.installUpdate
+      ) {
         await (window as unknown as { stumpcast: { installUpdate: () => Promise<boolean> } }).stumpcast.installUpdate();
       } else {
-        await fetch('/api/app/update-trigger', { method: 'POST' });
+        await fetch('/api/app/update-install', { method: 'POST' });
       }
-      toast({ title: 'Update downloaded! Restarting StumpCast Studio...', kind: 'success' });
-      setUpdateModalOpen(false);
+      setTimeout(() => {
+        setUpdateModalOpen(false);
+        setIsInstalling(false);
+      }, 1500);
     } catch {
-      toast({ title: 'Failed to trigger update', kind: 'error' });
-    } finally {
-      setIsUpdating(false);
+      toast({ title: 'Failed to launch installer', kind: 'error' });
+      setIsInstalling(false);
     }
   };
 
@@ -577,58 +730,163 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
         </div>
       </Dialog>
 
-      {/* Auto-Update Dialog */}
+      {/* Auto-Update Dialog with Live Progress Bar & Installer Execution */}
       <Dialog
         open={updateModalOpen}
         onOpenChange={setUpdateModalOpen}
         title="StumpCast Studio Update"
         description={
-          updateQuery.data?.updateAvailable
+          updateReady
+            ? `Update v${updateQuery.data?.latestVersion ?? '1.0.2'} is downloaded and ready to install!`
+            : updateQuery.data?.updateAvailable
             ? `New Version v${updateQuery.data.latestVersion} is available! (Current: v1.0.1)`
             : 'You are running the latest version of StumpCast Studio (v1.0.1).'
         }
         actions={
-          <>
+          <div className="flex flex-wrap items-center justify-end gap-2 w-full">
             <Button variant="secondary" onClick={() => setUpdateModalOpen(false)}>
               Close
             </Button>
-            {updateQuery.data?.updateAvailable && (
+
+            {!updateQuery.data?.updateAvailable && !updateReady && (
+              <>
+                <Button
+                  variant="secondary"
+                  disabled={isCheckingUpdate}
+                  onClick={() => void handleCheckUpdate(false)}
+                  className="border-[#27457a] text-blue-300 hover:text-white"
+                >
+                  {isCheckingUpdate ? 'Checking...' : '🔄 Check for Updates'}
+                </Button>
+                <Button
+                  variant="primary"
+                  onClick={() => void handleCheckUpdate(true)}
+                  className="bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold"
+                >
+                  ⚡ Simulate v1.0.2 Update
+                </Button>
+              </>
+            )}
+
+            {updateQuery.data?.updateAvailable && !updateReady && (
               <Button
                 variant="primary"
-                disabled={isUpdating}
-                onClick={triggerUpdate}
+                disabled={isDownloading}
+                onClick={handleDownloadUpdate}
                 className="bg-red-600 hover:bg-red-500 text-white font-bold"
               >
-                {isUpdating ? 'Downloading & Installing...' : 'Download & Install Update Now'}
+                {isDownloading
+                  ? `Downloading (${updateProgress?.percent ?? 0}%)...`
+                  : '📥 Download Update Now'}
               </Button>
             )}
-          </>
+
+            {updateReady && (
+              <Button
+                variant="primary"
+                disabled={isInstalling}
+                onClick={handleInstallUpdate}
+                className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold animate-pulse shadow-lg shadow-emerald-900/50"
+              >
+                {isInstalling ? 'Launching Installer...' : '🚀 Restart & Install Update Now'}
+              </Button>
+            )}
+          </div>
         }
       >
-        <div className="space-y-3 text-sm text-slate-300 text-center">
-          {updateQuery.data?.updateAvailable ? (
+        <div className="space-y-4 text-sm text-slate-300">
+          {/* Progress Bar (when downloading or ready) */}
+          {(isDownloading || updateReady || (updateProgress && updateProgress.percent > 0)) && (
+            <div className="rounded-xl border border-blue-900/70 bg-[#09142e] p-4 text-left shadow-inner">
+              <div className="flex items-center justify-between text-xs mb-2">
+                <span className="font-bold text-white flex items-center gap-1.5">
+                  {updateReady ? (
+                    <>
+                      <span className="text-emerald-400">✅</span> Download Complete &amp; Verified
+                    </>
+                  ) : (
+                    <>
+                      <span className="size-2 rounded-full bg-blue-400 animate-ping inline-block" />
+                      Downloading StumpCast-Studio-Setup-1.0.2.exe
+                    </>
+                  )}
+                </span>
+                <span className="font-mono font-bold text-blue-300">
+                  {updateProgress?.percent ?? 0}%
+                </span>
+              </div>
+
+              {/* Graphical Bar */}
+              <div className="w-full h-3 rounded-full bg-[#060c1d] overflow-hidden border border-blue-950 p-0.5">
+                <div
+                  className={clsx(
+                    'h-full rounded-full transition-all duration-300',
+                    updateReady
+                      ? 'bg-gradient-to-r from-emerald-500 to-teal-400 shadow-[0_0_12px_rgba(16,185,129,0.5)]'
+                      : 'bg-gradient-to-r from-blue-600 via-indigo-500 to-red-500 shadow-[0_0_12px_rgba(59,130,246,0.5)]',
+                  )}
+                  style={{ width: `${Math.min(100, Math.max(5, updateProgress?.percent ?? 0))}%` }}
+                />
+              </div>
+
+              {/* Sub-statistics */}
+              <div className="flex items-center justify-between text-[11px] text-slate-400 mt-2 font-mono">
+                <span>
+                  Transferred:{' '}
+                  <strong className="text-slate-200">
+                    {formatBytes(updateProgress?.transferred ?? 0)}
+                  </strong>{' '}
+                  / {formatBytes(updateProgress?.total ?? 129412818)}
+                </span>
+                <span>
+                  Speed:{' '}
+                  <strong className="text-blue-300">
+                    {formatBytes(updateProgress?.bytesPerSecond ?? 4200000)}/s
+                  </strong>
+                </span>
+              </div>
+            </div>
+          )}
+
+          {updateReady ? (
+            <div className="rounded-lg border border-emerald-500/40 bg-emerald-950/30 p-3 text-xs text-emerald-200 text-left">
+              <p className="font-bold mb-1 flex items-center gap-1.5">
+                <span>🎉</span> Update is ready to apply!
+              </p>
+              <p className="text-slate-300 text-[11px] leading-relaxed">
+                Click <strong>"Restart &amp; Install Update Now"</strong> below. StumpCast Studio will
+                cleanly shut down, run the installer, and reopen with the new version automatically.
+              </p>
+            </div>
+          ) : updateQuery.data?.updateAvailable ? (
             <>
               <div className="rounded-lg border border-blue-900/60 bg-[#0b1733] p-4 text-left">
-                <p className="font-bold text-white mb-1.5 flex items-center gap-1.5">
+                <p className="font-bold text-white mb-2 flex items-center gap-1.5">
                   <span className="text-red-400">⚡</span> What's New in v{updateQuery.data.latestVersion}:
                 </p>
-                <p className="text-xs text-slate-300 whitespace-pre-wrap leading-relaxed">
-                  {updateQuery.data.releaseNotes || '• High-speed Cricbuzz & Crex real-time live scrapers\n• Red, White & Blue studio broadcast overlays\n• Center-aligned operator control room layout\n• Automatic background installer updates'}
-                </p>
+                <div className="text-xs text-slate-300 whitespace-pre-wrap leading-relaxed space-y-1">
+                  {updateQuery.data.releaseNotes ||
+                    '• Direct In-App Desktop Updater with live transfer progress bar\n• Ultra-fast Cricbuzz & Crex match state scrapers\n• Red, White & Blue studio broadcast overlays\n• Center-aligned operator control room layout'}
+                </div>
               </div>
-              <div className="rounded border border-red-500/40 bg-red-950/40 p-2.5 text-xs text-red-200">
-                Click below to download and install. StumpCast will close and reopen with the new version automatically.
+
+              <div className="rounded border border-red-500/40 bg-red-950/40 p-2.5 text-xs text-red-200 text-left">
+                Click <strong>"Download Update Now"</strong> above. You can track progress and install when you are ready.
               </div>
             </>
           ) : (
-            <div className="rounded-lg border border-blue-900/60 bg-[#0b1733] p-4 text-center">
+            <div className="rounded-lg border border-blue-900/60 bg-[#0b1733] p-6 text-center">
               <span className="text-3xl block mb-2">🎉</span>
               <p className="font-bold text-white text-base">StumpCast Studio is up to date!</p>
               <p className="text-xs text-slate-400 mt-1">Installed Version: v1.0.1 (Latest)</p>
+              <p className="text-[11px] text-slate-500 mt-3">
+                Click "Check for Updates" to poll the release server, or "Simulate v1.0.2 Update" to test the in-app update experience.
+              </p>
             </div>
           )}
         </div>
       </Dialog>
+
     </div>
   );
 };
