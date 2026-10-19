@@ -509,6 +509,21 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
     },
   );
 
+  // GET /api/matches — all known match states, on-stream match first.
+  // Used by admin "Pick the match" and "Your Matches" panels.
+  fastify.get('/api/matches', async () => {
+    const settings = loadSettings();
+    const onStream = settings.onStreamMatchId;
+    const states = engine.allStates();
+    // Sort: on-stream match first, then by updatedAt descending
+    states.sort((a, b) => {
+      if (a.id === onStream) return -1;
+      if (b.id === onStream) return 1;
+      return Date.parse(b.updatedAt) - Date.parse(a.updatedAt);
+    });
+    return states;
+  });
+
   fastify.delete('/api/matches', async () => {
     engine.clear();
     extension.clear();

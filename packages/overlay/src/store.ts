@@ -79,8 +79,23 @@ export class OverlayStore {
     const known = matches[match.id];
     // Ignore out-of-order deliveries so the overlay never steps backwards.
     if (known && Date.parse(known.updatedAt) > Date.parse(match.updatedAt)) return;
-    const isTestSeed = this.state.matchId === '147920';
-    const matchId = this.pinnedMatchId ?? (isTestSeed ? match.id : (this.state.matchId ?? match.id));
+
+    // Determine which match to show:
+    // 1. If URL pins a match, use that.
+    // 2. If operator set onStreamMatchId in settings, follow that.
+    // 3. Otherwise keep current, or fall back to this match if nothing is selected yet.
+    const onStreamId = this.state.settings?.onStreamMatchId;
+    let matchId: string | null;
+    if (this.pinnedMatchId) {
+      matchId = this.pinnedMatchId;
+    } else if (onStreamId && onStreamId !== '147920' && onStreamId !== 'seed-match') {
+      matchId = onStreamId;
+    } else if (this.state.matchId && this.state.matchId !== '147920' && this.state.matchId !== 'seed-match') {
+      matchId = this.state.matchId;
+    } else {
+      matchId = match.id;
+    }
+
     this.set({ matches: { ...matches, [match.id]: match }, matchId });
   }
 

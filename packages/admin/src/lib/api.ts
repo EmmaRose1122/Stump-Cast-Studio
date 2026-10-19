@@ -59,9 +59,9 @@ export const api = {
   muteAlarm: (minutes = 15) => send('POST', '/api/alarm/mute', { minutes }) as Promise<AlarmState>,
   unmuteAlarm: () => send('DELETE', '/api/alarm/mute') as Promise<AlarmState>,
 
-  /** Undelayed states, as shown in the operator preview. */
+  /** All match states, on-stream match first. */
   matches: async (): Promise<MatchState[]> => {
-    const list = (await fetch('/api/state?preview=1').then(json)) as unknown[];
+    const list = (await fetch('/api/matches').then(json)) as unknown[];
     return list.flatMap((m) => {
       const r = MatchStateSchema.safeParse(m);
       return r.success ? [r.data] : [];
