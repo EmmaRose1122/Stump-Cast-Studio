@@ -76,6 +76,15 @@ export const extractJson = (config: SelectorConfig, taps: TapResponse[]): Raw =>
   return out;
 };
 
+const cleanPageTitle = (raw: string): string =>
+  raw
+    .replace(/\s*\|\s*cricbuzz.*$/i, '')
+    .replace(/\s*Live Cricket Stream.*$/i, '')
+    .replace(/\s*Live Cricket Score.*$/i, '')
+    .replace(/\s*-\s*(?:commentary|scorecard|live score|preview|match facts).*$/i, '')
+    .replace(/^(?:live cricket score|commentary)\s*[-•:]\s*/i, '')
+    .trim();
+
 export const extractDom = (config: SelectorConfig, doc: Document): Raw => {
   const out: Raw = {};
   for (const [field, rule] of Object.entries(config.dom) as [FieldKey, DomRule][]) {
@@ -99,6 +108,46 @@ export const extractDom = (config: SelectorConfig, doc: Document): Raw => {
       }
     }
   }
+
+  // Smart hierarchical fallback: JSON-LD SportsEvent metadata
+  try {
+    const ldJsonScripts = doc.querySelectorAll('script[type="application/ld+json"]');
+    for (const s of ldJsonScripts) {
+      if (!s.textContent) continue;
+      const data = JSON.parse(s.textContent) as Record<string, unknown>;
+      if (data['@type'] === 'SportsEvent' || Array.isArray(data.competitor)) {
+        if (typeof data.name === 'string' && data.name.trim()) {
+          const cleanedName = cleanPageTitle(data.name);
+          if (cleanedName && (!out.title || (!out.title.includes('vs') && !out.title.includes('v ')))) {
+            out.title = cleanedName;
+          }
+        }
+        if (Array.isArray(data.competitor) && data.competitor.length >= 2) {
+          const c0 = (data.competitor[0] as { name?: string })?.name;
+          const c1 = (data.competitor[1] as { name?: string })?.name;
+          if (c0 && !out.team1) out.team1 = c0.trim();
+          if (c1 && !out.team2) out.team2 = c1.trim();
+        }
+      }
+    }
+  } catch {
+    /* JSON-LD parse failed; ignore */
+  }
+
+  // OG / Document title fallback
+  if (!out.title || (!out.title.includes('vs') && !out.title.includes('v '))) {
+    const metaTitle =
+      doc.querySelector('meta[property="og:title"]')?.getAttribute('content') ??
+      doc.querySelector('meta[name="twitter:title"]')?.getAttribute('content') ??
+      doc.title;
+    if (metaTitle) {
+      const cleanMeta = cleanPageTitle(metaTitle);
+      if (cleanMeta && (cleanMeta.includes(' vs') || cleanMeta.includes(' v '))) {
+        out.title = cleanMeta;
+      }
+    }
+  }
+
   return out;
 };
 
@@ -114,7 +163,7 @@ interface Prev {
   runs: number;
 }
 
-const normalise = (raw: Raw, prev: Prev | undefined, site = 'cricbuzz'): Normalised => {
+const normalise = (raw: Raw, prev: Prev | undefined, site = 'cricbuzz', url = ''): Normalised => {
   const passed = new Set<FieldKey>();
   const pass = (k: FieldKey, ok: boolean) => {
     if (ok) passed.add(k);
@@ -134,11 +183,31 @@ const normalise = (raw: Raw, prev: Prev | undefined, site = 'cricbuzz'): Normali
   let team1Name = cleanTeam(text('team1'));
   let team2Name = cleanTeam(text('team2'));
   const rawTitle = text('title') ?? '';
-  if (site === 'cricbuzz' && !team1Name && !team2Name && rawTitle) {
-    const tm = /^([A-Za-z0-9 .'-]+?)\s+(?:vs\.?|v)\s+([A-Za-z0-9 .'-]+?)(?:,|-|\(|\||$)/i.exec(rawTitle);
+  if (site === 'cricbuzz' && rawTitle) {
+    const tm = /(?:^|[-•:|]\s*|\b)([A-Za-z0-9 .\x27]+?)\s+(?:vs\.?|v)\s+([A-Za-z0-9 .\x27]+?)(?:,|-|\(|\||$)/i.exec(rawTitle);
     if (tm) {
-      team1Name = cleanTeam(tm[1]);
-      team2Name = cleanTeam(tm[2]);
+      const t1 = cleanTeam(tm[1]);
+      const t2 = cleanTeam(tm[2]);
+      if (!team1Name && !team2Name) {
+        team1Name = t1;
+        team2Name = t2;
+      } else if (!team2Name) {
+        team2Name = team1Name?.toLowerCase() === t1?.toLowerCase() ? t2 : t1;
+      } else if (!team1Name) {
+        team1Name = team2Name?.toLowerCase() === t2?.toLowerCase() ? t1 : t2;
+      } else if (team1Name === team2Name) {
+        team1Name = t1;
+        team2Name = t2;
+      }
+    }
+  }
+
+  // URL slug fallback for teams: e.g. /172680/afg-vs-zim-2nd-match
+  if ((!team1Name || !team2Name) && url) {
+    const urlMatch = /\/(?:live-cricket-scores|cricket-scores|cricket-commentary)\/\d+\/([a-z0-9]+)-vs-([a-z0-9]+)/i.exec(url);
+    if (urlMatch) {
+      if (!team1Name && urlMatch[1]) team1Name = urlMatch[1].toUpperCase();
+      if (!team2Name && urlMatch[2]) team2Name = urlMatch[2].toUpperCase();
     }
   }
 
@@ -376,9 +445,10 @@ export const createAdapter = (config: SelectorConfig): AdapterHandle => {
 
     try {
       const prev = previous.get(matchId);
-      const json = normalise(extractJson(config, input.taps), prev, config.site);
-      const dom = normalise(extractDom(config, input.document), prev, config.site);
-      const jsonConf = confidenceOf(config, json.passed);
+      const rawJson = extractJson(config, input.taps);
+      const json = normalise(rawJson, prev, config.site);
+      const dom = normalise(extractDom(config, input.document), prev, config.site, input.url);
+      const jsonConf = Object.keys(rawJson).length > 0 ? confidenceOf(config, json.passed) : 0;
       const domConf = confidenceOf(config, dom.passed);
 
       // Prefer JSON unless the DOM is strictly better.

@@ -179,7 +179,7 @@ export const SetupPage = () => {
       );
     }
     if (id === 'match') {
-      const list = matches.data ?? [];
+      const list = (matches.data ?? []).filter((m) => m.id !== '147920' && m.id !== 'seed-match');
       return (
         <div className="grid gap-3">
           {list.length === 0 ? (
@@ -195,7 +195,12 @@ export const SetupPage = () => {
                   className="flex items-center justify-between gap-3 rounded-[10px] border border-border px-3 py-2"
                 >
                   <span className="truncate">
-                    {m.title} · {m.score.runs}-{m.score.wkts}
+                    {m.title && m.title.includes('vs')
+                      ? m.title
+                      : m.teams[0]?.name && m.teams[1]?.name
+                        ? `${m.teams[0].name} vs ${m.teams[1].name}${m.title ? ` (${m.title})` : ''}`
+                        : m.title} · {m.score.runs}-{m.score.wkts}
+                    {m.score.overs > 0 || m.score.balls > 0 ? ` (${m.score.overs}.${m.score.balls} ov)` : ''}
                   </span>
                   <div className="flex items-center gap-2 shrink-0">
                     {settings.data?.onStreamMatchId === m.id ? (

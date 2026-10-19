@@ -75,6 +75,7 @@ export class OverlayStore {
   }
 
   setMatch(match: MatchState): void {
+    if (match.id === '147920' || match.id === 'seed-match') return;
     const { matches } = this.state;
     const known = matches[match.id];
     // Ignore out-of-order deliveries so the overlay never steps backwards.

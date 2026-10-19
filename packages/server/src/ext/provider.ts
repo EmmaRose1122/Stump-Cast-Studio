@@ -86,13 +86,15 @@ export class ExtensionProvider implements MatchProvider {
   // ---- MatchProvider ----------------------------------------------------------------------
 
   async listMatches(): Promise<MatchSummary[]> {
-    return [...this.latest.values()].map((u) => ({
-      matchId: u.matchId,
-      title: u.fields.title ?? u.matchId,
-      teams: u.fields.teams.map((t) => t.name),
-      status: u.fields.status,
-      source: u.source,
-    }));
+    return [...this.latest.values()]
+      .filter((u) => u.matchId !== '147920' && u.matchId !== 'seed-match')
+      .map((u) => ({
+        matchId: u.matchId,
+        title: u.fields.title ?? u.matchId,
+        teams: u.fields.teams.map((t) => t.name),
+        status: u.fields.status,
+        source: u.source,
+      }));
   }
 
   subscribe(matchId: string, cb: (raw: unknown) => void): Unsubscribe {

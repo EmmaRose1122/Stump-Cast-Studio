@@ -15,30 +15,47 @@ describe('cricbuzz adapter against saved fixtures', () => {
     expect(cricbuzzConfig.site).toBe('cricbuzz');
   });
 
-  it('inspects nep-vs-oman.html and ranji-live.html', async () => {
+  for (const state of STATES) {
+    // Skipped (not failed) until the developer saves the real page; see fixtures/README.md.
+    it.skipIf(!have(state))(`${state}`, () => {
+      const { actual, expected } = runFixture(createCricbuzzAdapter().adapter, 'cricbuzz', state);
+      expect(actual).toEqual(expected);
+    });
+  }
+
+  it('correctly extracts full title, teams, and scores from real Cricbuzz pages', async () => {
     const { JSDOM } = await import('jsdom');
-    for (const name of ['nep-vs-oman', 'ranji-live']) {
-      const p = path.join(FIXTURES_DIR, 'cricbuzz', `${name}.html`);
-      if (fs.existsSync(p)) {
-        const html = fs.readFileSync(p, 'utf8');
-        const dom = new JSDOM(html);
-        const actual = createCricbuzzAdapter().adapter({
-          site: 'cricbuzz',
-          url: 'https://www.cricbuzz.com/live-cricket-scores/169960/nep-vs-oman-139th-match',
-          document: dom.window.document,
-          taps: [],
-          now: Date.now(),
-        });
-        console.log(`[FIXTURE ${name}]`, {
-          confidence: actual.confidence,
-          title: actual.fields.title,
-          status: actual.fields.status,
-          teams: actual.fields.teams,
-          innings: actual.fields.innings,
-          batters: actual.fields.batters,
-          bowler: actual.fields.bowler,
-        });
-      }
+    const nepPath = path.join(FIXTURES_DIR, 'cricbuzz', 'nep-vs-oman.html');
+    if (fs.existsSync(nepPath)) {
+      const dom = new JSDOM(fs.readFileSync(nepPath, 'utf8'));
+      const res = createCricbuzzAdapter().adapter({
+        site: 'cricbuzz',
+        url: 'https://www.cricbuzz.com/live-cricket-scores/169960/nep-vs-oman-139th-match',
+        document: dom.window.document,
+        taps: [],
+        now: Date.now(),
+      });
+      expect(res.confidence).toBeGreaterThanOrEqual(0.5);
+      expect(res.fields.title).toContain('Oman vs Nepal');
+      expect(res.fields.teams.map((t) => t.name)).toEqual(['Oman', 'Nepal']);
+      expect(res.fields.innings[0]?.team).toBe('Nepal');
+    }
+
+    const ranjiPath = path.join(FIXTURES_DIR, 'cricbuzz', 'ranji-live.html');
+    if (fs.existsSync(ranjiPath)) {
+      const dom = new JSDOM(fs.readFileSync(ranjiPath, 'utf8'));
+      const res = createCricbuzzAdapter().adapter({
+        site: 'cricbuzz',
+        url: 'https://www.cricbuzz.com/live-cricket-scores/163643/jk-vs-vid-elite-group-a',
+        document: dom.window.document,
+        taps: [],
+        now: Date.now(),
+      });
+      expect(res.confidence).toBeGreaterThanOrEqual(0.5);
+      expect(res.fields.title).toContain('Jammu and Kashmir vs Vidarbha');
+      expect(res.fields.teams.map((t) => t.name)).toEqual(['JK', 'VID']);
+      expect(res.fields.batters.length).toBe(2);
+      expect(res.fields.bowler).toBeDefined();
     }
   });
 });

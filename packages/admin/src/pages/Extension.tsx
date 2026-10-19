@@ -243,16 +243,21 @@ export const ExtensionPage = () => {
       {(health === 'connected' || health === 'stale' || (matches.data && matches.data.length > 0)) && (
         <Card className="w-full">
           <h2 className="font-heading text-lg font-semibold text-slate-900">Your Matches</h2>
-          {matches.data && matches.data.length > 0 ? (
+          {matches.data && matches.data.filter((m) => m.id !== '147920' && m.id !== 'seed-match').length > 0 ? (
             <ul className="mt-3 grid gap-2">
-              {matches.data.map((m) => (
+              {matches.data.filter((m) => m.id !== '147920' && m.id !== 'seed-match').map((m) => (
                 <li
                   key={m.id}
                   className="flex items-center justify-between gap-3 rounded-[10px] border border-blue-200 bg-white px-3 py-2"
                 >
                   <div>
                     <span className="truncate text-sm text-slate-900 font-medium">
-                      {m.title} · {m.score.runs}-{m.score.wkts}
+                      {m.title && m.title.includes('vs')
+                        ? m.title
+                        : m.teams[0]?.name && m.teams[1]?.name
+                          ? `${m.teams[0].name} vs ${m.teams[1].name}${m.title ? ` (${m.title})` : ''}`
+                          : m.title} · {m.score.runs}-{m.score.wkts}
+                      {m.score.overs > 0 || m.score.balls > 0 ? ` (${m.score.overs}.${m.score.balls} ov)` : ''}
                     </span>
                     <span
                       className={`ml-2 size-2 rounded-full inline-block ${

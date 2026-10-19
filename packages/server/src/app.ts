@@ -433,6 +433,14 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
     loadSettings().syncDelaySec,
   );
 
+  // Always clean out legacy mock/seed matches from DB immediately on start
+  try {
+    db.delete(schema.matches).where(eq(schema.matches.id, '147920')).run();
+    db.delete(schema.matches).where(eq(schema.matches.id, 'seed-match')).run();
+  } catch {
+    /* ignore */
+  }
+
   const engine = new MatchEngine({
     db,
     onState: (s) => {
@@ -514,7 +522,9 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
   fastify.get('/api/matches', async () => {
     const settings = loadSettings();
     const onStream = settings.onStreamMatchId;
-    const states = engine.allStates();
+    const states = engine
+      .allStates()
+      .filter((s) => s.id !== '147920' && s.id !== 'seed-match');
     // Sort: on-stream match first, then by updatedAt descending
     states.sort((a, b) => {
       if (a.id === onStream) return -1;

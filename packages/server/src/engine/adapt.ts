@@ -113,7 +113,7 @@ export const rawToBaseState = (raw: RawUpdate, updatedAt: string): MatchState =>
     }
   }
   if ((!names[0] || !names[1]) && f.title) {
-    const titleMatch = /^\s*([A-Za-z0-9 ]+?)\s+(?:vs\.?|v)\s+([A-Za-z0-9 ]+?)(?:,|-|\b\d|\(|$)/i.exec(f.title);
+    const titleMatch = /(?:^|[-•:|]\s*|\b)([A-Za-z0-9 .\x27]+?)\s+(?:vs\.?|v)\s+([A-Za-z0-9 .\x27]+?)(?:,|-|\(|\||\b\d|$)/i.exec(f.title);
     if (titleMatch) {
       if (!names[0] && titleMatch[1]) names[0] = titleMatch[1].trim();
       if (!names[1] && titleMatch[2]) names[1] = titleMatch[2].trim();
