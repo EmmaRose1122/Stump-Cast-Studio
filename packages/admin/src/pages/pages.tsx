@@ -152,7 +152,7 @@ export const SettingsPage = () => {
                   App Updates &amp; Software Release
                 </h2>
                 <span className="rounded bg-blue-100 px-2 py-0.5 text-[10px] font-mono font-bold text-blue-800 border border-blue-300">
-                  INSTALLED: v1.0.1
+                  INSTALLED: v1.0.2
                 </span>
                 <span className="rounded bg-emerald-100 px-2 py-0.5 text-[10px] font-mono font-bold text-emerald-800 border border-emerald-300">
                   STABLE CHANNEL
@@ -179,7 +179,7 @@ export const SettingsPage = () => {
                     void qc.invalidateQueries({ queryKey: ['app-update'] });
                   } else {
                     toast({
-                      title: 'StumpCast Studio is running the latest version (v1.0.1)',
+                      title: 'StumpCast Studio is running the latest version (v1.0.2)',
                       kind: 'info',
                     });
                   }
@@ -201,7 +201,7 @@ export const SettingsPage = () => {
                     body: JSON.stringify({ active: true }),
                   });
                   toast({
-                    title: 'Simulated v1.0.2 update enabled! Click update badge in top header.',
+                    title: 'Simulated update enabled! Click update badge in top header.',
                     kind: 'success',
                   });
                   void qc.invalidateQueries({ queryKey: ['app-update'] });
@@ -211,7 +211,7 @@ export const SettingsPage = () => {
               }}
               className="rounded-lg bg-orange-500 px-3.5 py-1.5 text-xs font-bold text-white border border-orange-400 hover:bg-orange-600 transition shadow-xs"
             >
-              ⚡ Test Update v1.0.2
+              ⚡ Test Update Simulation
             </button>
           </div>
         </div>

@@ -17,7 +17,6 @@ const ICONS: Record<string, string> = {
   '/video': 'M3 6h13v12H3zM16 10l5-3v10l-5-3z',
   '/sounds': 'M4 9v6h4l5 4V5L8 9zM16 8a5 5 0 010 8',
   '/players': 'M12 12a4 4 0 100-8 4 4 0 000 8zM4 21a8 8 0 0116 0',
-  '/extension': 'M14 3l7 7-3 3-7-7zM8 12l8 8M5 15l4 4',
   '/settings': 'M12 8a4 4 0 100 8 4 4 0 000-8zM3 12h3M18 12h3M12 3v3M12 18v3',
   '/help': 'M12 21a9 9 0 100-18 9 9 0 000 18zM9.5 9a2.5 2.5 0 115 0c0 1.5-2.5 2-2.5 4M12 17h.01',
 };
@@ -168,15 +167,15 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
         (window as unknown as { stumpcast?: { checkUpdate?: () => Promise<{ updateAvailable: boolean; latestVersion?: string; version?: string; releaseNotes?: string; downloadUrl?: string }> } }).stumpcast?.checkUpdate
       ) {
         try {
-          const res = await (window as unknown as { stumpcast: { checkUpdate: () => Promise<{ updateAvailable: boolean; latestVersion?: string; version?: string; releaseNotes?: string; downloadUrl?: string }> } }).stumpcast.checkUpdate();
+          const res = await (window as unknown as { stumpcast: { checkUpdate: () => Promise<{ updateAvailable: boolean; latestVersion?: string; version?: string; currentVersion?: string; releaseNotes?: string; downloadUrl?: string }> } }).stumpcast.checkUpdate();
           if (res?.updateAvailable) {
             return {
               updateAvailable: true,
               latestVersion: res.latestVersion ?? res.version ?? '1.0.2',
-              currentVersion: '1.0.1',
+              currentVersion: res.currentVersion ?? '1.0.2',
               releaseNotes:
                 res.releaseNotes ||
-                '• Direct In-App Desktop Updater with live transfer progress bar\n• Ultra-fast Cricbuzz & Crex match state scrapers\n• Red, White & Blue studio broadcast overlays\n• Center-aligned operator control room layout',
+                '• Direct In-App Desktop Updater with live transfer progress bar\n• Fast Cricbuzz & Crex match state scrapers\n• Red, White & Blue studio broadcast overlays\n• Center-aligned operator control room layout',
               downloadUrl: res.downloadUrl ?? '',
             };
           }
@@ -200,8 +199,8 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
       }
       return {
         updateAvailable: false,
-        latestVersion: '1.0.1',
-        currentVersion: '1.0.1',
+        latestVersion: '1.0.2',
+        currentVersion: '1.0.2',
         releaseNotes: '',
         downloadUrl: '',
       };
@@ -227,7 +226,7 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
           kind: 'success',
         });
       } else {
-        toast({ title: 'StumpCast Studio is up to date (v1.0.1)', kind: 'info' });
+        toast({ title: `StumpCast Studio is up to date (v${refreshed.data?.currentVersion ?? '1.0.2'})`, kind: 'info' });
       }
     } catch {
       toast({ title: 'Failed to check for updates', kind: 'error' });
@@ -547,23 +546,6 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
       <div className="w-full border-b border-blue-100 bg-[#f0f7ff] px-4 py-2 text-xs flex justify-center">
         <div className="w-full max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3 text-center sm:text-left">
           <div className="flex flex-wrap items-center justify-center sm:justify-start gap-4 sm:gap-6">
-            {/* Chrome Extension Status */}
-            <div className="flex items-center gap-1.5">
-              <span
-                className={`size-2 rounded-full ${
-                  provider.data?.health === 'connected' || provider.data?.health === 'stale'
-                    ? 'bg-blue-600'
-                    : 'bg-orange-500'
-                }`}
-              />
-              <span className="text-slate-500">Chrome extension:</span>
-              <span className="font-bold text-blue-950">
-                {provider.data?.health === 'connected' || provider.data?.health === 'stale'
-                  ? 'Connected'
-                  : 'Waiting…'}
-              </span>
-            </div>
-
             {/* Active Match */}
             <div className="flex items-center gap-1.5">
               <span className="size-2 rounded-full bg-blue-500" />
@@ -765,8 +747,8 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
           updateReady
             ? `Update v${updateQuery.data?.latestVersion ?? '1.0.2'} is downloaded and ready to install!`
             : updateQuery.data?.updateAvailable
-            ? `New Version v${updateQuery.data.latestVersion} is available! (Current: v1.0.1)`
-            : 'You are running the latest version of StumpCast Studio (v1.0.1).'
+            ? `New Version v${updateQuery.data.latestVersion} is available! (Current: v${updateQuery.data.currentVersion ?? '1.0.2'})`
+            : `You are running the latest version of StumpCast Studio (v${updateQuery.data?.currentVersion ?? '1.0.2'}).`
         }
         actions={
           <div className="flex flex-wrap items-center justify-end gap-2 w-full">
@@ -789,7 +771,7 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
                   onClick={() => void handleCheckUpdate(true)}
                   className="bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold"
                 >
-                  ⚡ Simulate v1.0.2 Update
+                  ⚡ Simulate Update
                 </Button>
               </>
             )}
@@ -904,9 +886,9 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
             <div className="rounded-lg border border-blue-100 bg-slate-50 p-6 text-center">
               <span className="text-3xl block mb-2">🎉</span>
               <p className="font-bold text-blue-950 text-base">StumpCast Studio is up to date!</p>
-              <p className="text-xs text-slate-600 mt-1">Installed Version: v1.0.1 (Latest)</p>
+              <p className="text-xs text-slate-600 mt-1">Installed Version: v{updateQuery.data?.currentVersion ?? '1.0.2'} (Latest)</p>
               <p className="text-[11px] text-slate-500 mt-3">
-                Click "Check for Updates" to poll the release server, or "Simulate v1.0.2 Update" to test the in-app update experience.
+                Click "Check for Updates" to poll the release server for new updates.
               </p>
             </div>
           )}
