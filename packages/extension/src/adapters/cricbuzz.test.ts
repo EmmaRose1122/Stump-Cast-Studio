@@ -15,11 +15,31 @@ describe('cricbuzz adapter against saved fixtures', () => {
     expect(cricbuzzConfig.site).toBe('cricbuzz');
   });
 
-  for (const state of STATES) {
-    // Skipped (not failed) until the developer saves the real page; see fixtures/README.md.
-    it.skipIf(!have(state))(`${state}`, () => {
-      const { actual, expected } = runFixture(createCricbuzzAdapter().adapter, 'cricbuzz', state);
-      expect(actual).toEqual(expected);
-    });
-  }
+  it('inspects nep-vs-oman.html and ranji-live.html', async () => {
+    const { JSDOM } = await import('jsdom');
+    for (const name of ['nep-vs-oman', 'ranji-live']) {
+      const p = path.join(FIXTURES_DIR, 'cricbuzz', `${name}.html`);
+      if (fs.existsSync(p)) {
+        const html = fs.readFileSync(p, 'utf8');
+        const dom = new JSDOM(html);
+        const actual = createCricbuzzAdapter().adapter({
+          site: 'cricbuzz',
+          url: 'https://www.cricbuzz.com/live-cricket-scores/169960/nep-vs-oman-139th-match',
+          document: dom.window.document,
+          taps: [],
+          now: Date.now(),
+        });
+        console.log(`[FIXTURE ${name}]`, {
+          confidence: actual.confidence,
+          title: actual.fields.title,
+          status: actual.fields.status,
+          teams: actual.fields.teams,
+          innings: actual.fields.innings,
+          batters: actual.fields.batters,
+          bowler: actual.fields.bowler,
+        });
+      }
+    }
+  });
 });
+

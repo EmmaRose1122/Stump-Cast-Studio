@@ -6,7 +6,6 @@ export const ROUTES = [
   { path: '/video', key: 'nav.video' },
   { path: '/sounds', key: 'nav.sounds' },
   { path: '/players', key: 'nav.players' },
-  { path: '/extension', key: 'nav.extension' },
   { path: '/settings', key: 'nav.settings' },
   { path: '/help', key: 'nav.help' },
 ] as const;
