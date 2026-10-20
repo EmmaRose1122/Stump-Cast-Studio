@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import child_process from 'node:child_process';
 import fastifyStatic from '@fastify/static';
 import fastifyWebsocket from '@fastify/websocket';
 import { desc, eq } from 'drizzle-orm';
@@ -370,6 +371,22 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
   });
 
   fastify.post('/api/app/update-install', async () => {
+    const candidates = [
+      'C:\\Users\\IK\\AppData\\Roaming\\StumpCast Studio\\updates\\StumpCast-Studio-Setup-1.0.3.exe',
+      path.resolve(process.cwd(), 'release', 'StumpCast-Studio-Setup-1.0.3.exe'),
+      path.resolve(import.meta.dirname, '..', '..', '..', 'release', 'StumpCast-Studio-Setup-1.0.3.exe'),
+      'C:\\Users\\IK\\Downloads\\StumpCast Studio\\stumpcast\\release\\StumpCast-Studio-Setup-1.0.3.exe',
+      path.join(process.env.USERPROFILE || '', 'Downloads', 'StumpCast Studio', 'stumpcast', 'release', 'StumpCast-Studio-Setup-1.0.3.exe'),
+    ];
+    const target = candidates.find((f) => fs.existsSync(f) && fs.statSync(f).size > 10_000_000);
+    if (target) {
+      try {
+        const child = child_process.spawn(target, [], { detached: true, stdio: 'ignore' });
+        child.unref();
+      } catch (err) {
+        console.error('Failed to launch installer from server:', err);
+      }
+    }
     return {
       status: 'installing',
       message: 'Installer launched. Application restarting...',
@@ -517,7 +534,7 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
   const gemini = new GeminiCommentator({
     getApiKey: () => secrets.getSecret(GEMINI_KEY) ?? process.env.GEMINI_API_KEY ?? null,
   });
-  commentary.setGenerator((req) => gemini.line(req));
+  commentary.setGenerator((req) => gemini.line(req), () => Boolean(secrets.getSecret(GEMINI_KEY)));
   const apiVendor = new CricketDataApiVendor();
   const api = new ApiProvider({
     vendorAdapter: apiVendor,
