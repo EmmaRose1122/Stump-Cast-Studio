@@ -16,6 +16,7 @@ import { z } from 'zod';
 import {
   SettingsSchema,
   createSettings,
+  CommentaryLanguageSchema,
   type CommentaryItem,
   type Settings,
   type EngineEvent,
@@ -28,6 +29,7 @@ import { AssetService } from './assets/AssetService';
 import { registerSoundRoutes } from './sound/routes';
 import { SoundService } from './sound/SoundService';
 import { CommentaryService } from './sound/CommentaryService';
+import { GeminiCommentator } from './ai/gemini';
 import { registerAssetRoutes } from './assets/routes';
 import { DelayBuffer } from './engine/DelayBuffer';
 import { Director } from './engine/Director';
@@ -51,6 +53,8 @@ import { WsHub } from './ws/hub';
 import { signLicenceToken, verifyLicenceToken, type LicencePayload } from './licence/licence';
 
 const SETTINGS_KEY = 'app';
+/** SecretStore name for the Gemini key used by AI commentary (and, later, image generation). */
+const GEMINI_KEY = 'gemini_api_key';
 export const APP_VERSION = '1.0.3';
 
 /** One engine tick waiting on the broadcast delay, with the commentary already written for it. */
@@ -238,18 +242,25 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
           tag_name?: string;
           body?: string;
           html_url?: string;
-          assets?: Array<{ browser_download_url?: string }>;
+          assets?: Array<{ name?: string; browser_download_url?: string }>;
           latestVersion?: string;
           updateAvailable?: boolean;
           releaseNotes?: string;
         };
+        const findExeAsset = (assets?: Array<{ name?: string; browser_download_url?: string }>) =>
+          assets?.find(
+            (a) =>
+              a.browser_download_url?.toLowerCase().endsWith('.exe') ||
+              a.name?.toLowerCase().endsWith('.exe'),
+          )?.browser_download_url;
+
         if (data.latestVersion) {
           // Custom update server: only apply if newer than our current best
           if (isNewerThan(latestVersion, data.latestVersion)) {
             latestVersion = data.latestVersion;
             releaseNotes = data.releaseNotes ?? '';
             updateAvailable = Boolean(data.updateAvailable);
-            downloadUrl = data.assets?.[0]?.browser_download_url ?? '/api/app/update-download-file';
+            downloadUrl = findExeAsset(data.assets) ?? '/api/app/update-download-file';
           }
         } else if (data.tag_name) {
           const ghVer = data.tag_name.replace(/^v/, '');
@@ -257,7 +268,7 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
           if (isNewerThan(latestVersion, ghVer)) {
             latestVersion = ghVer;
             releaseNotes = data.body ?? '';
-            downloadUrl = data.assets?.[0]?.browser_download_url ?? data.html_url ?? '/api/app/update-download-file';
+            downloadUrl = findExeAsset(data.assets) ?? '/api/app/update-download-file';
             updateAvailable = isNewerThan(APP_VERSION, ghVer);
           }
         }
@@ -432,6 +443,8 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
   } = {};
 
   const commentary = new CommentaryService();
+  /** Updates are narrated one at a time, in arrival order. */
+  let commentaryQueue: Promise<void> = Promise.resolve();
 
   const delay = new DelayBuffer<PendingRelease>(({ state: s, events, spoken, ball }) => {
     published.set(s.id, s);
@@ -447,8 +460,6 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
     });
     if (ball) hub.broadcast('commentary', 'speak', ball, 'live');
   }, loadSettings().syncDelaySec);
-
-  let commentaryQueue: Promise<void> = Promise.resolve();
 
   const engine = new MatchEngine({
     db,
@@ -503,6 +514,10 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
 
   // API provider (backup official data API source)
   const secrets = new SecretStore({ dataDir: path.join(config.dataDir, 'secrets') });
+  const gemini = new GeminiCommentator({
+    getApiKey: () => secrets.getSecret(GEMINI_KEY) ?? process.env.GEMINI_API_KEY ?? null,
+  });
+  commentary.setGenerator((req) => gemini.line(req));
   const apiVendor = new CricketDataApiVendor();
   const api = new ApiProvider({
     vendorAdapter: apiVendor,
@@ -978,6 +993,7 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
   fastify.get('/api/commentary/status', async () => ({
     config: commentary.getConfig(),
     history: commentary.getHistory(),
+    ai: { enabled: commentary.getConfig().ai, active: commentary.aiActive, hasKey: Boolean(secrets.getSecret(GEMINI_KEY)) },
   }));
   fastify.post('/api/commentary/config', async (req, reply) => {
     const body = z
@@ -985,6 +1001,8 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
         enabled: z.boolean().optional(),
         autoEvents: z.boolean().optional(),
         voice: z.string().optional(),
+        language: CommentaryLanguageSchema.optional(),
+        ai: z.boolean().optional(),
         rate: z.number().min(0.5).max(2).optional(),
         pitch: z.number().min(0.5).max(2).optional(),
         volume: z.number().min(0).max(1).optional(),
@@ -992,6 +1010,17 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
       .safeParse(req.body);
     if (!body.success) return reply.code(400).send({ error: 'Invalid commentary config' });
     return commentary.updateConfig(body.data);
+  });
+  // The Gemini key lives in the encrypted SecretStore, never in the settings row.
+  fastify.post('/api/commentary/key', async (req, reply) => {
+    const body = z.object({ key: z.string().min(8).max(256) }).safeParse(req.body);
+    if (!body.success) return reply.code(400).send({ error: 'A Gemini API key is required' });
+    secrets.setSecret(GEMINI_KEY, body.data.key.trim());
+    return { ok: true, hasKey: true };
+  });
+  fastify.delete('/api/commentary/key', async () => {
+    secrets.deleteSecret(GEMINI_KEY);
+    return { ok: true, hasKey: false };
   });
   fastify.post('/api/commentary/speak', async (req, reply) => {
     const body = z
