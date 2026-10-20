@@ -448,24 +448,32 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
     if (ball) hub.broadcast('commentary', 'speak', ball, 'live');
   }, loadSettings().syncDelaySec);
 
+  let commentaryQueue: Promise<void> = Promise.resolve();
+
   const engine = new MatchEngine({
     db,
     onState: (s) => {
       const events = detector.observe(s);
       // The admin preview socket sees everything immediately; overlays get the delayed feed.
       hub.broadcast('state', 'match-state', s, 'preview');
-      // Written once per event and carried through the delay, so preview and the on-stream
-      // feed speak the same line instead of the operator hearing everything twice.
-      const spoken = events.map((e) => {
-        hub.broadcast('events', 'engine-event', e, 'preview');
-        const item = commentary.onEvent(e, s);
-        if (item) hub.broadcast('commentary', 'speak', item, 'preview');
-        return item;
-      });
-      // Between the big moments the voice keeps describing deliveries instead of falling silent.
-      const ball = spoken.some((i) => i !== null) ? null : commentary.onBall(s);
-      if (ball) hub.broadcast('commentary', 'speak', ball, 'preview');
-      delay.push({ state: s, events, spoken, ball });
+      for (const e of events) hub.broadcast('events', 'engine-event', e, 'preview');
+      // Commentary is written one update at a time, in order, so a slow model can never reorder
+      // the narration. Each call carries its own timeout and the service drops the model when it
+      // falls behind, so the broadcast never waits on a network round trip.
+      commentaryQueue = commentaryQueue
+        .then(async () => {
+          const spoken: (CommentaryItem | null)[] = [];
+          for (const e of events) {
+            const item = await commentary.onEventAsync(e, s);
+            if (item) hub.broadcast('commentary', 'speak', item, 'preview');
+            spoken.push(item);
+          }
+          // Between the big moments the voice keeps describing deliveries instead of falling silent.
+          const ball = spoken.some((i) => i !== null) ? null : await commentary.onBallAsync(s);
+          if (ball) hub.broadcast('commentary', 'speak', ball, 'preview');
+          delay.push({ state: s, events, spoken, ball });
+        })
+        .catch((err: unknown) => console.error('commentary pipeline failed', err));
     },
   });
 
