@@ -56,8 +56,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 4500);
   }
 
-  // 3. Dynamic GitHub Release Check (Fallback to local v1.0.2)
+  // 3. Dynamic GitHub Release Check (Fallback to local v1.0.3)
   const downloadBtn = document.getElementById('main-download-btn');
+  const ctaDownloadBtn = document.getElementById('download-cta-btn');
   const versionDisplay = document.getElementById('latest-version-display');
 
   // Connected to your GitHub releases for dynamic updates
@@ -71,13 +72,14 @@ document.addEventListener('DOMContentLoaded', () => {
           const ver = data.tag_name.replace(/^v/, '');
           if (versionDisplay) versionDisplay.textContent = `v${ver} for Windows`;
           const exeAsset = data.assets?.find((a) => a.name.endsWith('.exe'));
-          if (exeAsset && downloadBtn) {
-            downloadBtn.href = exeAsset.browser_download_url;
+          if (exeAsset) {
+            if (downloadBtn) downloadBtn.href = exeAsset.browser_download_url;
+            if (ctaDownloadBtn) ctaDownloadBtn.href = exeAsset.browser_download_url;
           }
         }
       })
       .catch(() => {
-        // Fallback default remains v1.0.2
+        // Fallback default remains v1.0.3
       });
   }
 });
