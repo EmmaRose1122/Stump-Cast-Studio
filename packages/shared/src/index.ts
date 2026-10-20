@@ -1,4 +1,5 @@
 export * from './team';
+export * from './teams';
 export * from './ball';
 export * from './match';
 export * from './event';

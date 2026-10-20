@@ -28,6 +28,9 @@ interface OnAir {
 export const ANIMATION_LOCK_MS = { FOUR: 2300, SIX: 2400, WICKET: 3000 } as const;
 /** A queued card older than this is no longer relevant. */
 export const QUEUE_TTL_MS = 15_000;
+/** Run baselines and innings markers are per-match bookkeeping; never let them grow forever. */
+const MAX_RUN_BASELINES = 400;
+const MAX_TRACKED_MATCHES = 200;
 
 const realScheduler: Scheduler = {
   now: () => Date.now(),
@@ -54,6 +57,7 @@ export class Director {
   private lockUntil = 0;
   private readonly cooldownUntil = new Map<string, number>();
   private readonly lastRuns = new Map<string, number>();
+  private readonly seenInnings = new Map<string, number>();
 
   constructor(
     private readonly emit: (cmd: CardCommand) => void,
@@ -77,6 +81,11 @@ export class Director {
     return this.config;
   }
 
+  /** Remembered batter baselines (kept bounded by innings pruning + the cap). */
+  get baselineCount(): number {
+    return this.lastRuns.size;
+  }
+
   /** Apply new settings. Switching modes clears the queue but lets the card on air finish. */
   setConfig(config: DirectorConfig): void {
     const modeChanged = config.mode !== this.config.mode;
@@ -96,7 +105,11 @@ export class Director {
   }
 
   hide(cardId?: string): void {
-    if (cardId && this.current?.cardId !== cardId) return;
+    if (cardId) {
+      // "Hide X" must also cancel X while it is still queued, or it walks back on air seconds later.
+      this.queue = this.queue.filter((q) => q.cardId !== cardId);
+      if (this.current?.cardId !== cardId) return;
+    }
     const was = this.current;
     this.clearEnd();
     this.current = null;
@@ -116,6 +129,7 @@ export class Director {
 
   /** Detect "batter reached 40 / 90" from state changes (first sight is only a baseline). */
   onState(s: MatchState): void {
+    this.beginInnings(s);
     if (this.config.mode !== 'smart') {
       this.noteRuns(s);
       return;
@@ -123,7 +137,7 @@ export class Director {
     for (const b of s.batters) {
       const key = `${s.id}:${s.currentInnings}:${b.playerId}`;
       const before = this.lastRuns.get(key);
-      this.lastRuns.set(key, b.runs);
+      this.remember(key, b.runs);
       if (before === undefined) continue;
       if (before < 40 && b.runs >= 40) this.fire('BATTER_40');
       if (before < 90 && b.runs >= 90) this.fire('BATTER_90');
@@ -132,7 +146,29 @@ export class Director {
 
   private noteRuns(s: MatchState): void {
     for (const b of s.batters) {
-      this.lastRuns.set(`${s.id}:${s.currentInnings}:${b.playerId}`, b.runs);
+      this.remember(`${s.id}:${s.currentInnings}:${b.playerId}`, b.runs);
+    }
+  }
+
+  /** A baseline is only meaningful inside the innings it was taken in; finished ones are dropped. */
+  private beginInnings(s: MatchState): void {
+    if (this.seenInnings.get(s.id) === s.currentInnings) return;
+    this.seenInnings.set(s.id, s.currentInnings);
+    while (this.seenInnings.size > MAX_TRACKED_MATCHES) {
+      const oldest = this.seenInnings.keys().next().value;
+      if (oldest === undefined) break;
+      this.seenInnings.delete(oldest);
+    }
+    const prefix = `${s.id}:`;
+    for (const k of [...this.lastRuns.keys()]) if (k.startsWith(prefix)) this.lastRuns.delete(k);
+  }
+
+  private remember(key: string, runs: number): void {
+    this.lastRuns.set(key, runs);
+    while (this.lastRuns.size > MAX_RUN_BASELINES) {
+      const oldest = this.lastRuns.keys().next().value;
+      if (oldest === undefined) break;
+      this.lastRuns.delete(oldest);
     }
   }
 

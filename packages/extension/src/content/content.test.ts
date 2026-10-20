@@ -148,7 +148,9 @@ const harness = (adapter: Adapter, minIntervalMs = 500) => {
     adapter,
     getDocument: () => ({}) as Document,
     getUrl: () => 'https://www.example.invalid/match/1',
-    send: (m) => sent.push(m),
+    send: (m) => {
+      sent.push(m);
+    },
     now: () => t,
     minIntervalMs,
     setTimer: (fn, ms) => {
@@ -231,6 +233,32 @@ describe('createPipeline', () => {
     expect(seen.at(-1)).toEqual([{ v: 2 }]);
   });
 
+  it('offers tapped responses newest-first so the latest match answers', () => {
+    const seen: { url: string; json: unknown }[][] = [];
+    const h = harness((input) => {
+      seen.push(input.taps);
+      return update(1);
+    });
+    h.pipeline.addTap('u-old', { runs: 100 });
+    h.advance(1000);
+    h.pipeline.addTap('u-new', { runs: 130 });
+    expect(seen.at(-1)?.map((t) => t.json)).toEqual([{ runs: 130 }, { runs: 100 }]);
+  });
+
+  it('clearTaps forgets every response, so navigating to another match starts clean', () => {
+    const seen: unknown[][] = [];
+    const h = harness((input) => {
+      seen.push(input.taps.map((t) => t.json));
+      return update(1);
+    });
+    h.pipeline.addTap('u1', { runs: 999 });
+    h.advance(1000);
+    h.pipeline.clearTaps();
+    h.advance(1000);
+    h.pipeline.trigger();
+    expect(seen.at(-1)).toEqual([]);
+  });
+
   it('hot-swaps adapter on selector update and immediately parses with new rules', () => {
     const currentAdapter = () => update(10);
     const h = harness(() => currentAdapter());
@@ -242,5 +270,46 @@ describe('createPipeline', () => {
     h.pipeline.setAdapter(() => update(88));
     h.pipeline.trigger();
     expect((h.sent[1] as { update: RawUpdate }).update.fields.innings[0]?.runs).toBe(88);
+  });
+
+  it('retries an update the background never took instead of losing the ball', async () => {
+    let attempts = 0;
+    let t = 0;
+    const timers: { at: number; fn: () => void }[] = [];
+    const pipeline = createPipeline({
+      site: 'cricbuzz',
+      adapter: () => update(7),
+      getDocument: () => ({}) as Document,
+      getUrl: () => 'https://www.example.invalid/match/1',
+      send: () => {
+        attempts++;
+        // Service worker mid-restart: chrome.runtime.sendMessage rejects.
+        return attempts === 1 ? Promise.reject(new Error('context invalidated')) : Promise.resolve();
+      },
+      now: () => t,
+      setTimer: (fn, ms) => void timers.push({ at: t + ms, fn }),
+      clearTimer: () => undefined,
+    });
+    pipeline.trigger(); // t=0, first send rejects
+    expect(attempts).toBe(1);
+
+    await flush(); // the rejection handler re-queues the update
+    for (const due of timers.splice(0)) {
+      t = due.at;
+      due.fn();
+    }
+    await flush();
+    expect(attempts).toBe(2);
+  });
+
+  it('reset() lets new rules re-report the score that is already on screen', () => {
+    const h = harness(() => update(10));
+    h.pipeline.trigger();
+    expect(h.sent).toHaveLength(1);
+
+    h.pipeline.reset();
+    h.advance(1000);
+    h.pipeline.trigger();
+    expect(h.sent).toHaveLength(2);
   });
 });

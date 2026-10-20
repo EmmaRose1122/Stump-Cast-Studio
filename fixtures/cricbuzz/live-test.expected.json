@@ -18,7 +18,7 @@
     ],
     "innings": [
       {
-        "team": "224/4",
+        "team": "Australia",
         "runs": 224,
         "wkts": 4,
         "overs": 68,
@@ -59,7 +59,6 @@
       "0"
     ],
     "lastBalls": [],
-    "crr": 224,
     "day": 3,
     "session": "stumps",
     "resultText": "Australia lead by 142 runs"

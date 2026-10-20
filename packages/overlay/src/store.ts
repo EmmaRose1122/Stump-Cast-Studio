@@ -75,7 +75,6 @@ export class OverlayStore {
   }
 
   setMatch(match: MatchState): void {
-    if (match.id === '147920' || match.id === 'seed-match') return;
     const { matches } = this.state;
     const known = matches[match.id];
     // Ignore out-of-order deliveries so the overlay never steps backwards.
@@ -85,13 +84,14 @@ export class OverlayStore {
     // 1. If URL pins a match, use that.
     // 2. If operator set onStreamMatchId in settings, follow that.
     // 3. Otherwise keep current, or fall back to this match if nothing is selected yet.
+    // Which ids are real is the server's call — the overlay renders whatever it is fed.
     const onStreamId = this.state.settings?.onStreamMatchId;
     let matchId: string | null;
     if (this.pinnedMatchId) {
       matchId = this.pinnedMatchId;
-    } else if (onStreamId && onStreamId !== '147920' && onStreamId !== 'seed-match') {
+    } else if (onStreamId) {
       matchId = onStreamId;
-    } else if (this.state.matchId && this.state.matchId !== '147920' && this.state.matchId !== 'seed-match') {
+    } else if (this.state.matchId) {
       matchId = this.state.matchId;
     } else {
       matchId = match.id;

@@ -43,9 +43,12 @@ export class MatchEngine {
   /** Returns the new state, or null if nothing changed. */
   process(raw: RawUpdate): MatchState | null {
     const at = new Date(this.now()).toISOString();
-    const base = rawToBaseState(raw, at);
-    this.tracker.observe(base);
-    const derived = deriveStats(this.tracker.apply(base));
+    const base = MatchStateSchema.safeParse(rawToBaseState(raw, at));
+    // Validate before observing: a rejected scrape must not pollute the dot/boundary/powerplay
+    // counts that the *next* valid state gets published with.
+    if (!base.success) return null;
+    this.tracker.observe(base.data);
+    const derived = deriveStats(this.tracker.apply(base.data));
     const parsed = MatchStateSchema.safeParse(derived);
     if (!parsed.success) return null; // never publish an invalid state
     const state = parsed.data;
@@ -57,7 +60,14 @@ export class MatchEngine {
     const frozen = deepFreeze(structuredClone(state));
     this.states.set(state.id, frozen);
     this.persist(frozen);
-    for (const cb of this.listeners) cb(frozen);
+    // One bad subscriber (Director, commentary) must not skip the others or fail the ingest.
+    for (const cb of this.listeners) {
+      try {
+        cb(frozen);
+      } catch (err) {
+        console.error('MatchEngine listener threw', err);
+      }
+    }
     return frozen;
   }
 
@@ -72,12 +82,14 @@ export class MatchEngine {
   deleteMatch(matchId: string): boolean {
     const deleted = this.states.delete(matchId);
     this.prints.delete(matchId);
+    this.tracker.remove(matchId);
     return deleted;
   }
 
   clear(): void {
     this.states.clear();
     this.prints.clear();
+    this.tracker.clear();
   }
 
   subscribe(cb: (s: MatchState) => void): () => void {

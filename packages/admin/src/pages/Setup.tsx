@@ -179,7 +179,7 @@ export const SetupPage = () => {
       );
     }
     if (id === 'match') {
-      const list = (matches.data ?? []).filter((m) => m.id !== '147920' && m.id !== 'seed-match');
+      const list = matches.data ?? [];
       return (
         <div className="grid gap-3">
           {list.length === 0 ? (

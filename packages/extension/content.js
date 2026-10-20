@@ -103,10 +103,7 @@
           "#sticky-mscore .font-bold.text-lg",
           "#miniscore-branding-container .text-xl > div:first-child",
           '#miniscore-branding-container [class*="flex-row"]:last-child .mr-2',
-          '[id^="sticky-m"] [class*="flex-row"]:last-child .mr-2',
-          ".cb-min-bat-rw .cb-font-20",
-          ".cb-min-bat-rw span:first-child",
-          ".cb-min-bat-rw"
+          '[id^="sticky-m"] [class*="flex-row"]:last-child .mr-2'
         ]
       },
       "inn1.team": {
@@ -327,7 +324,11 @@
         ]
       },
       thisOver: {
-        selectors: ["p.text-\\[\\#666\\]", ".text-\\[\\#666\\]", ".cb-min-rec", "span.cb-min-rec", "div.cb-min-rec"]
+        selectors: [".cb-min-rec", "span.cb-min-rec", "div.cb-min-rec"]
+      },
+      lastBalls: {
+        selectors: ["p.text-\\[\\#666\\]", ".text-\\[\\#666\\]"],
+        label: "Recent"
       },
       partnership: {
         selectors: [
@@ -341,10 +342,9 @@
       crr: {
         selectors: [
           "#miniscore-branding-container .text-cbTxtSec.ml-1",
-          "#miniscore-branding-container .text-xl span:last-child",
-          ".cb-col-100:has(span.cb-font-12)",
-          ".cb-min-bat-rw"
-        ]
+          "#miniscore-branding-container .inline-block"
+        ],
+        regex: "(?:CRR|Current Rate)[:\\s]*([\\d.]+)"
       },
       rrr: {
         selectors: [
@@ -4423,6 +4423,93 @@
     photoAssetId: external_exports.string().optional()
   });
 
+  // ../shared/src/teams.ts
+  var T = (code, name, aliases, colors, kind = "international") => ({ code, name, aliases, colors, kind });
+  var TEAM_REGISTRY = [
+    // ---- Full members -------------------------------------------------------------------------
+    T("rsa", "South Africa", ["rsa", "south africa", "southafrica", "sa", "proteas"], ["#007A4D", "#FFB81C"]),
+    T("aus", "Australia", ["aus", "australia", "au", "baggy green"], ["#00843D", "#FFCD00"]),
+    T("ind", "India", ["ind", "india", "team india", "blue tigers"], ["#1B4B99", "#E7A61C"]),
+    T("pak", "Pakistan", ["pak", "pakistan", "green shirts"], ["#01411C", "#FFFFFF"]),
+    T("eng", "England", ["eng", "england", "alion"], ["#0C2340", "#C8102E"]),
+    T("nz", "new zealand", ["nz", "new zealand", "black caps"], ["#000000", "#FFB612"]),
+    T("wi", "west indies", ["wi", "west indies", "westindies", "california"], ["#7A003C", "#FFC72C"]),
+    T("sl", "Sri Lanka", ["sl", "sri lanka", "srilanka", "srl", "lanka"], ["#00534E", "#FFBE29"]),
+    T("ban", "Bangladesh", ["ban", "bangladesh", "tigers"], ["#006A4E", "#F42A41"]),
+    T("afg", "Afghanistan", ["afg", "afghanistan"], ["#000000", "#DA121A"]),
+    T("ire", "Ireland", ["ire", "irland", "ireland", "eire"], ["#015744", "#F0C84A"]),
+    T("zim", "Zimbabwe", ["zim", "zimbabwe"], ["#000000", "#F5A623"]),
+    // ---- Other international sides ------------------------------------------------------------
+    T("ned", "Netherlands", ["ned", "netherlands", "holland", "net"], ["#FF6F00", "#21468B"]),
+    T("sco", "Scotland", ["sco", "scotland"], ["#003078", "#D1A33E"]),
+    T("oma", "Oman", ["oma", "oman"], ["#9E1B32", "#FFFFFF"]),
+    T("uae", "United Arab Emirates", ["uae", "united arab emirates", "emirates"], ["#00732F", "#FFFFFF"]),
+    T("can", "Canada", ["can", "canada"], ["#D80621", "#FFFFFF"]),
+    T("usa", "USA", ["usa", "united states", "united states of america"], ["#0A3161", "#B31942"]),
+    T("png", "Papua New Guinea", ["png", "papua new guinea"], ["#000000", "#CE1126"]),
+    T("nep", "Nepal", ["nep", "nepal"], ["#DC143C", "#003893"]),
+    T("hk", "Hong Kong", ["hk", "hong kong", "hongkong"], ["#C41E3A", "#FFFFFF"]),
+    T("mas", "Malaysia", ["mas", "malaysia"], ["#010066", "#CE1126"]),
+    T("sgp", "Singapore", ["sgp", "singapore"], ["#EF3340", "#FFFFFF"]),
+    T("tha", "Thailand", ["tha", "thailand"], ["#002868", "#F4F5F8"]),
+    T("nam", "Namibia", ["nam", "namibia"], ["#003580", "#D0A520"]),
+    T("nga", "Nigeria", ["nga", "nigeria"], ["#008751", "#FFFFFF"]),
+    T("ken", "Kenya", ["ken", "kenya"], ["#000000", "#BB0000"]),
+    T("uga", "Uganda", ["uga", "uganda"], ["#000000", "#FCDC04"]),
+    T("tan", "Tanzania", ["tan", "tanzania"], ["#1EB53A", "#FCD116"]),
+    T("rwa", "Rwanda", ["rwa", "rwanda"], ["#00A1DE", "#FAD201"]),
+    T("ita", "Italy", ["ita", "italy"], ["#0066CC", "#FFFFFF"]),
+    T("ger", "Germany", ["ger", "germany"], ["#000000", "#DD0000"]),
+    T("fra", "France", ["fra", "france"], ["#002395", "#ED2939"]),
+    T("esp", "Spain", ["esp", "spain"], ["#AA151B", "#F1BF00"]),
+    T("por", "Portugal", ["por", "portugal"], ["#006600", "#FF0000"]),
+    T("den", "Denmark", ["den", "denmark"], ["#C60C30", "#FFFFFF"]),
+    T("swe", "Sweden", ["swe", "sweden"], ["#006AA7", "#FECC02"]),
+    T("nor", "Norway", ["nor", "norway"], ["#BA0C2F", "#FFFFFF"]),
+    T("fin", "Finland", ["fin", "finland"], ["#003580", "#FFFFFF"]),
+    T("sui", "Switzerland", ["sui", "switzerland"], ["#DA291C", "#FFFFFF"]),
+    T("aut", "Austria", ["aut", "austria"], ["#ED2939", "#FFFFFF"]),
+    T("bel", "Belgium", ["bel", "belgium"], ["#FDDA24", "#000000"]),
+    T("nzl", "Netherlands Women", ["nzw"], ["#FF6F00", "#21468B"]),
+    // ---- IPL ----------------------------------------------------------------------------------
+    T("csk", "Chennai Super Kings", ["csk", "chennai super kings", "super kings", "chennai"], ["#F9CD05", "#005DB7"], "franchise"),
+    T("mi", "Mumbai Indians", ["mi", "mumbai indians", "mumbai"], ["#041E42", "#D1AB3E"], "franchise"),
+    T("rcb", "Royal Challengers Bengaluru", ["rcb", "royal challengers", "bengaluru", "bangalore"], ["#D5152A", "#000000"], "franchise"),
+    T("kkr", "Kolkata Knight Riders", ["kkr", "kolkata knight riders", "kolkata"], ["#3A225D", "#E4AA31"], "franchise"),
+    T("dc", "Delhi Capitals", ["dc", "delhi capitals", "delhi"], ["#17449B", "#EF1B23"], "franchise"),
+    T("srh", "Sunrisers Hyderabad", ["srh", "sunrisers", "hyderabad"], ["#F26522", "#000000"], "franchise"),
+    T("rr", "Rajasthan Royals", ["rr", "rajasthan royals", "rajasthan", "rjr"], ["#EA1A85", "#254AA5"], "franchise"),
+    T("pbks", "Punjab Kings", ["pbks", "kxip", "punjab kings", "kings xi", "chandigarh"], ["#DD1F2D", "#A7A9AC"], "franchise"),
+    T("gt", "Gujarat Titans", ["gt", "gujarat titans", "gujarat"], ["#1B2133", "#E2C47F"], "franchise"),
+    T("lsg", "Lucknow Super Giants", ["lsg", "lucknow super giants", "lucknow"], ["#0A52A0", "#E2C47F"], "franchise"),
+    // ---- BBL ----------------------------------------------------------------------------------
+    T("ads", "Adelaide Strikers", ["ads", "adelaide strikers", "adelaide"], ["#1CE7DB", "#041E42"], "franchise"),
+    T("brh", "Brisbane Heat", ["brh", "brisbane heat", "brisbane"], ["#F57D1F", "#1A1A1A"], "franchise"),
+    T("hbh", "Hobart Hurricanes", ["hbh", "hobart hurricanes", "hobart"], ["#1E90FF", "#0B1F3A"], "franchise"),
+    T("mlr", "Melbourne Renegades", ["mlr", "melbourne renegades", "renegades"], ["#0BB2E8", "#1A1A1A"], "franchise"),
+    T("mls", "Melbourne Stars", ["mls", "melbourne stars", "stars"], ["#00A651", "#1A1A1A"], "franchise"),
+    T("prs", "Perth Scorchers", ["prs", "perth scorchers", "perth"], ["#EE1C25", "#1A1A1A"], "franchise"),
+    T("sys", "Sydney Sixers", ["sys", "sydney sixers", "sixers"], ["#00838F", "#FFBB00"], "franchise"),
+    T("syt", "Sydney Thunder", ["syt", "sydney thunder", "thunder"], ["#004B8D", "#FFD200"], "franchise"),
+    // ---- PSL ----------------------------------------------------------------------------------
+    T("isu", "Islamabad United", ["isu", "islamabad united"], ["#C5272E", "#1A1A1A"], "franchise"),
+    T("kk", "Karachi Kings", ["kk", "krk", "karachi kings", "karachi"], ["#1D3461", "#E7A33E"], "franchise"),
+    T("lq", "Lahore Qalandars", ["lq", "lhq", "lahore qalandars", "lahore"], ["#00549A", "#F5A623"], "franchise"),
+    T("pz", "Peshawar Zalmi", ["pz", "psz", "peshawar zalmi", "peshawar"], ["#EE1C25", "#F5A623"], "franchise"),
+    T("qg", "Quetta Gladiators", ["qg", "qtg", "quetta gladiators", "quetta"], ["#6A2C91", "#F5A623"], "franchise"),
+    T("ms", "Multan Sultans", ["ms", "multan sultans", "multan"], ["#F5A623", "#0B4D3C"], "franchise")
+  ];
+  var clean = (s) => s.toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g, " ").trim();
+  var byCode = /* @__PURE__ */ new Map();
+  var byAlias = /* @__PURE__ */ new Map();
+  for (const t of TEAM_REGISTRY) {
+    byCode.set(t.code, t);
+    for (const a of [t.code, t.name, ...t.aliases]) {
+      const key = clean(a);
+      if (key && !byAlias.has(key)) byAlias.set(key, t);
+    }
+  }
+
   // ../shared/src/ball.ts
   var ExtraSchema = external_exports.object({
     type: external_exports.enum(["wide", "noball", "bye", "legbye", "penalty"]),
@@ -4442,15 +4529,20 @@
     ]),
     playerOutId: external_exports.string().min(1)
   });
+  var NO_RUN_WICKETS = ["bowled", "lbw", "stumped", "hitwicket"];
   var BallEventSchema = external_exports.object({
     over: external_exports.number().int().min(0),
     ball: external_exports.number().int().min(1),
+    /** Runs off the bat. Above 6 only with overthrows; extras are a separate field. */
     runs: external_exports.number().int().min(0).max(7),
     extras: ExtraSchema.optional(),
     wicket: WicketSchema.optional(),
     batterId: external_exports.string().min(1),
     bowlerId: external_exports.string().min(1)
-  });
+  }).refine(
+    (b) => !(b.wicket && NO_RUN_WICKETS.includes(b.wicket.kind) && b.runs > 0),
+    "a batter out bowled/lbw/stumped/hit wicket cannot be credited runs"
+  );
 
   // ../shared/src/match.ts
   var MatchFormatSchema = external_exports.enum(["T20", "ODI", "TEST", "OTHER"]);
@@ -4514,8 +4606,8 @@
     projected: external_exports.number().int().min(0).optional(),
     /** Projected total if the scoring rate rises by 2 an over. */
     projectedPlus2: external_exports.number().int().min(0).optional(),
-    /** Estimate only. teamA/teamB follow `teams` order. Absent for Tests (see engine docs). */
-    winProb: external_exports.object({ teamA: external_exports.number().min(0).max(1), teamB: external_exports.number().min(0).max(1) }).optional(),
+    /** Estimate only. teamA/teamB follow `teams` order and are the two halves of one number. Absent for Tests (see engine docs). */
+    winProb: external_exports.object({ teamA: external_exports.number().min(0).max(1), teamB: external_exports.number().min(0).max(1) }).refine((p) => Math.abs(p.teamA + p.teamB - 1) <= 2e-3, "win probabilities must sum to 1").optional(),
     wicketsLeft: external_exports.number().int().min(0).max(10).optional(),
     /** Legal balls remaining in a limited-overs innings. */
     ballsLeft: external_exports.number().int().min(0).optional(),
@@ -6268,8 +6360,13 @@
 
   // ../shared/src/settings.ts
   var CardIdSchema = external_exports.string().min(1);
+  var DirectorTriggerSchema = external_exports.union([
+    EngineEventTypeSchema,
+    external_exports.literal("BATTER_40"),
+    external_exports.literal("BATTER_90")
+  ]);
   var DirectorRuleSchema = external_exports.object({
-    on: external_exports.string().min(1),
+    on: DirectorTriggerSchema,
     card: CardIdSchema,
     durationSec: external_exports.number().min(1).max(60).default(8),
     cooldownSec: external_exports.number().min(0).max(600).default(30),
@@ -6748,7 +6845,7 @@
     battingTeamId: "team-rsa",
     score: rsaScore,
     target: 421,
-    lead: -369,
+    lead: -368,
     batters: [
       {
         playerId: "aiden-markram",
@@ -6784,7 +6881,7 @@
     wicketsLeft: 9,
     crr: 3.06,
     rrr: 4.12,
-    winProb: { teamA: 0.34, teamB: 0.36 },
+    winProb: { teamA: 0.34, teamB: 0.66 },
     day: 4,
     session: "evening",
     updatedAt: "2026-03-14T15:42:10.000Z"
@@ -6981,10 +7078,15 @@
   });
 
   // ../shared/src/commentary.ts
+  var CommentaryLanguageSchema = external_exports.enum(["hi", "ur", "en"]);
   var CommentaryConfigSchema = external_exports.object({
     enabled: external_exports.boolean().default(true),
     autoEvents: external_exports.boolean().default(true),
     voice: external_exports.string().default("default"),
+    /** Hindi (Devanagari) by default; `ur` is Urdu in Nastaliq script, `en` English. */
+    language: CommentaryLanguageSchema.default("hi"),
+    /** Use the configured Gemini model for narration, falling back to the local phrasebook. */
+    ai: external_exports.boolean().default(true),
     rate: external_exports.number().min(0.5).max(2).default(1),
     pitch: external_exports.number().min(0.5).max(2).default(1),
     volume: external_exports.number().min(0).max(1).default(1)
@@ -6993,7 +7095,9 @@
     id: external_exports.string(),
     text: external_exports.string(),
     eventType: external_exports.string().optional(),
-    timestamp: external_exports.number()
+    timestamp: external_exports.number(),
+    /** So the speaker picks the right voice for the script it is about to read. */
+    lang: CommentaryLanguageSchema.optional()
   });
 
   // src/adapters/config.ts
@@ -7055,7 +7159,13 @@
     attr: external_exports.string().optional(),
     /** Applied to the text; group 1 is used when present, otherwise the whole match. */
     regex: regexString.optional(),
-    transform: external_exports.enum(TRANSFORMS).optional()
+    transform: external_exports.enum(TRANSFORMS).optional(),
+    /**
+     * Text that must appear on the element's preceding sibling (or its container's leading
+     * children). Sites reuse one class for both the "This Over" and "Recent" ball strips, so the
+     * label is the only thing that tells them apart.
+     */
+    label: external_exports.string().min(1).optional()
   });
   var JsonTapSchema = external_exports.object({
     /** Matched against the URL of responses the page itself fetched. */
@@ -7107,6 +7217,8 @@
     if (balls > 5) return void 0;
     return { overs: Number(m[1]), balls };
   };
+  var looksLikeScore = (input) => input !== void 0 && /^\(?\d{1,4}\s*[-/]\s*\d{1,2}\)?\s*(\(\s*\d{1,3}(?:\.\d)?\s*\))?$/.test(input.trim());
+  var looksLikeToss = (input) => input !== void 0 && /(?:won the toss|opt(?:s|ed)? to (?:bat|bowl|field)|elected to (?:bat|bowl|field))/i.test(input);
   var parseScore = (input, options) => {
     if (input === void 0) return void 0;
     const m = /(\d{1,4})\s*[-/]\s*(\d{1,2})/.exec(input);
@@ -7118,7 +7230,7 @@
     if (allOut) return { runs: Number(allOut[1]), wkts: 10 };
     if (options?.allowBare) {
       const bare = /^(?:[A-Za-z]+\s+)?(\d{1,4})(?:\s*\(.*?\))?$/.exec(input.trim());
-      if (bare) return { runs: Number(bare[1]), wkts: 10 };
+      if (bare) return { runs: Number(bare[1]) };
     }
     return void 0;
   };
@@ -7131,17 +7243,19 @@
     s = s.replace(/\*/g, "").replace(/\((?:c|capt(?:ain)?|wk|c\s*&\s*wk)\)/gi, "").replace(/†/g, "").replace(/\s+/g, " ").trim();
     return s ? { name: s, onStrike, isCaptain, isWk } : void 0;
   };
+  var SESSION_WORD = /(?:stumps?|lunch|tea|drinks|break|session|innings|over)\b/i;
   var parseDayStatus = (input) => {
     if (!input) return void 0;
-    const m = /^\s*day\s*(\d+)\s*[:\-–]?\s*(.+)?\s*$/i.exec(input);
+    const m = /\bday\s*(\d{1,2})\b/i.exec(input);
     if (!m) return void 0;
     const out = { day: Number(m[1]) };
-    const rest = m[2]?.trim();
-    if (rest) {
-      const parts = rest.split(/[-–:]/).map((s) => s.trim()).filter(Boolean);
-      if (parts[0]) out.session = parts[0].toLowerCase();
-      if (parts.length > 1) out.resultText = parts.slice(1).join(" - ").trim();
-    }
+    const split = (text) => text.split(/[-–:,]/).map((s) => s.trim()).filter(Boolean);
+    const before = split(input.slice(0, m.index));
+    const after = split(input.slice(m.index + m[0].length));
+    const session = after.find((s) => SESSION_WORD.test(s)) ?? before.find((s) => SESSION_WORD.test(s)) ?? after[0] ?? before[0];
+    if (session) out.session = session.toLowerCase();
+    const rest = [...before, ...after].filter((s) => s !== session);
+    if (rest.length) out.resultText = rest.join(" - ").trim();
     return out;
   };
   var parseBallTokens = (input) => input ? input.split(/[\s,|]+/).map((t) => t.trim()).filter(Boolean) : [];
@@ -7227,27 +7341,42 @@
     return out;
   };
   var cleanPageTitle = (raw) => raw.replace(/\s*\|\s*cricbuzz.*$/i, "").replace(/\s*Live Cricket Stream.*$/i, "").replace(/\s*Live Cricket Score.*$/i, "").replace(/\s*-\s*(?:commentary|scorecard|live score|preview|match facts).*$/i, "").replace(/^(?:live cricket score|commentary)\s*[-•:]\s*/i, "").trim();
+  var squashed = (s) => (s ?? "").replace(/\s+/g, " ").trim().toLowerCase();
+  var hasLabel = (el, label) => {
+    const want = squashed(label);
+    if (el.previousElementSibling && squashed(el.previousElementSibling.textContent).includes(want)) {
+      return true;
+    }
+    const parent = el.parentElement;
+    if (!parent) return false;
+    const leading = [...parent.children].slice(0, 2).map((c) => squashed(c.textContent)).join(" ");
+    return leading.includes(want);
+  };
   var extractDom = (config, doc) => {
     const out = {};
     for (const [field, rule] of Object.entries(config.dom)) {
       for (const selector of rule.selectors) {
-        let el = null;
+        let candidates = [];
+        const label = rule.label;
         try {
-          el = doc.querySelector(selector);
+          const all = Array.from(doc.querySelectorAll(selector));
+          candidates = label ? all.filter((el) => hasLabel(el, label)) : all.slice(0, 1);
         } catch {
           continue;
         }
-        if (!el) continue;
-        let value = (rule.attr ? el.getAttribute(rule.attr) : el.textContent)?.trim() ?? "";
-        if (rule.regex) {
-          const m = new RegExp(rule.regex).exec(value);
-          value = m ? m[1] ?? m[0] : "";
+        for (const el of candidates) {
+          let value = (rule.attr ? el.getAttribute(rule.attr) : el.textContent)?.trim() ?? "";
+          if (rule.regex) {
+            const m = new RegExp(rule.regex).exec(value);
+            value = m ? m[1] ?? m[0] : "";
+          }
+          if (rule.transform) value = applyTransform(value, rule.transform);
+          if (value) {
+            out[field] = value;
+            break;
+          }
         }
-        if (rule.transform) value = applyTransform(value, rule.transform);
-        if (value) {
-          out[field] = value;
-          break;
-        }
+        if (out[field]) break;
       }
     }
     try {
@@ -7295,6 +7424,7 @@
     const maxOvers = isTest ? Infinity : MAX_LIMITED_OVERS;
     const cleanTeam = (t) => {
       if (!t) return void 0;
+      if (looksLikeScore(t)) return void 0;
       if (/(?:p'?ship|crr|rrr|%|\b(?:AM|PM|GMT|LOCAL)\b|\d{1,2}:\d{2})/i.test(t)) return void 0;
       return t.trim();
     };
@@ -7326,9 +7456,11 @@
         if (!team2Name && urlMatch[2]) team2Name = urlMatch[2].toUpperCase();
       }
     }
-    for (const k of ["title", "status", "venue", "toss", "battingTeam"]) {
+    const tossText = looksLikeToss(text("toss")) ? text("toss") : void 0;
+    for (const k of ["title", "status", "venue", "battingTeam"]) {
       pass(k, Boolean(text(k)));
     }
+    pass("toss", Boolean(tossText));
     pass("team1", Boolean(team1Name));
     pass("team2", Boolean(team2Name));
     const innings2 = [];
@@ -7339,9 +7471,17 @@
     }));
     const hasNumbered = slots.some((s) => text(s.score) !== void 0);
     const active = hasNumbered ? slots : [{ team: "battingTeam", score: "score", overs: "overs" }];
+    const teamNameOf = (slot) => {
+      const candidates = [slot.team && text(slot.team), text("battingTeam"), text("team1")].filter(
+        (c) => Boolean(c)
+      );
+      return candidates.find((c) => !looksLikeScore(c) && !looksLikeToss(c)) ?? "";
+    };
+    const rows = [];
     for (const slot of active) {
       const rawScore = text(slot.score);
       const score = parseScore(rawScore) ?? (isTest || hasNumbered ? parseScore(rawScore, { allowBare: true }) : void 0);
+      if (!score) continue;
       let overs = slot.overs ? parseOvers(text(slot.overs)) : void 0;
       if (!overs && rawScore) {
         const oversFromScore = /\(\s*(\d{1,3}(?:\.\d)?)\s*(?:ov(?:ers?)?|ovs?)?\s*\)/i.exec(rawScore);
@@ -7349,33 +7489,46 @@
           overs = parseOvers(oversFromScore[1]);
         }
       }
-      if (overs && overs.overs <= maxOvers) {
-        if (slot.overs) pass(slot.overs, true);
+      rows.push({ team: teamNameOf(slot), score, overs, slot });
+    }
+    let oversUnresolved = false;
+    rows.forEach((row, i) => {
+      const wkts = row.score.wkts ?? (i < rows.length - 1 ? 10 : void 0);
+      if (wkts === void 0) {
+        oversUnresolved = true;
+        return;
+      }
+      const oversOk = row.overs && row.overs.overs <= maxOvers ? row.overs : void 0;
+      if (!oversOk) oversUnresolved = true;
+      innings2.push({
+        team: row.team,
+        runs: row.score.runs,
+        wkts,
+        overs: row.overs?.overs ?? 0,
+        balls: row.overs?.balls ?? 0
+      });
+      pass(row.slot.score, true);
+      pass("score", true);
+      if (oversOk) {
+        if (row.slot.overs) pass(row.slot.overs, true);
         pass("overs", true);
       }
-      if (!score) continue;
-      innings2.push({
-        team: slot.team && text(slot.team) || text("battingTeam") || text("team1") || "",
-        runs: score.runs,
-        wkts: score.wkts,
-        overs: overs?.overs ?? 0,
-        balls: overs?.balls ?? 0
-      });
-      pass(slot.score, true);
-      pass("score", true);
-    }
+    });
+    if (innings2.length > 0 && oversUnresolved) passed.delete("overs");
     const last = innings2.at(-1);
     if (last && prev && prev.inningsCount === innings2.length && last.runs < prev.runs) {
       passed.delete("score");
       passed.delete(`inn${innings2.length}.score`);
     }
     const rawStatus = text("status") ?? "";
-    const rawToss = text("toss") ?? "";
-    const isPreMatch = /(?:opt|toss|preview|starts|delayed|yet to start)/i.test(rawStatus) || /(?:opt|toss|won the toss)/i.test(rawToss) || Boolean(rawToss);
-    if (innings2.length === 0 && (isPreMatch || !text("score") && !text("overs")) && (rawTitle || team1Name)) {
-      const tossWinner = rawToss ? team1Name && rawToss.toLowerCase().includes(team1Name.toLowerCase()) ? team1Name : team2Name && rawToss.toLowerCase().includes(team2Name.toLowerCase()) ? team2Name : void 0 : void 0;
+    const isPreMatch = /(?:opt|toss|preview|starts|delayed|yet to start)/i.test(rawStatus) || Boolean(tossText);
+    const nothingPlayed = !text("score") && !text("overs") && !text("batter1.name") && !text("bowler.name") && !text("thisOver");
+    if (innings2.length === 0 && (isPreMatch || nothingPlayed) && (rawTitle || team1Name)) {
+      const tossWinner = tossText ? team1Name && tossText.toLowerCase().includes(team1Name.toLowerCase()) ? team1Name : team2Name && tossText.toLowerCase().includes(team2Name.toLowerCase()) ? team2Name : void 0 : void 0;
       const statusWinner = rawStatus ? team1Name && new RegExp(`\\b${team1Name}\\b`, "i").test(rawStatus) ? team1Name : team2Name && new RegExp(`\\b${team2Name}\\b`, "i").test(rawStatus) ? team2Name : void 0 : void 0;
-      const teamName = site === "crex" ? text("battingTeam") || "" : tossWinner || statusWinner || text("battingTeam") || team1Name || "Batting";
+      const rawBattingTeam = text("battingTeam");
+      const battingTeamName = rawBattingTeam && !looksLikeScore(rawBattingTeam) ? rawBattingTeam : void 0;
+      const teamName = site === "crex" ? battingTeamName ?? "" : tossWinner || statusWinner || battingTeamName || team1Name || "Batting";
       innings2.push({
         team: teamName,
         runs: 0,
@@ -7452,7 +7605,7 @@
       bowler,
       thisOver,
       lastBalls,
-      ...text("toss") ? { toss: text("toss") } : {},
+      ...tossText ? { toss: tossText } : {},
       ...partnership ? { partnership } : {},
       ...target !== void 0 && target > 0 ? { target } : {},
       ...crr !== void 0 && crr >= 0 ? { crr } : {},
@@ -7630,17 +7783,37 @@
     let timer = null;
     let paused = false;
     let degraded = false;
+    const sendQuiet = (msg) => {
+      try {
+        void Promise.resolve(opts.send(msg)).catch(() => void 0);
+      } catch {
+      }
+    };
     const flush = () => {
       timer = null;
       if (!pending || paused) return;
       const update = pending;
       pending = null;
       lastSentAt = now();
-      opts.send({ type: "score-update", update });
+      deliver(update);
+    };
+    const deliver = (update) => {
+      let result;
+      try {
+        result = opts.send({ type: "score-update", update });
+      } catch {
+        result = Promise.reject(void 0);
+      }
+      if (!(result instanceof Promise)) return;
+      void result.catch(() => {
+        if (signature(update) === lastSig) lastSig = "";
+        pending = pending ?? update;
+        if (timer === null) timer = setTimer(flush, minInterval);
+      });
     };
     const run = () => {
       if (paused) return;
-      const tapList = [...taps].map(([url, json]) => ({ url, json }));
+      const tapList = [...taps].reverse().map(([url, json]) => ({ url, json }));
       let update;
       try {
         update = opts.adapter({
@@ -7656,7 +7829,7 @@
       if (update.confidence < MIN_CONFIDENCE) {
         if (!degraded) {
           degraded = true;
-          opts.send({
+          sendQuiet({
             type: "adapter-degraded",
             site: opts.site,
             url: update.url,
@@ -7672,7 +7845,7 @@
       if (sig === lastSig) {
         if (now() - lastTickAt >= TICK_INTERVAL_MS) {
           lastTickAt = now();
-          opts.send({
+          sendQuiet({
             type: "tick",
             matchId: update.matchId,
             url: update.url,
@@ -7702,6 +7875,22 @@
         run();
       },
       trigger: run,
+      /**
+       * Forget the de-duplication state and any queued update without dropping the tapped
+       * responses. Used when the rules change under the pipeline (selector reload, resume) so the
+       * current score is read again by the new rules.
+       */
+      reset() {
+        lastSig = "";
+        degraded = false;
+        pending = null;
+        if (timer !== null) clearTimer(timer);
+        timer = null;
+      },
+      /** Forget every response the page fetched (used when the tab navigates to another match). */
+      clearTaps() {
+        taps.clear();
+      },
       setAdapter(adapter) {
         opts.adapter = adapter;
       },
@@ -7719,18 +7908,29 @@
   // src/content/index.ts
   var DEBOUNCE_MS = 1e3;
   var start = async () => {
-    let activeCustom = null;
+    let bundle = null;
     try {
       const stored = await chrome.storage.local.get("customSelectors");
-      activeCustom = stored.customSelectors ?? null;
+      bundle = stored.customSelectors ?? null;
     } catch {
     }
-    const getConfig = (site) => {
-      if (activeCustom?.selectors?.[site]) {
-        return activeCustom.selectors[site];
+    let customConfigs = {};
+    const applyBundle = (next) => {
+      bundle = next;
+      const parsed = {};
+      for (const site of ["cricbuzz", "crex"]) {
+        const raw = next?.selectors?.[site];
+        if (!raw) continue;
+        try {
+          parsed[site] = SelectorConfigSchema.parse(raw);
+        } catch {
+          console.warn(`[StumpCast Studio Connector] Ignoring invalid ${site} selectors from the remote bundle`);
+        }
       }
-      return site === "cricbuzz" ? cricbuzzConfig : crexConfig;
+      customConfigs = parsed;
     };
+    applyBundle(bundle);
+    const getConfig = (site) => customConfigs[site] ?? (site === "cricbuzz" ? cricbuzzConfig : crexConfig);
     const getCandidateForUrl = (href) => {
       const cb = getConfig("cricbuzz");
       if (urlMatches(cb, href)) return { config: cb, make: () => createAdapter(cb) };
@@ -7739,6 +7939,7 @@
       return null;
     };
     let currentCandidate = null;
+    let handle = null;
     let pipeline = null;
     let observer = null;
     let timer = null;
@@ -7760,48 +7961,53 @@
       };
       window.postMessage(cfg, "*");
     };
-    const setupForCandidate = (cand) => {
-      currentCandidate = cand;
-      const currentConfig = cand.config;
-      const handle = cand.make();
-      console.info(`[StumpCast Studio Connector] Matched ${currentConfig.site} live page: ${location.href}`);
+    const ensurePipeline = (site) => {
+      if (pipeline) return;
       pipeline = createPipeline({
-        site: currentConfig.site,
+        site,
+        // Resolved through `handle` so a selector reload or resume swaps the rules without
+        // throwing away this document's state (and without leaving an orphaned timer behind).
         adapter: (ctx) => handle.adapter(ctx),
         getDocument: () => document,
         getUrl: () => location.href,
         send: (msg) => {
-          try {
-            if (msg.type === "score-update") {
-              console.debug("[StumpCast] Streamed score update:", msg.update.fields.status || msg.update.matchId);
-            }
-            void chrome.runtime.sendMessage(msg).catch(() => void 0);
-          } catch {
+          if (msg.type === "score-update") {
+            console.debug("[StumpCast] Streamed score update:", msg.update.fields.status || msg.update.matchId);
           }
+          return chrome.runtime.sendMessage(msg);
         }
       });
+    };
+    const applyCandidate = (cand) => {
+      currentCandidate = cand;
+      handle = cand.make();
+      ensurePipeline(cand.config.site);
+      console.info(`[StumpCast Studio Connector] Matched ${cand.config.site} live page: ${location.href}`);
+      pipeline.reset();
       pipeline.setPaused(readingPaused);
-      sendTapConfig(readingPaused, currentConfig);
-      if (!readingPaused) {
-        if (observer) observer.disconnect();
-        observer = new MutationObserver(schedule);
-        observer.observe(document, { subtree: true, childList: true, characterData: true });
-        schedule();
-        if (pollInterval === null) {
-          pollInterval = setInterval(() => {
-            pipeline?.trigger();
-          }, 2500);
-        }
+      sendTapConfig(readingPaused, cand.config);
+      if (!readingPaused) startObserving();
+    };
+    const startObserving = () => {
+      if (observer) observer.disconnect();
+      observer = new MutationObserver(schedule);
+      observer.observe(document, { subtree: true, childList: true, characterData: true });
+      schedule();
+      if (pollInterval === null) {
+        pollInterval = setInterval(() => {
+          pipeline?.trigger();
+        }, 2500);
       }
     };
     const checkUrlChange = () => {
       const href = location.href;
       if (href === lastCheckedHref) return;
       lastCheckedHref = href;
+      pipeline?.clearTaps();
       const cand = getCandidateForUrl(href);
       if (cand) {
         if (!currentCandidate || currentCandidate.config.site !== cand.config.site) {
-          setupForCandidate(cand);
+          applyCandidate(cand);
         } else {
           pipeline?.trigger();
         }
@@ -7809,8 +8015,25 @@
     };
     checkUrlChange();
     window.addEventListener("message", (e) => {
-      if (e.source !== window || !isTapMessage(e.data) || e.data.kind !== "response") return;
-      pipeline?.addTap(e.data.url, e.data.json);
+      if (e.source !== window || e.origin !== location.origin) return;
+      if (!isTapMessage(e.data) || e.data.kind !== "response") return;
+      const config = currentCandidate?.config;
+      if (!config) return;
+      let url;
+      try {
+        url = new URL(e.data.url, location.href).href;
+      } catch {
+        return;
+      }
+      const tapped = config.jsonTaps.some((tap) => {
+        try {
+          return new RegExp(tap.urlRegex).test(url);
+        } catch {
+          return false;
+        }
+      });
+      if (!tapped || typeof e.data.json !== "object" || e.data.json === null) return;
+      pipeline?.addTap(url, e.data.json);
     });
     const applyPauseState = (paused) => {
       readingPaused = paused;
@@ -7825,7 +8048,7 @@
         if (pollInterval !== null) clearInterval(pollInterval);
         pollInterval = null;
       } else if (currentCandidate) {
-        setupForCandidate(currentCandidate);
+        startObserving();
       }
     };
     chrome.storage.onChanged.addListener((changes, area) => {
@@ -7834,9 +8057,9 @@
           applyPauseState(changes.readingPaused.newValue === true);
         }
         if (changes.customSelectors) {
-          activeCustom = changes.customSelectors.newValue ?? null;
+          applyBundle(changes.customSelectors.newValue ?? null);
           const cand = getCandidateForUrl(location.href);
-          if (cand) setupForCandidate(cand);
+          if (cand) applyCandidate(cand);
         }
       }
     });

@@ -4,6 +4,7 @@ import {
   CardCommandSchema,
   EngineEventSchema,
   LookSchema,
+  MatchHistorySchema,
   MatchStateSchema,
   SettingsSchema,
   createSettings,
@@ -11,13 +12,15 @@ import {
   fixtures,
   getLook,
   type EngineEvent,
-  type MatchHistory,
   type MatchState,
+  type Settings,
 } from '@stumpcast/shared';
 import { OverlayWsClient } from './client';
 import { BoundaryBanner } from './components/BoundaryBanner';
 import { DataBadge } from './components/DataBadge';
 import { MatchCentre } from './components/MatchCentre';
+import { PerformanceStrip } from './components/PerformanceStrip';
+import { ScorePop } from './components/ScorePop';
 import { BatterCards, BowlerCard } from './components/PlayerCards';
 import { ScoreBar } from './components/ScoreBar';
 import { StatsTiles } from './components/StatsTiles';
@@ -57,6 +60,17 @@ if (Object.keys(initOverrides).length > 0) {
   store.setSettings(createSettings(initOverrides));
 }
 
+/** A server settings snapshot must not undo the design-review flags in this page's URL. */
+const withUrlOverrides = (s: Settings): Settings => {
+  let out = s;
+  if (params.layout) out = { ...out, layout: params.layout };
+  if (params.composition) {
+    out = { ...out, video: { ...out.video, activeObsLayout: params.composition } };
+  }
+  if (params.fixture === 'RESULT') out = { ...out, onAirScreen: 'result' };
+  return out;
+};
+
 applyLook(store.get().look);
 applyLayout(
   stageEl,
@@ -87,6 +101,8 @@ const watermark = new Watermark();
 const upgradePopup = new UpgradePopup();
 const dataBadge = new DataBadge();
 const streamFrame = new StreamFrame();
+const perfStrip = new PerformanceStrip();
+const scorePop = new ScorePop();
 const resultScreen = new ResultScreen();
 const preMatchScreen = new PreMatchScreen();
 
@@ -108,6 +124,9 @@ upgradePopup.mount(stageEl, look);
 dataBadge.mount(stageEl, look);
 streamFrame.mount(stageEl, look);
 streamFrame.setCameraMode(store.get().settings.video.cameraMode);
+perfStrip.mount(stageEl, look);
+scorePop.mount(stageEl, look);
+scorePop.onVisibility = (visible) => perfStrip.setSuppressed(visible);
 resultScreen.mount(stageEl, look);
 preMatchScreen.mount(stageEl, look);
 
@@ -115,7 +134,9 @@ const cards = new CardManager(zones.card, look, CARD_DEFS, {
   fetchHistory: async (id) => {
     try {
       const res = await fetch(`${location.origin}/api/match/${encodeURIComponent(id)}/history`);
-      return res.ok ? ((await res.json()) as MatchHistory) : undefined;
+      if (!res.ok) return undefined;
+      const parsed = MatchHistorySchema.safeParse(await res.json());
+      return parsed.success ? parsed.data : undefined;
     } catch {
       return undefined;
     }
@@ -135,6 +156,8 @@ const components = [
   upgradePopup,
   dataBadge,
   streamFrame,
+  perfStrip,
+  scorePop,
   resultScreen,
   preMatchScreen,
 ];
@@ -151,10 +174,10 @@ const syncOnAirScreen = (s: typeof store extends { get(): infer G } ? G : never)
   document.documentElement.dataset.activeScreen = effective;
 
   if (effective === 'result') {
-    resultScreen.show();
+    if (!resultScreen.isVisible) resultScreen.show();
     preMatchScreen.hide();
   } else if (effective === 'pre') {
-    preMatchScreen.show();
+    if (!preMatchScreen.isVisible) preMatchScreen.show();
     resultScreen.hide();
   } else {
     resultScreen.hide();
@@ -312,10 +335,19 @@ const bootstrap = async () => {
     }
     if (settingsRes.ok) {
       const s = SettingsSchema.safeParse(await settingsRes.json());
-      if (s.success) {
-        const data = params.layout ? { ...s.data, layout: params.layout } : s.data;
-        store.setSettings(data);
+      if (s.success) store.setSettings(withUrlOverrides(s.data));
+    }
+    // The watchdog broadcasts only when the level *changes*, so a page that loads or reconnects
+    // during an alarm would otherwise never show the badge the condition is already warning about.
+    try {
+      const res = await fetch(`${origin}/api/alarm`);
+      if (res.ok) {
+        const a = (await res.json()) as { level?: string };
+        alarmRaised = a.level === 'warn' || a.level === 'error';
+        syncBadge();
       }
+    } catch {
+      /* optional */
     }
   } catch {
     /* offline: keep what we have */
@@ -403,7 +435,7 @@ const client = new OverlayWsClient({
       if (msg.event === 'settings') {
         const s = SettingsSchema.safeParse(msg.payload);
         if (s.success) {
-          store.setSettings(s.data);
+          store.setSettings(withUrlOverrides(s.data));
           if (s.data.theme) {
             const l = getLook(s.data.theme);
             if (l && l.id !== store.get().look.id) store.setLook(l);

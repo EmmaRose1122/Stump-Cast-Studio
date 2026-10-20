@@ -3,6 +3,14 @@ import { assetUrl, attachImage, teamAssetId } from '../assets';
 import { OverlayComponent } from '../component';
 import { scoreText } from '../format';
 
+/** Used when the feed genuinely has no figures. A result screen must never invent them. */
+const emptyRow = (label: string): HTMLElement => {
+  const el = document.createElement('div');
+  el.className = 'rs-performer-row';
+  el.innerHTML = `<div class="rs-p-identity"><span class="rs-p-name">${label}</span></div>`;
+  return el;
+};
+
 /**
  * Full-screen TV broadcast Match Result Screen matching Recording 2026-10-17 104410
  * and international sports broadcast standards.
@@ -35,8 +43,8 @@ export class ResultScreen extends OverlayComponent {
           <div class="rs-team rs-team-a">
             <span class="rs-crest rs-crest-a"></span>
             <div class="rs-team-info">
-              <span class="rs-name rs-name-a">AUS</span>
-              <span class="rs-score rs-score-a">314-6</span>
+              <span class="rs-name rs-name-a"></span>
+              <span class="rs-score rs-score-a"></span>
             </div>
           </div>
 
@@ -47,15 +55,15 @@ export class ResultScreen extends OverlayComponent {
             </div>
             <div class="rs-verdict-badge">
               <span class="rs-verdict-tag">RESULT</span>
-              <strong class="rs-verdict-text">AUSTRALIA WON BY 214 RUNS</strong>
+              <strong class="rs-verdict-text">AWAITING RESULT</strong>
             </div>
-            <span class="rs-subtitle">TEST MATCH • KINGSMEAD, DURBAN</span>
+            <span class="rs-subtitle"></span>
           </div>
 
           <div class="rs-team rs-team-b">
             <div class="rs-team-info rs-info-right">
-              <span class="rs-name rs-name-b">RSA</span>
-              <span class="rs-score rs-score-b">206</span>
+              <span class="rs-name rs-name-b"></span>
+              <span class="rs-score rs-score-b"></span>
             </div>
             <span class="rs-crest rs-crest-b"></span>
           </div>
@@ -113,11 +121,12 @@ export class ResultScreen extends OverlayComponent {
   }
 
   private setCrest(host: HTMLElement, short: string): void {
-    const url = assetUrl('teams', teamAssetId(short));
+    const id = teamAssetId(short);
+    const url = id ? assetUrl('teams', id) : '';
     if (host.dataset.src === url) return;
     host.dataset.src = url;
     host.replaceChildren();
-    attachImage(host, url);
+    if (url) attachImage(host, url);
   }
 
   update(s: MatchState): void {
@@ -162,28 +171,12 @@ export class ResultScreen extends OverlayComponent {
         this.e.inningsRows.appendChild(row);
       }
     } else {
-      // Fallback display matching Recording 2026-10-17 104410
-      const defaultRows = [
-        { team: teamA, score: '390', overs: '112.4' },
-        { team: teamA, score: '314-6', overs: '82.0' },
-        { team: teamB, score: '284', overs: '88.2' },
-        { team: teamB, score: '206', overs: '64.1' },
-      ];
-      for (const r of defaultRows) {
-        const row = document.createElement('tr');
-        row.className = 'rs-row';
-        row.innerHTML = `
-          <td class="rs-td-crest"><span class="rs-mini-crest"></span></td>
-          <td class="rs-td-team"><span class="rs-row-team-name">${r.team.name.toUpperCase()}</span></td>
-          <td class="rs-td-score">
-            <strong class="rs-row-score-val">${r.score}</strong>
-            <span class="rs-row-overs">(${r.overs} OV)</span>
-          </td>
-        `;
-        const crestEl = row.querySelector<HTMLElement>('.rs-mini-crest')!;
-        this.setCrest(crestEl, r.team.short);
-        this.e.inningsRows.appendChild(row);
-      }
+      const row = document.createElement('tr');
+      row.className = 'rs-row';
+      row.innerHTML = `
+        <td class="rs-td-team" colspan="3"><span class="rs-row-team-name">NO INNINGS DATA RECORDED</span></td>
+      `;
+      this.e.inningsRows.appendChild(row);
     }
 
     // Top Batters
@@ -208,28 +201,7 @@ export class ResultScreen extends OverlayComponent {
         this.e.topBatters.appendChild(el);
       }
     } else {
-      // Display recording match top batters
-      const demoBatters = [
-        { name: 'Aiden Markram', runs: 75, balls: 133, sr: '56.4' },
-        { name: 'David Bedingham', runs: 46, balls: 58, sr: '79.3' },
-        { name: 'Marco Jansen', runs: 35, balls: 51, sr: '68.6' },
-      ];
-      for (const b of demoBatters) {
-        const el = document.createElement('div');
-        el.className = 'rs-performer-row';
-        el.innerHTML = `
-          <div class="rs-p-identity">
-            <span class="rs-p-bullet"></span>
-            <span class="rs-p-name">${b.name.toUpperCase()}</span>
-          </div>
-          <div class="rs-p-figures">
-            <strong class="rs-p-primary">${b.runs}</strong>
-            <span class="rs-p-secondary">(${b.balls})</span>
-            <span class="rs-p-extra">SR ${b.sr}</span>
-          </div>
-        `;
-        this.e.topBatters.appendChild(el);
-      }
+      this.e.topBatters.appendChild(emptyRow('BATTING NOT PROVIDED'));
     }
 
     // Top Bowlers
@@ -252,28 +224,7 @@ export class ResultScreen extends OverlayComponent {
       `;
       this.e.topBowlers.appendChild(el);
     } else {
-      // Display recording match top bowlers
-      const demoBowlers = [
-        { name: 'Josh Hazlewood', figures: '6-49', overs: '16.5', econ: '2.90' },
-        { name: 'Matt Renshaw', figures: '2-30', overs: '13.0', econ: '2.30' },
-        { name: 'Mitchell Starc', figures: '1-33', overs: '8.0', econ: '4.12' },
-      ];
-      for (const b of demoBowlers) {
-        const el = document.createElement('div');
-        el.className = 'rs-performer-row';
-        el.innerHTML = `
-          <div class="rs-p-identity">
-            <span class="rs-p-bullet"></span>
-            <span class="rs-p-name">${b.name.toUpperCase()}</span>
-          </div>
-          <div class="rs-p-figures">
-            <strong class="rs-p-primary">${b.figures}</strong>
-            <span class="rs-p-secondary">(${b.overs})</span>
-            <span class="rs-p-extra">ECON ${b.econ}</span>
-          </div>
-        `;
-        this.e.topBowlers.appendChild(el);
-      }
+      this.e.topBowlers.appendChild(emptyRow('BOWLING NOT PROVIDED'));
     }
   }
 }

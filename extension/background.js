@@ -103,10 +103,7 @@
           "#sticky-mscore .font-bold.text-lg",
           "#miniscore-branding-container .text-xl > div:first-child",
           '#miniscore-branding-container [class*="flex-row"]:last-child .mr-2',
-          '[id^="sticky-m"] [class*="flex-row"]:last-child .mr-2',
-          ".cb-min-bat-rw .cb-font-20",
-          ".cb-min-bat-rw span:first-child",
-          ".cb-min-bat-rw"
+          '[id^="sticky-m"] [class*="flex-row"]:last-child .mr-2'
         ]
       },
       "inn1.team": {
@@ -327,7 +324,11 @@
         ]
       },
       thisOver: {
-        selectors: ["p.text-\\[\\#666\\]", ".text-\\[\\#666\\]", ".cb-min-rec", "span.cb-min-rec", "div.cb-min-rec"]
+        selectors: [".cb-min-rec", "span.cb-min-rec", "div.cb-min-rec"]
+      },
+      lastBalls: {
+        selectors: ["p.text-\\[\\#666\\]", ".text-\\[\\#666\\]"],
+        label: "Recent"
       },
       partnership: {
         selectors: [
@@ -341,10 +342,9 @@
       crr: {
         selectors: [
           "#miniscore-branding-container .text-cbTxtSec.ml-1",
-          "#miniscore-branding-container .text-xl span:last-child",
-          ".cb-col-100:has(span.cb-font-12)",
-          ".cb-min-bat-rw"
-        ]
+          "#miniscore-branding-container .inline-block"
+        ],
+        regex: "(?:CRR|Current Rate)[:\\s]*([\\d.]+)"
       },
       rrr: {
         selectors: [
@@ -4423,6 +4423,93 @@
     photoAssetId: external_exports.string().optional()
   });
 
+  // ../shared/src/teams.ts
+  var T = (code, name, aliases, colors, kind = "international") => ({ code, name, aliases, colors, kind });
+  var TEAM_REGISTRY = [
+    // ---- Full members -------------------------------------------------------------------------
+    T("rsa", "South Africa", ["rsa", "south africa", "southafrica", "sa", "proteas"], ["#007A4D", "#FFB81C"]),
+    T("aus", "Australia", ["aus", "australia", "au", "baggy green"], ["#00843D", "#FFCD00"]),
+    T("ind", "India", ["ind", "india", "team india", "blue tigers"], ["#1B4B99", "#E7A61C"]),
+    T("pak", "Pakistan", ["pak", "pakistan", "green shirts"], ["#01411C", "#FFFFFF"]),
+    T("eng", "England", ["eng", "england", "alion"], ["#0C2340", "#C8102E"]),
+    T("nz", "new zealand", ["nz", "new zealand", "black caps"], ["#000000", "#FFB612"]),
+    T("wi", "west indies", ["wi", "west indies", "westindies", "california"], ["#7A003C", "#FFC72C"]),
+    T("sl", "Sri Lanka", ["sl", "sri lanka", "srilanka", "srl", "lanka"], ["#00534E", "#FFBE29"]),
+    T("ban", "Bangladesh", ["ban", "bangladesh", "tigers"], ["#006A4E", "#F42A41"]),
+    T("afg", "Afghanistan", ["afg", "afghanistan"], ["#000000", "#DA121A"]),
+    T("ire", "Ireland", ["ire", "irland", "ireland", "eire"], ["#015744", "#F0C84A"]),
+    T("zim", "Zimbabwe", ["zim", "zimbabwe"], ["#000000", "#F5A623"]),
+    // ---- Other international sides ------------------------------------------------------------
+    T("ned", "Netherlands", ["ned", "netherlands", "holland", "net"], ["#FF6F00", "#21468B"]),
+    T("sco", "Scotland", ["sco", "scotland"], ["#003078", "#D1A33E"]),
+    T("oma", "Oman", ["oma", "oman"], ["#9E1B32", "#FFFFFF"]),
+    T("uae", "United Arab Emirates", ["uae", "united arab emirates", "emirates"], ["#00732F", "#FFFFFF"]),
+    T("can", "Canada", ["can", "canada"], ["#D80621", "#FFFFFF"]),
+    T("usa", "USA", ["usa", "united states", "united states of america"], ["#0A3161", "#B31942"]),
+    T("png", "Papua New Guinea", ["png", "papua new guinea"], ["#000000", "#CE1126"]),
+    T("nep", "Nepal", ["nep", "nepal"], ["#DC143C", "#003893"]),
+    T("hk", "Hong Kong", ["hk", "hong kong", "hongkong"], ["#C41E3A", "#FFFFFF"]),
+    T("mas", "Malaysia", ["mas", "malaysia"], ["#010066", "#CE1126"]),
+    T("sgp", "Singapore", ["sgp", "singapore"], ["#EF3340", "#FFFFFF"]),
+    T("tha", "Thailand", ["tha", "thailand"], ["#002868", "#F4F5F8"]),
+    T("nam", "Namibia", ["nam", "namibia"], ["#003580", "#D0A520"]),
+    T("nga", "Nigeria", ["nga", "nigeria"], ["#008751", "#FFFFFF"]),
+    T("ken", "Kenya", ["ken", "kenya"], ["#000000", "#BB0000"]),
+    T("uga", "Uganda", ["uga", "uganda"], ["#000000", "#FCDC04"]),
+    T("tan", "Tanzania", ["tan", "tanzania"], ["#1EB53A", "#FCD116"]),
+    T("rwa", "Rwanda", ["rwa", "rwanda"], ["#00A1DE", "#FAD201"]),
+    T("ita", "Italy", ["ita", "italy"], ["#0066CC", "#FFFFFF"]),
+    T("ger", "Germany", ["ger", "germany"], ["#000000", "#DD0000"]),
+    T("fra", "France", ["fra", "france"], ["#002395", "#ED2939"]),
+    T("esp", "Spain", ["esp", "spain"], ["#AA151B", "#F1BF00"]),
+    T("por", "Portugal", ["por", "portugal"], ["#006600", "#FF0000"]),
+    T("den", "Denmark", ["den", "denmark"], ["#C60C30", "#FFFFFF"]),
+    T("swe", "Sweden", ["swe", "sweden"], ["#006AA7", "#FECC02"]),
+    T("nor", "Norway", ["nor", "norway"], ["#BA0C2F", "#FFFFFF"]),
+    T("fin", "Finland", ["fin", "finland"], ["#003580", "#FFFFFF"]),
+    T("sui", "Switzerland", ["sui", "switzerland"], ["#DA291C", "#FFFFFF"]),
+    T("aut", "Austria", ["aut", "austria"], ["#ED2939", "#FFFFFF"]),
+    T("bel", "Belgium", ["bel", "belgium"], ["#FDDA24", "#000000"]),
+    T("nzl", "Netherlands Women", ["nzw"], ["#FF6F00", "#21468B"]),
+    // ---- IPL ----------------------------------------------------------------------------------
+    T("csk", "Chennai Super Kings", ["csk", "chennai super kings", "super kings", "chennai"], ["#F9CD05", "#005DB7"], "franchise"),
+    T("mi", "Mumbai Indians", ["mi", "mumbai indians", "mumbai"], ["#041E42", "#D1AB3E"], "franchise"),
+    T("rcb", "Royal Challengers Bengaluru", ["rcb", "royal challengers", "bengaluru", "bangalore"], ["#D5152A", "#000000"], "franchise"),
+    T("kkr", "Kolkata Knight Riders", ["kkr", "kolkata knight riders", "kolkata"], ["#3A225D", "#E4AA31"], "franchise"),
+    T("dc", "Delhi Capitals", ["dc", "delhi capitals", "delhi"], ["#17449B", "#EF1B23"], "franchise"),
+    T("srh", "Sunrisers Hyderabad", ["srh", "sunrisers", "hyderabad"], ["#F26522", "#000000"], "franchise"),
+    T("rr", "Rajasthan Royals", ["rr", "rajasthan royals", "rajasthan", "rjr"], ["#EA1A85", "#254AA5"], "franchise"),
+    T("pbks", "Punjab Kings", ["pbks", "kxip", "punjab kings", "kings xi", "chandigarh"], ["#DD1F2D", "#A7A9AC"], "franchise"),
+    T("gt", "Gujarat Titans", ["gt", "gujarat titans", "gujarat"], ["#1B2133", "#E2C47F"], "franchise"),
+    T("lsg", "Lucknow Super Giants", ["lsg", "lucknow super giants", "lucknow"], ["#0A52A0", "#E2C47F"], "franchise"),
+    // ---- BBL ----------------------------------------------------------------------------------
+    T("ads", "Adelaide Strikers", ["ads", "adelaide strikers", "adelaide"], ["#1CE7DB", "#041E42"], "franchise"),
+    T("brh", "Brisbane Heat", ["brh", "brisbane heat", "brisbane"], ["#F57D1F", "#1A1A1A"], "franchise"),
+    T("hbh", "Hobart Hurricanes", ["hbh", "hobart hurricanes", "hobart"], ["#1E90FF", "#0B1F3A"], "franchise"),
+    T("mlr", "Melbourne Renegades", ["mlr", "melbourne renegades", "renegades"], ["#0BB2E8", "#1A1A1A"], "franchise"),
+    T("mls", "Melbourne Stars", ["mls", "melbourne stars", "stars"], ["#00A651", "#1A1A1A"], "franchise"),
+    T("prs", "Perth Scorchers", ["prs", "perth scorchers", "perth"], ["#EE1C25", "#1A1A1A"], "franchise"),
+    T("sys", "Sydney Sixers", ["sys", "sydney sixers", "sixers"], ["#00838F", "#FFBB00"], "franchise"),
+    T("syt", "Sydney Thunder", ["syt", "sydney thunder", "thunder"], ["#004B8D", "#FFD200"], "franchise"),
+    // ---- PSL ----------------------------------------------------------------------------------
+    T("isu", "Islamabad United", ["isu", "islamabad united"], ["#C5272E", "#1A1A1A"], "franchise"),
+    T("kk", "Karachi Kings", ["kk", "krk", "karachi kings", "karachi"], ["#1D3461", "#E7A33E"], "franchise"),
+    T("lq", "Lahore Qalandars", ["lq", "lhq", "lahore qalandars", "lahore"], ["#00549A", "#F5A623"], "franchise"),
+    T("pz", "Peshawar Zalmi", ["pz", "psz", "peshawar zalmi", "peshawar"], ["#EE1C25", "#F5A623"], "franchise"),
+    T("qg", "Quetta Gladiators", ["qg", "qtg", "quetta gladiators", "quetta"], ["#6A2C91", "#F5A623"], "franchise"),
+    T("ms", "Multan Sultans", ["ms", "multan sultans", "multan"], ["#F5A623", "#0B4D3C"], "franchise")
+  ];
+  var clean = (s) => s.toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g, " ").trim();
+  var byCode = /* @__PURE__ */ new Map();
+  var byAlias = /* @__PURE__ */ new Map();
+  for (const t of TEAM_REGISTRY) {
+    byCode.set(t.code, t);
+    for (const a of [t.code, t.name, ...t.aliases]) {
+      const key = clean(a);
+      if (key && !byAlias.has(key)) byAlias.set(key, t);
+    }
+  }
+
   // ../shared/src/ball.ts
   var ExtraSchema = external_exports.object({
     type: external_exports.enum(["wide", "noball", "bye", "legbye", "penalty"]),
@@ -4442,15 +4529,20 @@
     ]),
     playerOutId: external_exports.string().min(1)
   });
+  var NO_RUN_WICKETS = ["bowled", "lbw", "stumped", "hitwicket"];
   var BallEventSchema = external_exports.object({
     over: external_exports.number().int().min(0),
     ball: external_exports.number().int().min(1),
+    /** Runs off the bat. Above 6 only with overthrows; extras are a separate field. */
     runs: external_exports.number().int().min(0).max(7),
     extras: ExtraSchema.optional(),
     wicket: WicketSchema.optional(),
     batterId: external_exports.string().min(1),
     bowlerId: external_exports.string().min(1)
-  });
+  }).refine(
+    (b) => !(b.wicket && NO_RUN_WICKETS.includes(b.wicket.kind) && b.runs > 0),
+    "a batter out bowled/lbw/stumped/hit wicket cannot be credited runs"
+  );
 
   // ../shared/src/match.ts
   var MatchFormatSchema = external_exports.enum(["T20", "ODI", "TEST", "OTHER"]);
@@ -4514,8 +4606,8 @@
     projected: external_exports.number().int().min(0).optional(),
     /** Projected total if the scoring rate rises by 2 an over. */
     projectedPlus2: external_exports.number().int().min(0).optional(),
-    /** Estimate only. teamA/teamB follow `teams` order. Absent for Tests (see engine docs). */
-    winProb: external_exports.object({ teamA: external_exports.number().min(0).max(1), teamB: external_exports.number().min(0).max(1) }).optional(),
+    /** Estimate only. teamA/teamB follow `teams` order and are the two halves of one number. Absent for Tests (see engine docs). */
+    winProb: external_exports.object({ teamA: external_exports.number().min(0).max(1), teamB: external_exports.number().min(0).max(1) }).refine((p) => Math.abs(p.teamA + p.teamB - 1) <= 2e-3, "win probabilities must sum to 1").optional(),
     wicketsLeft: external_exports.number().int().min(0).max(10).optional(),
     /** Legal balls remaining in a limited-overs innings. */
     ballsLeft: external_exports.number().int().min(0).optional(),
@@ -6268,8 +6360,13 @@
 
   // ../shared/src/settings.ts
   var CardIdSchema = external_exports.string().min(1);
+  var DirectorTriggerSchema = external_exports.union([
+    EngineEventTypeSchema,
+    external_exports.literal("BATTER_40"),
+    external_exports.literal("BATTER_90")
+  ]);
   var DirectorRuleSchema = external_exports.object({
-    on: external_exports.string().min(1),
+    on: DirectorTriggerSchema,
     card: CardIdSchema,
     durationSec: external_exports.number().min(1).max(60).default(8),
     cooldownSec: external_exports.number().min(0).max(600).default(30),
@@ -6749,7 +6846,7 @@
     battingTeamId: "team-rsa",
     score: rsaScore,
     target: 421,
-    lead: -369,
+    lead: -368,
     batters: [
       {
         playerId: "aiden-markram",
@@ -6785,7 +6882,7 @@
     wicketsLeft: 9,
     crr: 3.06,
     rrr: 4.12,
-    winProb: { teamA: 0.34, teamB: 0.36 },
+    winProb: { teamA: 0.34, teamB: 0.66 },
     day: 4,
     session: "evening",
     updatedAt: "2026-03-14T15:42:10.000Z"
@@ -6982,11 +7079,11 @@
     lastCheckedAt: external_exports.number().int().nonnegative().optional()
   });
   function hexToBytes(hex2) {
-    const clean = hex2.trim();
-    if (clean.length % 2 !== 0) throw new Error("Invalid hex string");
-    const bytes = new Uint8Array(clean.length / 2);
-    for (let i = 0; i < clean.length; i += 2) {
-      bytes[i / 2] = parseInt(clean.substring(i, i + 2), 16);
+    const clean2 = hex2.trim();
+    if (clean2.length % 2 !== 0) throw new Error("Invalid hex string");
+    const bytes = new Uint8Array(clean2.length / 2);
+    for (let i = 0; i < clean2.length; i += 2) {
+      bytes[i / 2] = parseInt(clean2.substring(i, i + 2), 16);
     }
     return bytes;
   }
@@ -7037,10 +7134,15 @@
   }
 
   // ../shared/src/commentary.ts
+  var CommentaryLanguageSchema = external_exports.enum(["hi", "ur", "en"]);
   var CommentaryConfigSchema = external_exports.object({
     enabled: external_exports.boolean().default(true),
     autoEvents: external_exports.boolean().default(true),
     voice: external_exports.string().default("default"),
+    /** Hindi (Devanagari) by default; `ur` is Urdu in Nastaliq script, `en` English. */
+    language: CommentaryLanguageSchema.default("hi"),
+    /** Use the configured Gemini model for narration, falling back to the local phrasebook. */
+    ai: external_exports.boolean().default(true),
     rate: external_exports.number().min(0.5).max(2).default(1),
     pitch: external_exports.number().min(0.5).max(2).default(1),
     volume: external_exports.number().min(0).max(1).default(1)
@@ -7049,7 +7151,9 @@
     id: external_exports.string(),
     text: external_exports.string(),
     eventType: external_exports.string().optional(),
-    timestamp: external_exports.number()
+    timestamp: external_exports.number(),
+    /** So the speaker picks the right voice for the script it is about to read. */
+    lang: CommentaryLanguageSchema.optional()
   });
 
   // src/adapters/config.ts
@@ -7111,7 +7215,13 @@
     attr: external_exports.string().optional(),
     /** Applied to the text; group 1 is used when present, otherwise the whole match. */
     regex: regexString.optional(),
-    transform: external_exports.enum(TRANSFORMS).optional()
+    transform: external_exports.enum(TRANSFORMS).optional(),
+    /**
+     * Text that must appear on the element's preceding sibling (or its container's leading
+     * children). Sites reuse one class for both the "This Over" and "Recent" ball strips, so the
+     * label is the only thing that tells them apart.
+     */
+    label: external_exports.string().min(1).optional()
   });
   var JsonTapSchema = external_exports.object({
     /** Matched against the URL of responses the page itself fetched. */
@@ -7141,6 +7251,9 @@
   var BACKOFF_MAX_MS = 3e4;
   var ALLOWED_HOSTS = [/(^|\.)cricbuzz\.com$/i, /(^|\.)crex\.com$/i, /(^|\.)crex\.live$/i];
   var OPEN = 1;
+  var DISCOVERY_COOLDOWN_MS = 15e3;
+  var PEER_PROBE_MS = 6e4;
+  var MAX_TRACKED_TABS = 20;
   var Connector = class {
     constructor(deps) {
       this.deps = deps;
@@ -7158,8 +7271,18 @@
     started = false;
     activeSelectorsVersion = null;
     tracked = /* @__PURE__ */ new Map();
+    lastDiscoveryAt = null;
+    discoveryInFlight = null;
+    pairInFlight = null;
+    lastPairFailureAt = null;
+    peerPorts = [];
+    peerProbeAt = null;
     // ---- lifecycle --------------------------------------------------------------------------
-    /** Safe to call on every service-worker wake-up. */
+    /**
+     * Safe to call on every service-worker wake-up. The MV3 worker is killed after ~30 s idle, so
+     * the open-match list is kept in storage: without it "close match tab"/"focus" find no tab and
+     * the heartbeat reports zero open matches while scores keep flowing.
+     */
     async init() {
       if (!this.started) {
         this.started = true;
@@ -7168,9 +7291,19 @@
         this.killed = await this.deps.storage.get("killed") ?? false;
         const custom2 = await this.deps.storage.get("customSelectors");
         if (custom2?.version) this.activeSelectorsVersion = custom2.version;
+        const saved = await this.deps.storage.get("trackedTabs");
+        if (Array.isArray(saved)) {
+          for (const t of saved) {
+            if (t && typeof t.matchId === "string") this.tracked.set(t.matchId, t);
+          }
+        }
       }
       if (this.token && !this.socket) await this.connect();
       else if (!this.token && !this.killed) await this.autoPair();
+    }
+    persistTracked() {
+      const keep = [...this.tracked.values()].sort((a, b) => b.lastUpdateAt - a.lastUpdateAt).slice(0, MAX_TRACKED_TABS);
+      void Promise.resolve(this.deps.storage.set("trackedTabs", keep)).catch(() => void 0);
     }
     get paired() {
       return this.token !== null;
@@ -7178,7 +7311,30 @@
     get boundPort() {
       return this.port;
     }
+    /**
+     * Pair without a code. Concurrent content scripts must share one attempt, and a failed
+     * attempt is remembered so a server that is not running is not swept and re-paired every
+     * few seconds per tab.
+     */
     async autoPair() {
+      if (this.token) return true;
+      if (this.pairInFlight) return this.pairInFlight;
+      const now = this.deps.now();
+      if (this.lastPairFailureAt !== null && now - this.lastPairFailureAt < DISCOVERY_COOLDOWN_MS) {
+        return false;
+      }
+      const run = this.tryAutoPair().then((ok) => {
+        this.lastPairFailureAt = ok ? null : this.deps.now();
+        return ok;
+      });
+      this.pairInFlight = run;
+      try {
+        return await run;
+      } finally {
+        if (this.pairInFlight === run) this.pairInFlight = null;
+      }
+    }
+    async tryAutoPair() {
       const port = await this.discoverPort();
       if (port === null) return false;
       for (const host of ["127.0.0.1", "localhost"]) {
@@ -7233,6 +7389,10 @@
       }
     }
     // ---- messages from content scripts ------------------------------------------------------
+    track(info) {
+      this.tracked.set(info.matchId, info);
+      this.persistTracked();
+    }
     async onContentMessage(msg, tabId) {
       if (this.killed) return;
       if (!this.token) {
@@ -7241,7 +7401,7 @@
       const now = this.deps.now();
       if (msg.type === "score-update") {
         const u = msg.update;
-        this.tracked.set(u.matchId, {
+        this.track({
           matchId: u.matchId,
           url: u.url,
           lastUpdateAt: now,
@@ -7250,7 +7410,7 @@
         });
         await this.send({ type: "update", update: u });
       } else if (msg.type === "tick") {
-        this.tracked.set(msg.matchId, {
+        this.track({
           matchId: msg.matchId,
           url: msg.url,
           lastUpdateAt: now,
@@ -7264,7 +7424,7 @@
           if (p) matchId = p;
         } catch {
         }
-        this.tracked.set(matchId, {
+        this.track({
           matchId,
           url: msg.url,
           lastUpdateAt: now,
@@ -7283,10 +7443,16 @@
     }
     /** Tab closed by the user: stop reporting it so the server can mark it gone. */
     onTabRemoved(tabId) {
-      for (const [id, t] of this.tracked) if (t.tabId === tabId) this.tracked.delete(id);
+      let changed = false;
+      for (const [id, t] of this.tracked)
+        if (t.tabId === tabId) {
+          this.tracked.delete(id);
+          changed = true;
+        }
+      if (changed) this.persistTracked();
     }
     get tabs() {
-      return [...this.tracked.values()].map(({ tabId: _tabId, ...t }) => t);
+      return [...this.tracked.values()].slice(0, MAX_TRACKED_TABS).map(({ tabId: _tabId, ...t }) => t);
     }
     // ---- transport --------------------------------------------------------------------------
     peerTokens = /* @__PURE__ */ new Map();
@@ -7317,11 +7483,8 @@
           sentWs = false;
         }
       }
-      if (!sentWs || msg.type === "update") {
-        await this.postIngest(msg);
-      }
-      const activePorts = [4e3, 4002].filter((p) => p !== this.port);
-      for (const p of activePorts) {
+      if (!sentWs) await this.postIngest(msg);
+      for (const p of await this.livePeers()) {
         try {
           const token = await this.ensurePeerToken(p);
           if (token) {
@@ -7337,6 +7500,23 @@
         } catch {
         }
       }
+    }
+    /** Other Studio instances on this machine, refreshed at most every PEER_PROBE_MS. */
+    async livePeers() {
+      const now = this.deps.now();
+      if (this.peerProbeAt !== null && now - this.peerProbeAt < PEER_PROBE_MS) return this.peerPorts;
+      const candidates = [4e3, 4001, 4002, 4003, 4004].filter((p) => p !== this.port);
+      const alive = [];
+      for (const p of candidates) {
+        try {
+          const res = await this.deps.fetch(`http://127.0.0.1:${p}/api/health`);
+          if (res.ok) alive.push(p);
+        } catch {
+        }
+      }
+      this.peerPorts = alive;
+      this.peerProbeAt = now;
+      return alive;
     }
     async postIngest(msg) {
       if (!this.token) {
@@ -7355,7 +7535,10 @@
           body: JSON.stringify(msg)
         });
         if (res.status === 401) {
-          await this.unpair();
+          this.token = null;
+          await this.deps.storage.remove("token");
+          this.teardown(true);
+          this.lastPairFailureAt = null;
           const rePaired = await this.autoPair();
           if (rePaired && this.token) {
             await this.deps.fetch(`http://127.0.0.1:${port}/api/ext/ingest`, {
@@ -7393,6 +7576,23 @@
     }
     /** Cached port first, then 4002, 4000..4010 and dev ports. Verifies via GET /api/health. */
     async discoverPort() {
+      if (this.discoveryInFlight) return this.discoveryInFlight;
+      const now = this.deps.now();
+      if (this.lastDiscoveryAt !== null && now - this.lastDiscoveryAt < DISCOVERY_COOLDOWN_MS) {
+        return this.port;
+      }
+      const run = this.sweepPort().then((port) => {
+        this.lastDiscoveryAt = this.deps.now();
+        return port;
+      });
+      this.discoveryInFlight = run;
+      try {
+        return await run;
+      } finally {
+        if (this.discoveryInFlight === run) this.discoveryInFlight = null;
+      }
+    }
+    async sweepPort() {
       const candidates = [];
       if (this.port !== null) candidates.push(this.port);
       for (const p of [4002, 4e3, 4001, 4003, 4004, 5175, 5174]) {
@@ -7494,6 +7694,14 @@
           if (!verified.valid || !verified.bundle) {
             return false;
           }
+          for (const [site, config] of Object.entries(verified.bundle.selectors)) {
+            if (site !== "cricbuzz" && site !== "crex") return false;
+            try {
+              SelectorConfigSchema.parse(config);
+            } catch {
+              return false;
+            }
+          }
           this.activeSelectorsVersion = verified.bundle.version;
           await this.deps.storage.set("customSelectors", verified.bundle);
           this.deps.onReloadSelectors?.();
@@ -7507,6 +7715,8 @@
       if (this.reconnectTimer !== null || this.killed) return;
       const delay = this.backoff;
       this.backoff = Math.min(this.backoff * 2, BACKOFF_MAX_MS);
+      this.lastDiscoveryAt = null;
+      this.peerProbeAt = null;
       this.reconnectTimer = this.deps.timers.setTimeout(() => {
         this.reconnectTimer = null;
         if (this.token) {

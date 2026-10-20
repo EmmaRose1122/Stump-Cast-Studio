@@ -1,10 +1,19 @@
 import { z } from 'zod';
+import { EngineEventTypeSchema } from './event';
 import { LayoutPresetIdSchema, OBS_LAYOUT_IDS } from './layouts';
 
 export const CardIdSchema = z.string().min(1);
 
+/** An engine event, or one of the two batter-score triggers the Director listens for. */
+export const DirectorTriggerSchema = z.union([
+  EngineEventTypeSchema,
+  z.literal('BATTER_40'),
+  z.literal('BATTER_90'),
+]);
+export type DirectorTrigger = z.infer<typeof DirectorTriggerSchema>;
+
 export const DirectorRuleSchema = z.object({
-  on: z.string().min(1),
+  on: DirectorTriggerSchema,
   card: CardIdSchema,
   durationSec: z.number().min(1).max(60).default(8),
   cooldownSec: z.number().min(0).max(600).default(30),

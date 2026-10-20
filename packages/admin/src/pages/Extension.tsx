@@ -243,9 +243,9 @@ export const ExtensionPage = () => {
       {(health === 'connected' || health === 'stale' || (matches.data && matches.data.length > 0)) && (
         <Card className="w-full">
           <h2 className="font-heading text-lg font-semibold text-slate-900">Your Matches</h2>
-          {matches.data && matches.data.filter((m) => m.id !== '147920' && m.id !== 'seed-match').length > 0 ? (
+          {matches.data && matches.data.length > 0 ? (
             <ul className="mt-3 grid gap-2">
-              {matches.data.filter((m) => m.id !== '147920' && m.id !== 'seed-match').map((m) => (
+              {matches.data.map((m) => (
                 <li
                   key={m.id}
                   className="flex items-center justify-between gap-3 rounded-[10px] border border-blue-200 bg-white px-3 py-2"

@@ -18,7 +18,7 @@
     ],
     "innings": [
       {
-        "team": "145/3",
+        "team": "India",
         "runs": 145,
         "wkts": 3,
         "overs": 16,
@@ -62,8 +62,7 @@
     "partnership": {
       "runs": 68,
       "balls": 42
-    },
-    "crr": 145
+    }
   },
   "missing": []
 }

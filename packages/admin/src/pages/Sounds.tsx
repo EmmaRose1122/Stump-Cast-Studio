@@ -1,12 +1,21 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import clsx from 'clsx';
 import { useEffect, useRef, useState } from 'react';
-import { api } from '../lib/api';
+import { api, ApiError } from '../lib/api';
+import { monitor, listOutputDevices } from '../lib/monitor';
 import { soundsApi, type SoundOverview } from '../lib/sounds';
 import { useAdmin } from '../store';
 import { Button, Dialog } from '../ui';
 
 const errText = (e: unknown) => (e instanceof Error ? e.message : 'Something went wrong');
+
+type CommPatch = Partial<{
+  enabled: boolean;
+  autoEvents: boolean;
+  rate: number;
+  pitch: number;
+  volume: number;
+}>;
 
 /** Play audio locally in the operator's headphones using Web Audio API synthesis or HTML5 Audio */
 const playLocalAudio = (typeOrUrl: string, gainLevel: number) => {
@@ -106,6 +115,7 @@ const playLocalAudio = (typeOrUrl: string, gainLevel: number) => {
 export const SoundsPage = () => {
   const qc = useQueryClient();
   const toast = useAdmin((s) => s.toast);
+  const onError = (e: unknown) => toast({ title: errText(e), kind: 'error' });
   const q = useQuery({ queryKey: ['sounds'], queryFn: soundsApi.overview, refetchInterval: 5000 });
   const data = q.data;
 
@@ -139,19 +149,20 @@ export const SoundsPage = () => {
   });
 
   const updateCommConfig = useMutation({
-    mutationFn: async (
-      patch: Partial<{ enabled: boolean; autoEvents: boolean; rate: number; pitch: number; volume: number }>,
-    ) => {
+    mutationFn: async (patch: CommPatch) => {
       const res = await fetch('/api/commentary/config', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify(patch),
       });
-      return res.json();
+      const body = (await res.json().catch(() => ({}))) as { error?: string };
+      if (!res.ok) throw new ApiError(res.status, body.error ?? `Server replied ${res.status}`);
+      return body;
     },
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['commentary'] });
     },
+    onError,
   });
 
   const speakText = useMutation({
@@ -161,7 +172,9 @@ export const SoundsPage = () => {
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ text, eventType }),
       });
-      return res.json();
+      const body = (await res.json().catch(() => ({}))) as { error?: string };
+      if (!res.ok) throw new ApiError(res.status, body.error ?? `Server replied ${res.status}`);
+      return body;
     },
     onSuccess: (_, vars) => {
       setCustomCommentary('');
@@ -174,6 +187,7 @@ export const SoundsPage = () => {
         window.speechSynthesis.speak(u);
       }
     },
+    onError,
   });
 
   const commConfig = commQuery.data?.config;
@@ -189,7 +203,6 @@ export const SoundsPage = () => {
     if (o) qc.setQueryData(['sounds'], o);
     else void qc.invalidateQueries({ queryKey: ['sounds'] });
   };
-  const onError = (e: unknown) => toast({ title: errText(e), kind: 'error' });
 
   const upload = useMutation({
     mutationFn: soundsApi.upload,
@@ -239,6 +252,54 @@ export const SoundsPage = () => {
   const loopCount = slots.filter((s) => s.includeInLoop).length;
   const isLoopRunning = Boolean(data?.loopRunning);
 
+  // Sliders used to PUT on every input event: a one-second drag fired dozens of concurrent
+  // settings writes, the last response won, and the handle snapped back mid-drag.
+  const masterSaved = useRef<number | null>(null);
+  const commitMaster = () => {
+    if (masterSaved.current === master) return;
+    masterSaved.current = master;
+    control.mutate(() => soundsApi.master(master / 100));
+    if (settings.data) {
+      saveSettings.mutate({
+        ...settings.data,
+        sounds: { ...settings.data.sounds, masterVolume: master / 100 },
+      });
+    }
+  };
+
+  const [commDraft, setCommDraft] = useState<CommPatch>({});
+  const draftValue = (key: 'rate' | 'pitch' | 'volume', live: number) => commDraft[key] ?? live;
+  const holdComm = (key: 'rate' | 'pitch' | 'volume') => (e: React.ChangeEvent<HTMLInputElement>) =>
+    setCommDraft((d) => ({ ...d, [key]: Number(e.target.value) }));
+  const commitComm = () => {
+    if (!Object.keys(commDraft).length) return;
+    updateCommConfig.mutate(commDraft);
+    setCommDraft({});
+  };
+
+  // The headphone monitor existed but was never switched on, so the `sound` channel was dropped.
+  const [outputs, setOutputs] = useState<{ id: string; label: string }[]>([]);
+  const [outputId, setOutputId] = useState<string | null>(null);
+  const switchMonitor = async (on: boolean) => {
+    setHeadphoneMonitor(on);
+    try {
+      if (on) {
+        if (!outputs.length) setOutputs(await listOutputDevices());
+        await monitor.enable(outputId);
+      } else {
+        monitor.disable();
+      }
+    } catch (e) {
+      toast({ title: 'Headphone monitor unavailable', description: errText(e), kind: 'error' });
+    }
+  };
+  const pickOutput = async (id: string) => {
+    setOutputId(id);
+    if (monitor.isEnabled) await monitor.setDevice(id);
+  };
+
+  useEffect(() => () => monitor.disable(), []);
+
   const handleQuickAdd = async (sampleTitle: string) => {
     try {
       await samples.mutateAsync();
@@ -249,9 +310,9 @@ export const SoundsPage = () => {
   };
 
   const handleInstantCrowd = async (soundIdOrName: string) => {
-    if (headphoneMonitor) {
-      playLocalAudio(soundIdOrName, master / 100);
-    }
+    // With the monitor on, the operator already hears the track through the `sound` channel;
+    // playing it locally as well doubled it.
+    if (!headphoneMonitor) playLocalAudio(soundIdOrName, master / 100);
     const slot = slots.find(
       (s) =>
         s.title.toLowerCase().includes(soundIdOrName.toLowerCase()) ||
@@ -352,10 +413,25 @@ export const SoundsPage = () => {
               <input
                 type="checkbox"
                 checked={headphoneMonitor}
-                onChange={(e) => setHeadphoneMonitor(e.target.checked)}
+                onChange={(e) => void switchMonitor(e.target.checked)}
               />
               🎧 Monitor in Admin Headphones
             </label>
+            {headphoneMonitor && outputs.length > 0 && (
+              <select
+                aria-label="Monitor output device"
+                value={outputId ?? ''}
+                onChange={(e) => void pickOutput(e.target.value)}
+                className="rounded-lg border border-blue-200 bg-white px-2 py-1 text-xs text-slate-700"
+              >
+                <option value="">System default</option>
+                {outputs.map((o) => (
+                  <option key={o.id} value={o.id}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            )}
             <button
               onClick={() => control.mutate(isLoopRunning ? soundsApi.loopStop : soundsApi.loopStart)}
               className="rounded-lg bg-red-600/80 px-3 py-1.5 text-xs font-bold text-white transition hover:bg-red-500 flex items-center gap-1"
@@ -389,20 +465,10 @@ export const SoundsPage = () => {
               min="0"
               max="100"
               value={master}
-              onChange={(e) => {
-                const val = Number(e.target.value);
-                setMaster(val);
-                control.mutate(() => soundsApi.master(val / 100));
-                if (settings.data) {
-                  saveSettings.mutate({
-                    ...settings.data,
-                    sounds: {
-                      ...settings.data.sounds,
-                      masterVolume: val / 100,
-                    },
-                  });
-                }
-              }}
+              onChange={(e) => setMaster(Number(e.target.value))}
+              onPointerUp={commitMaster}
+              onKeyUp={commitMaster}
+              onBlur={commitMaster}
               className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-blue-100 accent-orange-500"
             />
           </div>
@@ -450,9 +516,7 @@ export const SoundsPage = () => {
                 <div className="flex items-center gap-2 shrink-0 ml-2">
                   <button
                     onClick={() => {
-                      if (headphoneMonitor) {
-                        playLocalAudio(s.file, master / 100);
-                      }
+                      if (!headphoneMonitor) playLocalAudio(s.file, master / 100);
                       void soundsApi.play(s.id).catch(onError);
                     }}
                     className="flex items-center gap-1 rounded-lg bg-orange-500 px-3 py-1.5 text-xs font-bold text-white uppercase hover:bg-orange-600 transition shadow-xs"
@@ -588,45 +652,54 @@ export const SoundsPage = () => {
           <div className="space-y-1">
             <div className="flex justify-between text-xs font-semibold">
               <span className="text-muted">Speech Speed (Rate):</span>
-              <span className="text-amber-400">{commConfig?.rate ?? 1.05}x</span>
+              <span className="text-amber-400">{draftValue('rate', commConfig?.rate ?? 1.05)}x</span>
             </div>
             <input
               type="range"
               min="0.7"
               max="1.5"
               step="0.05"
-              value={commConfig?.rate ?? 1.05}
-              onChange={(e) => updateCommConfig.mutate({ rate: Number(e.target.value) })}
+              value={draftValue('rate', commConfig?.rate ?? 1.05)}
+              onChange={holdComm('rate')}
+              onPointerUp={commitComm}
+              onKeyUp={commitComm}
+              onBlur={commitComm}
               className="w-full accent-amber-500"
             />
           </div>
           <div className="space-y-1">
             <div className="flex justify-between text-xs font-semibold">
               <span className="text-muted">Excitement Pitch:</span>
-              <span className="text-amber-400">{commConfig?.pitch ?? 1.0}</span>
+              <span className="text-amber-400">{draftValue('pitch', commConfig?.pitch ?? 1.0)}</span>
             </div>
             <input
               type="range"
               min="0.8"
               max="1.3"
               step="0.05"
-              value={commConfig?.pitch ?? 1.0}
-              onChange={(e) => updateCommConfig.mutate({ pitch: Number(e.target.value) })}
+              value={draftValue('pitch', commConfig?.pitch ?? 1.0)}
+              onChange={holdComm('pitch')}
+              onPointerUp={commitComm}
+              onKeyUp={commitComm}
+              onBlur={commitComm}
               className="w-full accent-amber-500"
             />
           </div>
           <div className="space-y-1">
             <div className="flex justify-between text-xs font-semibold">
               <span className="text-muted">TTS Master Volume:</span>
-              <span className="text-amber-400">{Math.round((commConfig?.volume ?? 1) * 100)}%</span>
+              <span className="text-amber-400">{Math.round(draftValue('volume', commConfig?.volume ?? 1) * 100)}%</span>
             </div>
             <input
               type="range"
               min="0"
               max="1"
               step="0.05"
-              value={commConfig?.volume ?? 1}
-              onChange={(e) => updateCommConfig.mutate({ volume: Number(e.target.value) })}
+              value={draftValue('volume', commConfig?.volume ?? 1)}
+              onChange={holdComm('volume')}
+              onPointerUp={commitComm}
+              onKeyUp={commitComm}
+              onBlur={commitComm}
               className="w-full accent-amber-500"
             />
           </div>

@@ -13,8 +13,21 @@ import type { SelectorService } from './selectors';
 
 const AUTH_TIMEOUT_MS = 5000;
 
-export function onAirHeroUpdateToRaw(payload: any): RawUpdate {
-  const matchId = String(payload.matchId || 'live');
+/** The scraped page URL carries the real match id when the payload itself forgot it. */
+const idFromUrl = (url: unknown): string => {
+  if (typeof url !== 'string') return '';
+  const m = /(?:live-cricket-scores\/|\/match\/)(\d{3,})/i.exec(url);
+  return m?.[1] ?? '';
+};
+
+/**
+ * Converts an OnAirHero scrape into a RawUpdate. `null` means "this is not a score": a payload
+ * with no match identity or no scored content used to become a `live` 0-0 match and wipe whatever
+ * was on air.
+ */
+export function onAirHeroUpdateToRaw(payload: any): RawUpdate | null {
+  const matchId = String(payload.matchId ?? payload.id ?? payload.match_id ?? '').trim() || idFromUrl(payload.url);
+  if (!matchId || matchId === 'live') return null;
   const source: 'cricbuzz' | 'crex' =
     payload.source === 'crex' || matchId.startsWith('crex_') ? 'crex' : 'cricbuzz';
   const url =
@@ -137,6 +150,16 @@ export function onAirHeroUpdateToRaw(payload: any): RawUpdate {
     payload.commentary?.text ||
     (typeof payload.commentary === 'string' ? payload.commentary : undefined);
 
+  // Nothing scored at all: an empty innings list would publish a 0-0 pre-match state over a live game.
+  const hasScore =
+    innings.length > 0 ||
+    batters.length > 0 ||
+    Boolean(bowler) ||
+    Boolean(payload.batting) ||
+    Boolean(payload.innings) ||
+    teams.length > 0;
+  if (!hasScore) return null;
+
   return {
     source,
     matchId,
@@ -170,7 +193,9 @@ export function onAirHeroUpdateToRaw(payload: any): RawUpdate {
 
 export const SAMPLE_MATCH_UPDATE = {
   source: 'cricbuzz' as const,
-  matchId: '147920',
+  // Deliberately not a real-looking match number: the demo fixture must never collide with, or
+  // get mistaken for, a scraped match.
+  matchId: 'demo-seed-match',
   url: 'https://www.cricbuzz.com/live-cricket-scores/147920/south-africa-vs-australia-1st-test',
   capturedAt: Date.now(),
   confidence: 1,
@@ -274,9 +299,16 @@ export const registerExtRoutes = (
       type: 'heartbeat',
       extensionVersion: '1.0.1',
       selectorsVersion: 1,
-      tabs: [{ matchId: '147920', url: SAMPLE_MATCH_UPDATE.url, lastUpdateAt: now, confidence: 1 }],
+      tabs: [
+        {
+          matchId: SAMPLE_MATCH_UPDATE.matchId,
+          url: SAMPLE_MATCH_UPDATE.url,
+          lastUpdateAt: now,
+          confidence: 1,
+        },
+      ],
     });
-    return { ok: true, matchId: '147920' };
+    return { ok: true, matchId: SAMPLE_MATCH_UPDATE.matchId };
   });
 
   // Extension side.
@@ -306,6 +338,11 @@ export const registerExtRoutes = (
     const payload = body.payload || body;
     try {
       const raw = onAirHeroUpdateToRaw(payload);
+      if (!raw) {
+        return reply
+          .code(400)
+          .send({ error: 'Not a score update: needs a match id (or match URL) and some scored data' });
+      }
       provider.ingest(raw);
       provider.recordHeartbeat({
         type: 'heartbeat',
@@ -352,7 +389,7 @@ export const registerExtRoutes = (
     provider.setCommandSender((cmd) => {
       sendMsg(cmd.command, cmd);
       return socket.readyState === socket.OPEN;
-    });
+    }, socket);
 
     socket.on('message', (raw) => {
       let json: any;
@@ -397,20 +434,24 @@ export const registerExtRoutes = (
       } else if (msgType === 'match_update') {
         try {
           const rawUpdate = onAirHeroUpdateToRaw(payload);
-          provider.ingest(rawUpdate);
-          provider.recordHeartbeat({
-            type: 'heartbeat',
-            extensionVersion: '1.2.0',
-            selectorsVersion: 1,
-            tabs: [
-              {
-                matchId: rawUpdate.matchId,
-                url: rawUpdate.url,
-                lastUpdateAt: Date.now(),
-                confidence: 1,
-              },
-            ],
-          });
+          if (rawUpdate) {
+            provider.ingest(rawUpdate);
+            provider.recordHeartbeat({
+              type: 'heartbeat',
+              extensionVersion: '1.2.0',
+              selectorsVersion: 1,
+              tabs: [
+                {
+                  matchId: rawUpdate.matchId,
+                  url: rawUpdate.url,
+                  lastUpdateAt: Date.now(),
+                  confidence: 1,
+                },
+              ],
+            });
+          } else {
+            sendMsg('update_rejected', { reason: 'no match id or no scored content' });
+          }
         } catch {
           // Ignore transient parsing drops
         }
@@ -420,7 +461,7 @@ export const registerExtRoutes = (
     });
 
     socket.on('close', () => {
-      provider.setCommandSender(null);
+      provider.releaseCommandSender(socket);
       hub.broadcast('health', 'extension-disconnected', {});
     });
   });
@@ -459,7 +500,7 @@ export const registerExtRoutes = (
           provider.setCommandSender((cmd) => {
             send({ type: 'command', ...cmd });
             return socket.readyState === socket.OPEN;
-          });
+          }, socket);
           hub.broadcast('health', 'extension-connected', {});
           send({ type: 'authed' });
         } else {
@@ -474,7 +515,7 @@ export const registerExtRoutes = (
     socket.on('close', () => {
       clearTimeout(authTimer);
       if (authed) {
-        provider.setCommandSender(null);
+        provider.releaseCommandSender(socket);
         hub.broadcast('health', 'extension-disconnected', {});
       }
     });

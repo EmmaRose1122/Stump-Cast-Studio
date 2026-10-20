@@ -196,12 +196,27 @@ describe('CardManager', () => {
     expect(m.activeId).toBeNull();
   });
 
-  it('ignores unknown card ids and keeps what is on air', () => {
-    const { m } = setup();
+  it('ignores unknown card ids and keeps what is on air, including its hide timer', () => {
+    const { m, timers } = setup();
     m.updateMatch(t20);
     m.apply({ cardId: 'partnership', durationSec: 8, source: 'director' });
     m.apply({ cardId: 'does-not-exist', durationSec: 8, source: 'director' });
     expect(m.activeId).toBe('partnership');
+    // The bail-out must not strand the card: the timer armed before it is still live.
+    expect(timers).toHaveLength(1);
+    timers[0]!.fn();
+    expect(m.activeId).toBeNull();
+  });
+
+  it('swallows a history fetch that rejects', async () => {
+    const { m } = setup(async () => {
+      throw new Error('boom');
+    });
+    m.updateMatch(t20);
+    m.apply({ cardId: 'manhattan', durationSec: 8, source: 'director' });
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(m.activeId).toBe('manhattan');
   });
 
   it('follows the score while on air', () => {

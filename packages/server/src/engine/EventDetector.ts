@@ -22,6 +22,8 @@ export class EventDetector {
   private readonly last = new Map<string, MatchState>();
   private readonly seen = new Set<string>();
   private readonly resyncing = new Set<string>();
+  /** Illegal deliveries seen inside each legal-ball slot, so each keeps its own event id. */
+  private readonly extrasInSlot = new Map<string, number>();
 
   /** Mark the next state of a match as a baseline (call after a reconnect/snapshot). */
   resync(matchId: string): void {
@@ -56,6 +58,8 @@ export class EventDetector {
           teamId: prev.battingTeamId,
         });
       }
+      const prefix = `${next.id}:`;
+      for (const k of [...this.extrasInSlot.keys()]) if (k.startsWith(prefix)) this.extrasInSlot.delete(k);
       return out;
     }
 
@@ -74,14 +78,25 @@ export class EventDetector {
     for (const b of newTokens) {
       const before = pos;
       if (isLegal(b)) pos++;
-      sub = pos === before ? sub + 1 : 0;
+      // Extras share the legal-ball slot they were bowled in. The counter has to live on the
+      // instance, not just inside this loop: an over of only wides/no-balls arrives as several
+      // separate states, and each one would otherwise restart at 1 and collide on the event id.
+      const slot = `${next.id}:${inn}:${pos}`;
+      if (pos === before) {
+        sub = (this.extrasInSlot.get(slot) ?? 0) + 1;
+        this.extrasInSlot.set(slot, sub);
+      } else {
+        this.extrasInSlot.delete(`${next.id}:${inn}:${before}`);
+        sub = 0;
+      }
       const at = {
         over: Math.floor((Math.max(pos, 1) - 1) / 6),
         ball: ((Math.max(pos, 1) - 1) % 6) + 1,
         batterId: b.batterId,
       };
-      if (!b.extras && b.runs === 4) push('FOUR', `${next.id}:${inn}:${pos}.${sub}:FOUR`, at);
-      else if (!b.extras && b.runs === 6) push('SIX', `${next.id}:${inn}:${pos}.${sub}:SIX`, at);
+      // `runs` is always off the bat, so a no-ball four is still a four; extras are scored separately.
+      if (b.runs === 4) push('FOUR', `${next.id}:${inn}:${pos}.${sub}:FOUR`, at);
+      else if (b.runs === 6) push('SIX', `${next.id}:${inn}:${pos}.${sub}:SIX`, at);
       if (b.wicket && wicketsEmitted < wktDelta) {
         wicketsEmitted++;
         const n = prev.score.wkts + wicketsEmitted;
@@ -92,6 +107,25 @@ export class EventDetector {
     for (; wicketsEmitted < wktDelta; wicketsEmitted++) {
       const n = prev.score.wkts + wicketsEmitted + 1;
       push('WICKET', `${next.id}:${inn}:W${n}`, this.wicketPayload(prev, next, n));
+    }
+
+    // `lastBalls` carries at most 6 tokens, but a stalled feed may deliver up to
+    // MAX_CATCH_UP_BALLS legal balls in one update. Those boundaries would vanish silently
+    // (wickets survive the fallback above), so recover them from the batters' counters.
+    if (nBalls > newTokens.filter(isLegal).length) {
+      const at = base + nBalls;
+      const where = {
+        over: Math.floor((Math.max(at, 1) - 1) / 6),
+        ball: ((Math.max(at, 1) - 1) % 6) + 1,
+      };
+      for (const nb of next.batters) {
+        const pb = prev.batters.find((b) => b.playerId === nb.playerId);
+        if (!pb || isPlaceholder(nb.playerId)) continue;
+        for (let k = pb.fours + 1; k <= nb.fours; k++)
+          push('FOUR', `${next.id}:${inn}:B${nb.playerId}:F${k}`, { ...where, batterId: nb.playerId });
+        for (let k = pb.sixes + 1; k <= nb.sixes; k++)
+          push('SIX', `${next.id}:${inn}:B${nb.playerId}:S${k}`, { ...where, batterId: nb.playerId });
+      }
     }
 
     // --- individual milestones -------------------------------------------------------------

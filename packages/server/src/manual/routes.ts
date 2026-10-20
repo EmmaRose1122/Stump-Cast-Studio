@@ -13,7 +13,12 @@ const COMMANDS = [
   'set-result',
 ] as const;
 
-export const registerManualRoutes = (fastify: FastifyInstance, provider: ManualProvider): void => {
+export const registerManualRoutes = (
+  fastify: FastifyInstance,
+  provider: ManualProvider,
+  /** Full teardown of everything a match touched, including what is on air. */
+  purge: (matchId: string) => void = (id) => void provider.delete(id),
+): void => {
   const fail = (reply: FastifyReply, err: unknown) => {
     if (err instanceof ManualError) return reply.code(400).send({ error: err.message });
     throw err;
@@ -54,7 +59,8 @@ export const registerManualRoutes = (fastify: FastifyInstance, provider: ManualP
   });
 
   fastify.delete<{ Params: { id: string } }>('/api/manual/:id', async (req, reply) => {
-    if (!provider.delete(req.params.id)) return reply.code(404).send({ error: 'Unknown match' });
+    if (!provider.get(req.params.id)) return reply.code(404).send({ error: 'Unknown match' });
+    purge(req.params.id);
     return { ok: true };
   });
 

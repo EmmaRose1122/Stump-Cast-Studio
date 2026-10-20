@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
+  EXTRA_LABEL,
+  EXTRA_MODIFIERS,
   ballFor,
   parsePlayers,
   resolveScoringKey,
@@ -7,6 +9,26 @@ import {
   type ExtraKind,
 } from './lib/scoring';
 import { describeEvent } from './pages/Live';
+
+describe('modifier buttons', () => {
+  // The buttons once used hyphenated strings cast to ExtraKind: two of them scored nothing and
+  // rendered no label. The list and the payload builder must stay in step.
+  it('every modifier has a label and produces a real delivery', () => {
+    for (const kind of EXTRA_MODIFIERS) {
+      expect(EXTRA_LABEL[kind]).toBeTruthy();
+      const payload = ballFor(kind, kind === 'bye' || kind === 'legbye' ? 1 : 2);
+      expect(payload).not.toBeNull();
+    }
+  });
+
+  it('covers the same kinds the keyboard map can select', () => {
+    const fromKeys = ['x', 'n', 'b', 'l', 'z']
+      .map((k) => resolveScoringKey(k))
+      .filter((k): k is { type: 'extra'; kind: ExtraKind } => k?.type === 'extra')
+      .map((k) => k.kind);
+    expect([...fromKeys].sort()).toEqual([...EXTRA_MODIFIERS].sort());
+  });
+});
 
 describe('ballFor', () => {
   it('plain runs are runs off the bat', () => {

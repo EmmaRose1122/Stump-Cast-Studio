@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   coralDusk,
   createMatchState,
+  createSettings,
   fixtures,
   graphiteTeal,
   type MatchState,
@@ -188,6 +189,20 @@ describe('OverlayStore', () => {
       ),
     );
     expect(s.current()?.score.runs).toBe(0);
+  });
+
+  it('renders whatever the server feeds, including a numeric scraped match id', () => {
+    // 147920 was once a demo id, so the store used to drop it — which silently black-holed every
+    // real Cricbuzz match that happened to share the number.
+    const s = new OverlayStore();
+    const scraped = at(createMatchState({ id: '147920', title: 'South Africa vs Australia' }), '2026-01-01T00:00:10.000Z');
+    s.setMatch(scraped);
+    expect(s.current()?.id).toBe('147920');
+
+    const other = at(createMatchState({ id: 'seed-match' }), '2026-01-01T00:00:10.000Z');
+    s.setSettings({ ...createSettings(), onStreamMatchId: 'seed-match' });
+    s.setMatch(other);
+    expect(s.current()?.id).toBe('seed-match');
   });
 
   it('keeps state when the connection drops', () => {

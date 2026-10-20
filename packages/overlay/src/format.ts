@@ -18,8 +18,12 @@ const cap = (v: string) => v.charAt(0).toUpperCase() + v.slice(1);
 /** One short line describing the match situation, or null when there is nothing to say. */
 export const situationText = (s: MatchState): string | null => {
   if (s.status === 'result' && s.result) return s.result;
-  if (s.runsNeeded !== undefined && s.ballsLeft !== undefined && s.target !== undefined) {
+  if (s.runsNeeded !== undefined && s.target !== undefined) {
     if (s.runsNeeded === 0) return `${battingTeam(s).short} have reached the target`;
+    // A feed can report a chase with no balls left; "Need 1 off 0" is not a situation, it is a bug.
+    if (s.ballsLeft === undefined || s.ballsLeft === 0) {
+      return `${battingTeam(s).short} need ${s.runsNeeded} to reach ${s.target}`;
+    }
     return `Need ${s.runsNeeded} off ${s.ballsLeft}`;
   }
   if (s.format === 'TEST') {

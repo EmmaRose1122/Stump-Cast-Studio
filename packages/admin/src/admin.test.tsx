@@ -14,6 +14,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Gallery } from './pages/Gallery';
 import { SettingsPage } from './pages/pages';
 import { AlarmBanner, OnAirIndicator, StatusChip } from './shell/AppShell';
+import { ErrorBoundary } from './shell/ErrorBoundary';
+import { useLiveSocket } from './lib/live';
 import { applyTheme, useAdmin } from './store';
 import { Banner, Button, IconButton, TooltipProvider } from './ui';
 
@@ -276,3 +278,66 @@ describe('SettingsPage Data Source & Selectors (Prompt X5)', () => {
     expect(screen.getByRole('button', { name: /rollback to bundled/i })).toBeTruthy();
   });
 });
+
+describe('studio survives faults', () => {
+  it('shows a fallback instead of blanking the control room when a page throws', () => {
+    const Boom = () => {
+      throw new Error('bad match payload');
+    };
+    const err = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    render(
+      <ErrorBoundary pageKey="/live">
+        <Boom />
+      </ErrorBoundary>,
+    );
+    expect(screen.getByText(/This page stopped working/i)).toBeTruthy();
+    expect(screen.getByText(/bad match payload/)).toBeTruthy();
+    err.mockRestore();
+  });
+
+  it('ignores a non-JSON websocket frame instead of throwing in onmessage', () => {
+    class FakeWS {
+      static instances: FakeWS[] = [];
+      onopen: (() => void) | null = null;
+      onmessage: ((e: { data: string }) => void) | null = null;
+      onclose: (() => void) | null = null;
+      onerror: (() => void) | null = null;
+      sent: string[] = [];
+      readyState = 1;
+      constructor(public url: string) {
+        FakeWS.instances.push(this);
+      }
+      send(d: string) {
+        this.sent.push(d);
+      }
+      close() {
+        this.onclose?.();
+      }
+    }
+    FakeWS.instances = [];
+    vi.stubGlobal('WebSocket', FakeWS as unknown as typeof WebSocket);
+    const Probe = () => {
+      useLiveSocket();
+      return null;
+    };
+    try {
+      render(
+        <QueryClientProvider client={new QueryClient()}>
+          <Probe />
+        </QueryClientProvider>,
+      );
+      const ws = FakeWS.instances[0]!;
+      ws.onopen?.();
+      expect(() => ws.onmessage?.({ data: 'ping' })).not.toThrow();
+      expect(() => ws.onmessage?.({ data: '<html>502 bad gateway</html>' })).not.toThrow();
+      expect(() =>
+        ws.onmessage?.({
+          data: JSON.stringify({ type: 'message', channel: 'health', event: 'alarm', payload: {} }),
+        }),
+      ).not.toThrow();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+});
+

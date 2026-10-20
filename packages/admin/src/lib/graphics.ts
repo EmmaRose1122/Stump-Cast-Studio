@@ -1,4 +1,4 @@
-import type { DirectorRule } from '@stumpcast/shared';
+import type { DirectorRule, DirectorTrigger } from '@stumpcast/shared';
 
 export interface CardInfo {
   id: string;
@@ -55,7 +55,7 @@ export const DURATIONS: { value: string; label: string }[] = [
   { value: '0', label: 'Sticky' },
 ];
 
-export const RULE_EVENTS: { value: string; label: string }[] = [
+export const RULE_EVENTS: { value: DirectorTrigger; label: string }[] = [
   { value: 'OVER_END', label: 'End of over' },
   { value: 'WICKET', label: 'Wicket' },
   { value: 'FOUR', label: 'Four' },

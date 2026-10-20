@@ -77,7 +77,10 @@ export const registerObsRoutes = (
     const settings = getSettings();
     try {
       const result = await obs.applyLayout(body.data.layoutId, settings.video.obsMap, body.data.sceneName);
-      saveSettings({ ...settings, video: { ...settings.video, activeObsLayout: body.data.layoutId, obsScene: body.data.sceneName ?? settings.video.obsScene } });
+      // Re-read after the await: the layout call is slow, and whatever the operator saved while
+      // it was in flight must not be reverted by the snapshot taken before it.
+      const current = getSettings();
+      saveSettings({ ...current, video: { ...current.video, activeObsLayout: body.data.layoutId, obsScene: body.data.sceneName ?? current.video.obsScene } });
       return result;
     } catch (err) {
       return reply.code(409).send({ error: err instanceof Error ? err.message : 'Could not apply OBS layout' });

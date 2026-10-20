@@ -460,14 +460,64 @@ describe('HTTP API', () => {
     expect(scored.status).toBe(200);
     expect(app.engine.getState(match.id)?.score.runs).toBe(4);
 
+    const eventsUrl = `${base}/api/events?matchId=${match.id}`;
+    const four = (await (await fetch(eventsUrl)).json()) as { type: string }[];
+    expect(four.map((e) => e.type)).toContain('FOUR');
+
     expect((await post(`/api/manual/${match.id}/ball`, { runs: 9 })).status).toBe(400);
 
     const undone = await post(`/api/manual/${match.id}/undo`, {});
     expect(undone.status).toBe(200);
     expect(app.engine.getState(match.id)?.score.runs).toBe(0);
+    // The retracted ball must leave the broadcast history too, not just the scorecard.
+    expect(await (await fetch(eventsUrl)).json()).toEqual([]);
 
     expect((await post('/api/manual/nope/ball', { runs: 1 })).status).toBe(404);
     const list = (await (await fetch(`${base}/api/manual/matches`)).json()) as unknown[];
     expect(list).toHaveLength(1);
+  });
+
+  it('deleting a manual match takes it off air, out of settings and out of the database', async () => {
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sc-manual-delete-'));
+    app = await buildApp(loadConfig({}, { dataDir: dir, port: 0, overlayDir: '', adminDir: '' }));
+    const port = await app.start();
+    const base = `http://127.0.0.1:${port}`;
+    const post = (p: string, body: unknown) =>
+      fetch(base + p, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+
+    const match = (await (await post('/api/manual/matches', setup())).json()) as { id: string };
+    await post(`/api/manual/${match.id}/set-batter`, {
+      slot: 'striker',
+      playerId: id('alpha', 1),
+    });
+    await post(`/api/manual/${match.id}/set-batter`, {
+      slot: 'nonStriker',
+      playerId: id('alpha', 2),
+    });
+    await post(`/api/manual/${match.id}/set-bowler`, { playerId: id('bravo', 11) });
+    await post(`/api/manual/${match.id}/ball`, { runs: 4 });
+
+    const settings = (await (await fetch(`${base}/api/settings`)).json()) as Record<string, unknown>;
+    await fetch(`${base}/api/settings`, {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ ...settings, onStreamMatchId: match.id }),
+    });
+    expect(await (await fetch(`${base}/api/state`)).json()).toHaveLength(1);
+
+    expect((await fetch(`${base}/api/manual/${match.id}`, { method: 'DELETE' })).status).toBe(200);
+
+    // The broadcast must stop, the picker must forget it, and a restart must not resurrect it.
+    expect(await (await fetch(`${base}/api/state`)).json()).toEqual([]);
+    const after = (await (await fetch(`${base}/api/settings`)).json()) as {
+      onStreamMatchId: string | null;
+    };
+    expect(after.onStreamMatchId).toBeNull();
+    expect(await (await fetch(`${base}/api/manual/matches`)).json()).toEqual([]);
+    expect(app.engine.getState(match.id)).toBeUndefined();
   });
 });

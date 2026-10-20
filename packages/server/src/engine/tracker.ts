@@ -77,6 +77,21 @@ export class BallTracker {
     }
   }
 
+  /** Forget one match entirely, so a deleted-then-recreated id does not inherit stale counts. */
+  remove(matchId: string): void {
+    const prefix = `${matchId}#`;
+    for (const k of [...this.stats.keys()]) if (k.startsWith(prefix)) this.stats.delete(k);
+  }
+
+  clear(): void {
+    this.stats.clear();
+  }
+
+  /** Number of innings still being tracked (for leak tests). */
+  get size(): number {
+    return this.stats.size;
+  }
+
   apply(s: MatchState): MatchState {
     const st = this.stats.get(this.key(s));
     if (!st) return s;

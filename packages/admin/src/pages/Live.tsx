@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import type { SoundSlot } from '@stumpcast/shared';
 import {
   ApiError,
   api,
@@ -12,6 +13,7 @@ import {
 } from '../lib/api';
 import {
   EXTRA_LABEL,
+  EXTRA_MODIFIERS,
   WICKET_KINDS,
   ballFor,
   parsePlayers,
@@ -20,6 +22,7 @@ import {
   sampleSquad,
   type ExtraKind,
 } from '../lib/scoring';
+import { soundsApi } from '../lib/sounds';
 import { useAdmin } from '../store';
 import { Button, Card, Dialog, EmptyState, Select } from '../ui';
 
@@ -196,9 +199,16 @@ const YourMatchesSection = () => {
         await qc.invalidateQueries({ queryKey: ['matches'] });
         await qc.invalidateQueries({ queryKey: ['settings'] });
         toast({ title: 'Live demo match loaded successfully!', kind: 'success' });
+        return;
       }
+      const body = (await res.json().catch(() => ({}))) as { error?: string };
+      toast({
+        title: 'Could not load demo match',
+        description: body.error ?? `Server replied ${res.status}`,
+        kind: 'error',
+      });
     } catch {
-      toast({ title: 'Could not load demo match', kind: 'error' });
+      toast({ title: 'Could not load demo match', description: 'Is the Studio server running?', kind: 'error' });
     }
   };
 
@@ -371,18 +381,24 @@ const OpenAnotherMatchCard = () => {
       const res = await fetch('/api/ext/command', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ type: 'open', url: url.trim() }),
+        // ExtCommandSchema is discriminated on `command`; `{type:'open'}` was rejected with a
+        // 400 and the fallback branch then reported it as intended behaviour.
+        body: JSON.stringify({ command: 'openMatch', url: url.trim() }),
       });
-      const data = (await res.json()) as { delivered?: boolean };
-      if (data.delivered) {
+      const data = (await res.json().catch(() => ({}))) as { delivered?: boolean; error?: string };
+      if (res.ok && data.delivered) {
         toast({ title: 'Match opening in Chrome via Extension!', kind: 'success' });
-      } else {
-        // Fallback: open directly in window
-        window.open(url.trim(), '_blank');
-        toast({ title: 'Opened match tab in browser', kind: 'info' });
+        return;
       }
+      window.open(url.trim(), '_blank');
+      toast({
+        title: 'Extension did not take the command — opened a browser tab instead',
+        description: data.error ?? (res.ok ? 'No extension connected' : `Server replied ${res.status}`),
+        kind: 'info',
+      });
     } catch {
       window.open(url.trim(), '_blank');
+      toast({ title: 'Could not reach the server — opened a browser tab', kind: 'info' });
     } finally {
       setLoading(false);
     }
@@ -422,19 +438,43 @@ const OpenAnotherMatchCard = () => {
 
 /* Sticky Crowd Sound Bar matching Screenshot 2026-10-12 202750 ------------------------------ */
 
+const CROWD_MATCH: Record<string, string[]> = {
+  cheer: ['cheer', 'crowd'],
+  clap: ['clap', 'applause'],
+  four: ['four', 'horn', 'boundary'],
+};
+
 const CrowdAudioBar = () => {
   const toast = useAdmin((s) => s.toast);
+  const slotsRef = useRef<SoundSlot[] | null>(null);
 
-  const triggerSound = async (action: string) => {
+  // `/api/sounds/instant` never existed, so every button 404ed and still toasted success.
+  const play = async (action: string) => {
     try {
-      await fetch('/api/sounds/instant', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ slot: action === 'four' ? 2 : 1 }),
-      });
-      toast({ title: `Crowd: ${action} triggered!`, kind: 'info' });
-    } catch {
-      toast({ title: `Crowd sound fired: ${action}`, kind: 'info' });
+      if (action === 'mute') {
+        await soundsApi.stopAll();
+        toast({ title: 'Crowd: all sounds stopped', kind: 'info' });
+        return;
+      }
+      if (!slotsRef.current) slotsRef.current = (await soundsApi.overview()).slots;
+      const slots = slotsRef.current;
+      const hit =
+        (CROWD_MATCH[action] ?? [action])
+          .map((needle) => slots.find((s) => s.title.toLowerCase().includes(needle)))
+          .find((s): s is SoundSlot => Boolean(s)) ?? slots[0];
+      if (!hit) {
+        toast({
+          title: 'No crowd sounds loaded yet',
+          description: 'Add one in the Sound rack first.',
+          kind: 'error',
+        });
+        return;
+      }
+      await soundsApi.play(hit.id);
+      toast({ title: `Crowd: ${action} → ${hit.title}`, kind: 'success' });
+    } catch (e) {
+      slotsRef.current = null;
+      toast({ title: `Crowd: ${action} failed`, description: errorText(e), kind: 'error' });
     }
   };
 
@@ -445,28 +485,28 @@ const CrowdAudioBar = () => {
       </span>
       <button
         type="button"
-        onClick={() => triggerSound('cheer')}
+        onClick={() => void play('cheer')}
         className="flex items-center gap-1 rounded-lg bg-rose-50 px-3 py-1 font-semibold text-rose-700 border border-rose-200 hover:bg-rose-100 transition"
       >
         <span>📢</span> Cheer
       </button>
       <button
         type="button"
-        onClick={() => triggerSound('clap')}
+        onClick={() => void play('clap')}
         className="flex items-center gap-1 rounded-lg bg-amber-50 px-3 py-1 font-semibold text-amber-800 border border-amber-200 hover:bg-amber-100 transition"
       >
         <span>👏</span> Clap
       </button>
       <button
         type="button"
-        onClick={() => triggerSound('four')}
+        onClick={() => void play('four')}
         className="flex items-center gap-1 rounded-lg bg-blue-50 px-3 py-1 font-semibold text-blue-800 border border-blue-200 hover:bg-blue-100 transition"
       >
         <span>🎺</span> Four
       </button>
       <button
         type="button"
-        onClick={() => triggerSound('mute')}
+        onClick={() => void play('mute')}
         className="flex items-center gap-1 rounded-lg bg-slate-100 px-3 py-1 font-semibold text-slate-700 border border-slate-200 hover:bg-slate-200 transition"
       >
         <span className="size-2 rounded-full bg-rose-500 inline-block" /> Mute
@@ -695,6 +735,7 @@ const ScoringPanel = ({ matchId }: { matchId: string }) => {
   const m = detail.data;
 
   const [extra, setExtra] = useState<ExtraKind>('none');
+  const [busy, setBusy] = useState(false);
   const [wicketOpen, setWicketOpen] = useState(false);
   const [undoOpen, setUndoOpen] = useState(false);
   const [endOpen, setEndOpen] = useState(false);
@@ -727,11 +768,18 @@ const ScoringPanel = ({ matchId }: { matchId: string }) => {
   const score = useCallback(
     async (n: number) => {
       const payload = ballFor(extra, n);
-      if (!payload || !ready) return;
+      // `busy` is what stops a held key or a double click from scoring the same delivery twice:
+      // `ready` only turns false once the response has already come back.
+      if (!payload || !ready || busy) return;
+      setBusy(true);
       setExtra('none');
-      await apply(manualApi.command(matchId, 'ball', payload));
+      try {
+        await apply(manualApi.command(matchId, 'ball', payload));
+      } finally {
+        setBusy(false);
+      }
     },
-    [extra, ready, apply, matchId],
+    [extra, ready, busy, apply, matchId],
   );
 
   const openWicket = useCallback(() => {
@@ -744,6 +792,8 @@ const ScoringPanel = ({ matchId }: { matchId: string }) => {
 
   const onKeyDown = (e: React.KeyboardEvent) => {
     if (e.ctrlKey || e.metaKey || e.altKey) return;
+    // A held-down number key repeats; each repeat used to score another delivery.
+    if (e.repeat || busy) return;
     if ((e.target as HTMLElement).closest('select, input, textarea, [role="combobox"]')) return;
     const k = resolveScoringKey(e.key);
     if (!k) return;
@@ -763,6 +813,8 @@ const ScoringPanel = ({ matchId }: { matchId: string }) => {
   const needBatter = m.yetToBat.length > 0;
 
   const doWicket = async () => {
+    if (busy) return;
+    setBusy(true);
     const ok = await apply(
       manualApi.command(matchId, 'ball', {
         ...(ballFor(extra, 0) ?? { runs: 0 }),
@@ -773,6 +825,7 @@ const ScoringPanel = ({ matchId }: { matchId: string }) => {
         },
       }),
     );
+    setBusy(false);
     if (ok) {
       setExtra('none');
       setWicketOpen(false);
@@ -876,7 +929,7 @@ const ScoringPanel = ({ matchId }: { matchId: string }) => {
                 key={n}
                 size="lg"
                 variant={n === 4 ? 'primary' : 'secondary'}
-                disabled={!ready}
+                disabled={!ready || busy}
                 onClick={() => void score(n)}
               >
                 {n}
@@ -885,16 +938,17 @@ const ScoringPanel = ({ matchId }: { matchId: string }) => {
           </div>
 
           <div className="flex flex-wrap gap-2" aria-label="Modifiers">
-            {(['none', 'wide', 'no-ball', 'bye', 'leg-bye'] as ExtraKind[]).map((k) => (
+            {EXTRA_MODIFIERS.map((k) => (
               <Button
                 key={k}
                 variant={extra === k ? 'primary' : 'secondary'}
+                disabled={busy}
                 onClick={() => setExtra((cur) => (cur === k ? 'none' : k))}
               >
                 {EXTRA_LABEL[k]}
               </Button>
             ))}
-            <Button variant="danger" disabled={!ready} onClick={openWicket}>
+            <Button variant="danger" disabled={!ready || busy} onClick={openWicket}>
               Wicket
             </Button>
           </div>

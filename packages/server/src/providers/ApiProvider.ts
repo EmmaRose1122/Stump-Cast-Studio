@@ -109,7 +109,7 @@ export class ApiProvider implements MatchProvider {
     if (this.consecutiveFailures >= 5) return 'down';
 
     if (!this.activeMatchId) {
-      return this.lastSuccessAt !== null ? 'connected' : 'connected';
+      return this.lastSuccessAt !== null ? 'connected' : 'stale';
     }
 
     if (this.lastSuccessAt === null) {

@@ -15,6 +15,9 @@ export const EXTRA_LABEL: Record<ExtraKind, string> = {
   legbye: 'Leg bye',
 };
 
+/** The modifier buttons and the keyboard share this list, so a label can never drift from a kind. */
+export const EXTRA_MODIFIERS: ExtraKind[] = ['none', 'wide', 'noball', 'bye', 'legbye'];
+
 /**
  * What pressing run button `n` means under the selected extra:
  *  none    -> n runs off the bat

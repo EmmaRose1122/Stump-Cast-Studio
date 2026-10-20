@@ -553,6 +553,9 @@ ipcMain.handle('stumpcast:download-update', async (_event, downloadUrl?: string)
 
 		// Local / Simulation fallback: copy or simulate transfer
 		const localCandidates = [
+			path.join(workspaceRoot, 'release', 'StumpCast-Studio-Setup-1.0.3.exe'),
+			'C:\\Users\\IK\\Downloads\\StumpCast Studio\\stumpcast\\release\\StumpCast-Studio-Setup-1.0.3.exe',
+			path.join(process.env.USERPROFILE || '', 'Downloads', 'StumpCast Studio', 'stumpcast', 'release', 'StumpCast-Studio-Setup-1.0.3.exe'),
 			path.join(workspaceRoot, 'release', 'StumpCast-Studio-Setup-1.0.2.exe'),
 			'C:\\Users\\IK\\Downloads\\StumpCast Studio\\stumpcast\\release\\StumpCast-Studio-Setup-1.0.2.exe',
 			path.join(process.env.USERPROFILE || '', 'Downloads', 'StumpCast Studio', 'stumpcast', 'release', 'StumpCast-Studio-Setup-1.0.2.exe'),

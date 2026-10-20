@@ -674,7 +674,9 @@ html[data-score-position='bottom'] #stage[data-layout='classic'][data-compositio
   right: 0 !important;
   bottom: 0 !important;
   top: auto !important;
-  width: 100% !important;
+  /* Compensate for the scale: a 100%-wide box scaled by --card-scale hangs off the 1920 stage
+     (measured 191px past the right edge at 1.3) and `#stage` clips it. */
+  width: calc(100% / var(--card-scale)) !important;
   display: flex !important;
   align-items: center !important;
   gap: 24px !important;
@@ -1126,6 +1128,10 @@ html[data-score-position='bottom'] #stage[data-layout='arena'][data-composition]
   border-radius: 8px;
   align-items: center;
   justify-content: center;
+}
+/* A camera panel with no device behind it is a black hole on air: drop it instead. */
+.c-stream-frame[data-camera-mode='two'] .sf-cam-2.is-offline {
+  display: none;
 }
 .sf-cam-label {
   position: absolute;
@@ -2822,6 +2828,15 @@ html[data-boundary] .c-banner[data-kind='WICKET'] {
   height: 100%;
   object-fit: cover;
   object-position: top;
+}
+/* `.asset-img` is absolutely positioned, so each crest host has to be its containing block.
+   Static hosts let the image escape the crest and cover the panel it sits in. */
+.pms-cap-crest,
+.pms-squad-crest,
+.pms-toss-crest,
+.rs-crest,
+.rs-mini-crest {
+  position: relative;
 }
 .sb-crest .asset-img {
   object-fit: contain;
@@ -4597,4 +4612,175 @@ html[data-score-bar='flat'] .c-scorebar,
   .upgrade-popup-box {
     animation: none;
   }
+}
+
+/* Centre performance strip + score pop-up ---------------------------------------------------- */
+.c-perf-strip {
+  display: none;
+}
+#stage[data-layout='arena'] .c-perf-strip,
+[data-layout='arena'] .c-perf-strip,
+#stage[data-layout='arena'][data-composition] .c-perf-strip {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+  gap: 12px;
+  position: absolute;
+  left: 50%;
+  top: calc(172px + 530px * var(--card-scale) + 10px);
+  width: 980px;
+  transform: translateX(-50%) scale(var(--card-scale));
+  transform-origin: 50% 0;
+  z-index: 6;
+  pointer-events: none;
+}
+/* The arena frame pins `top: 172px !important` (see the arena block above), so the strip anchors
+   to exactly that bottom edge at any --card-scale. */
+/* The class rule above sets `display`, so `hidden` needs to win explicitly. */
+#stage[data-layout='arena'] .c-perf-strip[hidden] {
+  display: none;
+}
+.ps-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 18px;
+  background: rgba(6, 10, 18, 0.88);
+  border: 1px solid var(--color-accent, rgba(245, 158, 11, 0.55));
+  border-radius: 12px;
+  font-family: var(--font-heading, sans-serif);
+  min-width: 0;
+}
+.ps-heading {
+  font-size: 12px;
+  letter-spacing: 0.18em;
+  color: var(--color-accent, #f59e0b);
+}
+.ps-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.ps-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
+  gap: 14px;
+  align-items: baseline;
+  font-size: 20px;
+  color: #f7f2e5;
+}
+.ps-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ps-figures {
+  font-family: var(--font-numbers, 'Barlow Condensed', sans-serif);
+  font-size: 24px;
+  font-weight: 700;
+}
+.ps-rate,
+.ps-extra {
+  font-size: 14px;
+  letter-spacing: 0.06em;
+  color: #9fb3a8;
+}
+.ps-on-strike .ps-figures {
+  color: var(--color-accent2, #ffd166);
+}
+.ps-empty {
+  font-size: 15px;
+  color: #7d8a84;
+}
+
+.c-score-pop {
+  display: none;
+}
+/* Ball-to-ball score, in the band directly under the centre video. Deliberately wider than the
+   980px video so it reads as its own broadcast strip rather than a caption of the frame. */
+#stage[data-layout='arena'] .c-score-pop,
+[data-layout='arena'] .c-score-pop,
+#stage[data-layout='arena'][data-composition] .c-score-pop {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 26px;
+  position: absolute;
+  left: 50%;
+  top: calc(172px + 530px * var(--card-scale) + 10px);
+  width: 1180px;
+  box-sizing: border-box;
+  transform: translateX(-50%) scale(var(--card-scale));
+  transform-origin: 50% 0;
+  padding: 14px 26px;
+  background: linear-gradient(90deg, rgba(6, 10, 18, 0.97) 0%, rgba(10, 18, 28, 0.93) 55%, rgba(6, 10, 18, 0.86) 100%);
+  border: 1px solid var(--color-accent, rgba(245, 158, 11, 0.6));
+  border-left: 10px solid var(--color-accent, #f59e0b);
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.75);
+  font-family: var(--font-heading, sans-serif);
+  z-index: 8;
+  pointer-events: none;
+}
+#stage .c-score-pop[hidden] {
+  display: none;
+}
+.sp-ball {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 54px;
+  height: 54px;
+  padding: 0 10px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  font-family: var(--font-numbers, 'Barlow Condensed', sans-serif);
+  font-size: 30px;
+  font-weight: 800;
+  color: #f7f2e5;
+}
+.sp-score {
+  font-family: var(--font-numbers, 'Barlow Condensed', sans-serif);
+  font-size: 44px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: #fff;
+}
+.sp-detail {
+  font-size: 24px;
+  color: #f7f2e5;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sp-overs {
+  font-size: 20px;
+  letter-spacing: 0.1em;
+  color: var(--color-accent, #f59e0b);
+}
+.c-score-pop[data-kind='four'] .sp-ball {
+  color: #04150c;
+  background: var(--color-accent, #f59e0b);
+  border-color: var(--color-accent, #f59e0b);
+}
+.c-score-pop[data-kind='six'] .sp-ball {
+  color: #fff;
+  background: var(--color-accent2, #1b8bff);
+  border-color: var(--color-accent2, #1b8bff);
+}
+.c-score-pop[data-kind='wicket'] .sp-ball {
+  color: #fff;
+  background: #c9272f;
+  border-color: #ff4d57;
+}
+.c-score-pop[data-kind='wicket'] {
+  border-left-color: #ff4d57;
+}
+.c-score-pop[data-kind='extra'] .sp-ball {
+  color: #1a1200;
+  background: #ffd166;
+  border-color: #ffd166;
+}
+.c-score-pop[data-kind='dot'] .sp-ball {
+  color: #9fb3a8;
 }

@@ -8,7 +8,12 @@ export interface PipelineOptions {
   adapter: Adapter;
   getDocument: () => Document;
   getUrl: () => string;
-  send: (msg: ContentMessage) => void;
+  /**
+   * Hand the message to the background. Returning a rejected promise (service worker restart,
+   * invalidated extension context) makes the pipeline retry the update instead of filtering it
+   * as a duplicate forever.
+   */
+  send: (msg: ContentMessage) => void | Promise<void>;
   now?: () => number;
   /** Max 2 updates/second by default. */
   minIntervalMs?: number;
@@ -44,18 +49,47 @@ export const createPipeline = (opts: PipelineOptions) => {
   let paused = false;
   let degraded = false;
 
+  const sendQuiet = (msg: ContentMessage): void => {
+    // Heartbeat-style messages are best-effort: a failure must not surface as an unhandled
+    // rejection, and there is nothing to retry.
+    try {
+      void Promise.resolve(opts.send(msg)).catch(() => undefined);
+    } catch {
+      /* ignore */
+    }
+  };
+
   const flush = () => {
     timer = null;
     if (!pending || paused) return;
     const update = pending;
     pending = null;
     lastSentAt = now();
-    opts.send({ type: 'score-update', update });
+    deliver(update);
+  };
+
+  const deliver = (update: RawUpdate) => {
+    let result: void | Promise<void>;
+    try {
+      result = opts.send({ type: 'score-update', update });
+    } catch {
+      result = Promise.reject(undefined);
+    }
+    if (!(result instanceof Promise)) return;
+    void result.catch(() => {
+      // The background never took this update. Forget the de-duplication signature and put it
+      // back in the queue, otherwise the ball is lost until the score changes again.
+      if (signature(update) === lastSig) lastSig = '';
+      pending = pending ?? update;
+      if (timer === null) timer = setTimer(flush, minInterval);
+    });
   };
 
   const run = () => {
     if (paused) return;
-    const tapList: TapResponse[] = [...taps].map(([url, json]) => ({ url, json }));
+    // Newest first: the adapter keeps the first value it sees for each field, so the most
+    // recent response must be the one that writes it.
+    const tapList: TapResponse[] = [...taps].reverse().map(([url, json]) => ({ url, json }));
     let update: RawUpdate;
     try {
       update = opts.adapter({
@@ -72,7 +106,7 @@ export const createPipeline = (opts: PipelineOptions) => {
     if (update.confidence < MIN_CONFIDENCE) {
       if (!degraded) {
         degraded = true; // report once per degraded episode, not on every mutation
-        opts.send({
+        sendQuiet({
           type: 'adapter-degraded',
           site: opts.site,
           url: update.url,
@@ -90,7 +124,7 @@ export const createPipeline = (opts: PipelineOptions) => {
       // Unchanged score: still tell the background the tab is alive (at most every 5 s).
       if (now() - lastTickAt >= TICK_INTERVAL_MS) {
         lastTickAt = now();
-        opts.send({
+        sendQuiet({
           type: 'tick',
           matchId: update.matchId,
           url: update.url,
@@ -122,6 +156,22 @@ export const createPipeline = (opts: PipelineOptions) => {
       run();
     },
     trigger: run,
+    /**
+     * Forget the de-duplication state and any queued update without dropping the tapped
+     * responses. Used when the rules change under the pipeline (selector reload, resume) so the
+     * current score is read again by the new rules.
+     */
+    reset() {
+      lastSig = '';
+      degraded = false;
+      pending = null;
+      if (timer !== null) clearTimer(timer);
+      timer = null;
+    },
+    /** Forget every response the page fetched (used when the tab navigates to another match). */
+    clearTaps() {
+      taps.clear();
+    },
     setAdapter(adapter: Adapter) {
       opts.adapter = adapter;
     },

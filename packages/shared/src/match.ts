@@ -73,9 +73,10 @@ export const MatchStateSchema = z.object({
   projected: z.number().int().min(0).optional(),
   /** Projected total if the scoring rate rises by 2 an over. */
   projectedPlus2: z.number().int().min(0).optional(),
-  /** Estimate only. teamA/teamB follow `teams` order. Absent for Tests (see engine docs). */
+  /** Estimate only. teamA/teamB follow `teams` order and are the two halves of one number. Absent for Tests (see engine docs). */
   winProb: z
     .object({ teamA: z.number().min(0).max(1), teamB: z.number().min(0).max(1) })
+    .refine((p) => Math.abs(p.teamA + p.teamB - 1) <= 0.002, 'win probabilities must sum to 1')
     .optional(),
   wicketsLeft: z.number().int().min(0).max(10).optional(),
   /** Legal balls remaining in a limited-overs innings. */

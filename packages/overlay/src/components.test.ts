@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
   ALL_LOOKS,
   FREE_LOOKS,
@@ -20,6 +20,11 @@ import { ThisBall } from './components/ThisBall';
 import { WinProb } from './components/WinProb';
 import { Watermark } from './components/Watermark';
 import { BatterCards, BowlerCard } from './components/PlayerCards';
+import { PreMatchScreen } from './components/PreMatchScreen';
+import { ResultScreen } from './components/ResultScreen';
+import { ScorePop } from './components/ScorePop';
+import { StreamFrame } from './components/StreamFrame';
+import { UpgradePopup } from './components/UpgradePopup';
 import { ballChip, situationText } from './format';
 import { applyLayout, createZones } from './layout';
 
@@ -127,6 +132,31 @@ describe('ScoreBar', () => {
     expect(stage.querySelector('.sb-bat .sb-history')?.textContent).toBe('284-10');
     expect(stage.querySelector('.sb-bowl .sb-history')?.textContent).toBe('390-10 & 314-6');
   });
+
+  it('never reads NEED 0 or off 0 once the chase is decided', () => {
+    const chase = (runs: number, overs: number, balls: number) =>
+      deriveStats({
+        ...fixtures.t20,
+        currentInnings: 2,
+        target: 160,
+        innings: [
+          fixtures.t20.innings[0]!,
+          { ...fixtures.t20.innings[0]!, number: 2, score: { runs, wkts: 8, overs, balls } },
+        ],
+        score: { runs, wkts: 8, overs, balls },
+      });
+
+    const bar = new ScoreBar();
+    const stage = mount(bar);
+    bar.update(chase(161, 19, 2)); // target reached
+    expect(stage.textContent).toContain('TARGET');
+    expect(stage.textContent).not.toMatch(/NEED\s*0/);
+    expect(situationText(chase(161, 19, 2))).toContain('have reached the target');
+
+    const lastOver = chase(159, 20, 0); // nothing printed and the chase is over
+    expect(situationText(lastOver)).not.toMatch(/off 0/);
+    expect(situationText(lastOver)).toContain('need 1 to reach 160');
+  });
 });
 
 describe('ThisOver', () => {
@@ -214,6 +244,17 @@ describe('StatsTiles / WinProb / PlayerCards / Watermark', () => {
     expect(stage.querySelector('.c-winprob')!.hasAttribute('hidden')).toBe(true);
   });
 
+  it('win probability halves always add up to 100%', () => {
+    const c = new WinProb();
+    const stage = mount(c);
+    c.update({ ...t20, winProb: { teamA: 0.345, teamB: 0.655 } });
+    const pct = [...stage.querySelectorAll('.wp-pct-a, .wp-pct-b')].map((e) =>
+      parseInt(e.textContent ?? '0', 10),
+    );
+    expect(pct).toHaveLength(2);
+    expect(pct.reduce((a, b) => a + b, 0)).toBe(100);
+  });
+
   it('renders batters with the striker marked, and the bowler figures', () => {
     const b = new BatterCards();
     const s1 = mount(b);
@@ -246,6 +287,132 @@ describe('StatsTiles / WinProb / PlayerCards / Watermark', () => {
   });
 });
 
+describe('StreamFrame camera panels', () => {
+  const makeStream = (deviceId: string) => {
+    const t = { deviceId, stop: vi.fn(), getSettings: () => ({ deviceId }) };
+    return { tracks: [t], getVideoTracks: () => [t], getTracks: () => [t] };
+  };
+
+  const withCameras = (deviceIds: string[]) => {
+    const streams = new Map<string, ReturnType<typeof makeStream>>();
+    const getUserMedia = vi.fn(async (c?: { video?: { deviceId?: { exact?: string } } }) => {
+      const id = c?.video?.deviceId?.exact ?? deviceIds[0];
+      if (id === undefined || !deviceIds.includes(id)) throw new Error('no such camera');
+      let s = streams.get(id);
+      if (!s) streams.set(id, (s = makeStream(id)));
+      return s;
+    });
+    Object.defineProperty(navigator, 'mediaDevices', {
+      configurable: true,
+      value: {
+        getUserMedia,
+        enumerateDevices: async () =>
+          deviceIds.map((d) => ({ kind: 'videoinput', deviceId: d })),
+      },
+    });
+    HTMLMediaElement.prototype.play = () => Promise.resolve();
+    return { getUserMedia, streams };
+  };
+
+  const settle = () => new Promise((r) => setTimeout(r, 0));
+
+  it('keeps CAM 2 off air when the machine only has one camera', async () => {
+    const { getUserMedia } = withCameras(['cam-1']);
+    const f = new StreamFrame();
+    const stage = mount(f);
+    f.setCameraMode('two');
+    await settle();
+    await settle();
+    expect(stage.querySelector('.sf-cam-2')!.classList.contains('is-offline')).toBe(true);
+    expect(getUserMedia).toHaveBeenCalledTimes(1);
+    f.destroy();
+  });
+
+  it('attaches a different device to CAM 2 when one exists', async () => {
+    const { getUserMedia, streams } = withCameras(['cam-1', 'cam-2']);
+    const f = new StreamFrame();
+    const stage = mount(f);
+    f.setCameraMode('two');
+    await settle();
+    await settle();
+    const cam2 = stage.querySelector('.sf-cam-2')!;
+    expect(cam2.classList.contains('is-offline')).toBe(false);
+    expect(getUserMedia).toHaveBeenLastCalledWith({
+      video: { deviceId: { exact: 'cam-2' } },
+      audio: false,
+    });
+    const second = streams.get('cam-2')!;
+    f.setCameraMode('none');
+    expect(second.tracks[0]!.stop).toHaveBeenCalled();
+    expect(cam2.classList.contains('is-offline')).toBe(true);
+    f.destroy();
+  });
+});
+
+describe('UpgradePopup timers', () => {
+  it('cancels the intro popup when the licence lands inside its window', () => {
+    vi.useFakeTimers();
+    const p = new UpgradePopup();
+    const stage = mount(p);
+    p.start();
+    p.stop();
+    vi.advanceTimersByTime(30_000);
+    expect(stage.querySelector('.c-upgrade-popup')!.classList.contains('visible')).toBe(false);
+    expect(vi.getTimerCount()).toBe(0);
+    vi.useRealTimers();
+  });
+
+  it('pops on the interval while unlicensed and leaves nothing running after destroy', () => {
+    vi.useFakeTimers();
+    const p = new UpgradePopup();
+    const stage = mount(p);
+    const popup = stage.querySelector('.c-upgrade-popup')!;
+    p.start();
+    vi.advanceTimersByTime(3_000);
+    expect(popup.classList.contains('visible')).toBe(true);
+    p.destroy();
+    expect(popup.classList.contains('visible')).toBe(false);
+    expect(vi.getTimerCount()).toBe(0);
+    vi.useRealTimers();
+  });
+});
+
+describe('ScorePop ball strip', () => {
+  it('pops for each new delivery, lasts three seconds, and ignores a repeat', () => {
+    vi.useFakeTimers();
+    const p = new ScorePop();
+    const stage = mount(p);
+    const el = stage.querySelector<HTMLElement>('.c-score-pop')!;
+    const ball = createBall({
+      over: 11,
+      ball: 4,
+      runs: 4,
+      batterId: t20.batters[0].playerId,
+      bowlerId: t20.bowler.playerId,
+    });
+    const next = { ...t20, score: { runs: 102, wkts: 2, overs: 11, balls: 4 }, thisOver: [ball], lastBalls: [ball] };
+
+    p.update(t20); // first sight is only the baseline
+    expect(el.hidden).toBe(true);
+
+    p.update(next);
+    expect(el.hidden).toBe(false);
+    expect(el.querySelector('.sp-ball')!.textContent).toBe('4');
+    expect(el.dataset.kind).toBe('four');
+    expect(el.querySelector('.sp-score')!.textContent).toBe('102-2');
+    expect(el.querySelector('.sp-overs')!.textContent).toBe('11.4 OV');
+
+    vi.advanceTimersByTime(2_999);
+    expect(el.hidden).toBe(false);
+    vi.advanceTimersByTime(2);
+    expect(el.hidden).toBe(true);
+
+    p.update(next); // the same delivery re-rendered must not pop again
+    expect(el.hidden).toBe(true);
+    vi.useRealTimers();
+  });
+});
+
 describe('layouts', () => {
   it('defines ten valid OBS presets with normalized source rectangles', () => {
     expect(OBS_LAYOUT_PRESETS.map((preset) => preset.id)).toEqual(['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J']);
@@ -269,6 +436,112 @@ describe('layouts', () => {
     const before = stage.children.length;
     applyLayout(stage, 'ticker');
     expect(stage.children.length).toBe(before); // no DOM rebuild
+  });
+});
+
+describe('pre-match and result screens', () => {
+  it('waits for data instead of going to air with a fabricated fixture', () => {
+    const s = new PreMatchScreen();
+    const pre = mount(s).textContent!;
+    expect(pre).toContain('WAITING FOR MATCH DATA');
+    expect(pre).not.toMatch(/KINGSMEAD|SOUTH AFRICA VS|AUSTRALIA|10:00 AM/);
+
+    const r = new ResultScreen();
+    const res = mount(r).textContent!;
+    expect(res).toContain('AWAITING RESULT');
+    expect(res).not.toMatch(/KINGSMEAD|214 RUNS|314-6/);
+
+    const f = new StreamFrame();
+    expect(mount(f).querySelector('.sf-match-slug')!.textContent).toBe('');
+  });
+
+
+  it('the clock scene shows feed facts and no invented captains or pitch reports', () => {
+    const s = new PreMatchScreen();
+    const stage = mount(s);
+    s.show();
+    s.setScene('clock');
+    s.update(fixtures.result);
+    const text = stage.textContent!;
+    expect(text).not.toMatch(/BAVUMA|CUMMINS|PITCH REPORT|HARD GREEN|\b00\b.*HRS/);
+    expect(text).toContain('NEWLANDS, CAPE TOWN');
+    s.destroy();
+  });
+
+  it('the squad scene refuses to list a fabricated eleven', () => {
+    const s = new PreMatchScreen();
+    const stage = mount(s);
+    s.show();
+    s.setScene('squad1');
+    s.update(fixtures.result);
+    const text = stage.textContent!;
+    expect(text).toContain('PLAYING XI');
+    expect(text).toContain('LINE-UP NOT ANNOUNCED');
+    expect(text).not.toMatch(/Markram|Rabada|Ngidi|Khawaja|Starc/);
+    s.destroy();
+  });
+
+  it('the toss scene follows the reported toss instead of a fixed script', () => {
+    const s = new PreMatchScreen();
+    const stage = mount(s);
+    s.show();
+    s.setScene('toss');
+    s.update(fixtures.result); // RSA won and elected to bat
+    const pills = [...stage.querySelectorAll('.pms-toss-pill')].map((p) => p.textContent ?? '');
+    expect(pills[0]).toContain('BATTING FIRST');
+    expect(pills[1]).toContain('FIELDING FIRST');
+    expect(stage.textContent).toContain('WON THE TOSS');
+
+    s.update({ ...fixtures.result, toss: undefined });
+    expect(stage.textContent).toContain('YET TO TAKE PLACE');
+    expect(stage.textContent).not.toContain('OFFICIAL TOSS RESULT');
+    s.destroy();
+  });
+
+  it('the auto cycle is armed only while on air and is disarmed by pinning a scene', () => {
+    const armed: number[] = [];
+    const setIntervalSpy = vi
+      .spyOn(window, 'setInterval')
+      .mockImplementation(((fn: () => void, ms: number) => {
+        armed.push(ms);
+        return 1;
+      }) as unknown as typeof window.setInterval);
+    const clearSpy = vi
+      .spyOn(window, 'clearInterval')
+      .mockImplementation((() => undefined) as unknown as typeof window.clearInterval);
+
+    const s = new PreMatchScreen();
+    const stage = mount(s);
+    s.show();
+    s.update(fixtures.result);
+    expect(armed).toEqual([15_000]);
+    expect(setIntervalSpy).toHaveBeenCalledTimes(1);
+
+    s.setScene('clock'); // a pinned scene must not keep the cycler alive
+    expect(clearSpy).toHaveBeenCalledTimes(1);
+    s.destroy();
+    vi.restoreAllMocks();
+    stage.remove();
+  });
+
+  it('the result screen reports missing feed data instead of demo figures', () => {
+    const r = new ResultScreen();
+    const stage = mount(r);
+    r.update({
+      ...fixtures.result,
+      innings: [],
+      batters: [
+        { ...fixtures.result.batters[0], name: '—' },
+        { ...fixtures.result.batters[1], name: '—' },
+      ],
+      bowler: { ...fixtures.result.bowler, name: '—' },
+    });
+    const text = stage.textContent!;
+    expect(text).toContain('NO INNINGS DATA RECORDED');
+    expect(text).toContain('BATTING NOT PROVIDED');
+    expect(text).toContain('BOWLING NOT PROVIDED');
+    expect(text).not.toMatch(/112\.4|6-49|Hazlewood/);
+    r.destroy();
   });
 });
 

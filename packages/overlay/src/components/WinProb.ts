@@ -36,11 +36,12 @@ export class WinProb extends OverlayComponent {
   }
 
   private setCrest(host: HTMLElement, short: string): void {
-    const url = assetUrl('teams', teamAssetId(short));
+    const id = teamAssetId(short);
+    const url = id ? assetUrl('teams', id) : '';
     if (host.dataset.src === url) return;
     host.dataset.src = url;
     host.replaceChildren();
-    attachImage(host, url);
+    if (url) attachImage(host, url);
   }
 
   update(s: MatchState): void {
@@ -51,7 +52,8 @@ export class WinProb extends OverlayComponent {
     this.e.fillA.style.width = `${(s.winProb.teamA * 100).toFixed(1)}%`;
     this.e.fillA.style.background = s.teams[0].color;
     const pctA = Math.round(s.winProb.teamA * 100);
-    const pctB = s.winProb.teamB !== undefined ? Math.round(s.winProb.teamB * 100) : 100 - pctA;
+    // One number, not two: rounding both halves independently can put 101% on air.
+    const pctB = 100 - pctA;
     this.e.pctA.textContent = `${pctA}%`;
     this.e.pctB.textContent = `${pctB}%`;
     if (s.teams && s.teams.length >= 2) {

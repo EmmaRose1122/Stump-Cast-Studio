@@ -32,7 +32,7 @@ const makeApp = (connected = false) => {
       settings = next;
     },
   });
-  return { app, obs, getSettings: () => settings };
+  return { app, obs, getSettings: () => settings, setSettings: (next: typeof settings) => { settings = next; } };
 };
 
 afterEach(async () => {
@@ -71,6 +71,23 @@ describe('OBS routes', () => {
     const { app } = makeApp();
     expect((await app.inject({ method: 'GET', url: '/api/obs/scenes' })).statusCode).toBe(409);
     expect((await app.inject({ method: 'POST', url: '/api/obs/layout', payload: { layoutId: 'X' } })).statusCode).toBe(400);
+    await app.close();
+  });
+
+  it('keeps settings changed while a layout is being applied', async () => {
+    const { app, obs, getSettings, setSettings } = makeApp(true);
+    // A settings save lands during the in-flight OBS call. The route used to write back the
+    // snapshot it took beforehand, silently reverting whatever the operator changed.
+    obs.applyLayout.mockImplementation(async () => {
+      setSettings({ ...getSettings(), syncDelaySec: 5 });
+      return { applied: ['matchVideo'], missing: [], canvas: { width: 1920, height: 1080 } };
+    });
+
+    const res = await app.inject({ method: 'POST', url: '/api/obs/layout', payload: { layoutId: 'C' } });
+
+    expect(res.statusCode).toBe(200);
+    expect(getSettings().syncDelaySec).toBe(5);
+    expect(getSettings().video.activeObsLayout).toBe('C');
     await app.close();
   });
 });

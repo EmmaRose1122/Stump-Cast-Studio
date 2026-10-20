@@ -44,7 +44,9 @@ export const battingWinProb = (s: MatchState): number | undefined => {
   if (limit === undefined || s.ballsLeft === undefined || s.wicketsLeft === undefined) {
     return undefined;
   }
-  const par = PAR[s.format === 'ODI' ? 'ODI' : 'T20'];
+  const par = limit >= 40 ? PAR.ODI : PAR.T20;
+  // Par for the innings actually being played: a 10-over game is not measured against 165.
+  const parTotal = Math.round(par.rate * limit);
   if (s.target !== undefined && s.runsNeeded !== undefined) {
     if (s.runsNeeded === 0) return 1;
     if (s.ballsLeft === 0 || s.wicketsLeft === 0) return 0;
@@ -55,7 +57,7 @@ export const battingWinProb = (s: MatchState): number | undefined => {
   }
   if (s.projected === undefined) return undefined;
   const sigma = 20 + 0.15 * s.ballsLeft;
-  return round(logistic((s.projected - par.total) / sigma), 3);
+  return round(logistic((s.projected - parTotal) / sigma), 3);
 };
 
 /** Pure derived statistics from a base state (no history needed). */
@@ -100,8 +102,9 @@ export const deriveStats = (base: MatchState): MatchState => {
   const p = battingWinProb(s);
   if (p !== undefined) {
     const battingIsA = s.battingTeamId === s.teams[0].id;
-    const a = battingIsA ? p : 1 - p;
-    s.winProb = { teamA: round(a, 3), teamB: round(1 - a, 3) };
+    // Round one side only, so the pair can never display as 51/50 or 99%.
+    const a = round(battingIsA ? p : 1 - p, 3);
+    s.winProb = { teamA: a, teamB: round(1 - a, 3) };
   } else if (!base.winProb) {
     delete s.winProb;
   }

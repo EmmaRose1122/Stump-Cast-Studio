@@ -61,6 +61,20 @@ describe('ApiProvider', () => {
     provider.destroy();
   });
 
+  it('reports stale, not connected, when a key is set but nothing has ever been polled', () => {
+    const secrets = new SecretStore({ dataDir: './data/test-secrets-health' });
+    secrets.setSecret('cricket_api_key', 'test_key_123');
+    const provider = new ApiProvider({
+      vendorAdapter: new CricketDataApiVendor(),
+      secretStore: secrets,
+      fetchFn: vi.fn() as unknown as typeof fetch,
+      now: () => 1000,
+    });
+    // The old dead ternary returned 'connected' here, so the failover watchdog never saw a problem.
+    expect(provider.health()).toBe('stale');
+    provider.destroy();
+  });
+
   it('handles 304 Not Modified with ETag correctly', async () => {
     let callCount = 0;
     const mockFetch = vi.fn().mockImplementation(async (_url: string, opts?: { headers?: Record<string, string> }) => {

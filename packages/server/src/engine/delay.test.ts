@@ -200,4 +200,20 @@ describe('Watchdog', () => {
     c.advance(11_000);
     expect(w.check()).toMatchObject({ code: 'DATA_STALE', level: 'warn' });
   });
+
+  it('a second start() replaces the first timer instead of stacking another chain', () => {
+    const c = fakeClock();
+    const w = new Watchdog(
+      { providerHealth: () => 'connected', lastDataAt: () => c.now() },
+      () => undefined,
+      { sched: c.sched },
+    );
+    w.start(10_000);
+    w.start(10_000); // settings applied twice at boot must not leave an orphan poller
+    expect(c.timers()).toBe(1);
+    c.advance(10_000);
+    expect(c.timers()).toBe(1);
+    w.stop();
+    expect(c.timers()).toBe(0);
+  });
 });

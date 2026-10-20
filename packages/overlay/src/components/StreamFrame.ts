@@ -15,6 +15,8 @@ export class StreamFrame extends OverlayComponent {
   private cam1Video!: HTMLVideoElement;
   private cam2Video!: HTMLVideoElement;
   private activeStream: MediaStream | null = null;
+  private secondaryStream: MediaStream | null = null;
+  private cameraMode: 'none' | 'one' | 'two' = 'none';
 
   protected build(): HTMLElement {
     const root = document.createElement('div');
@@ -22,7 +24,7 @@ export class StreamFrame extends OverlayComponent {
     root.innerHTML = `
       <div class="sf-live-badge">
         <span class="sf-live-dot">● LIVE</span>
-        <span class="sf-match-slug">RSA V AUS</span>
+        <span class="sf-match-slug"></span>
       </div>
       <div class="sf-viewport"></div>
       <div class="sf-brand-badge">
@@ -33,7 +35,7 @@ export class StreamFrame extends OverlayComponent {
           <video class="sf-cam-video sf-cam-1-video" autoplay playsinline muted></video>
           <span class="sf-cam-label">CAM 1 · HOST</span>
         </div>
-        <div class="sf-cam-box sf-cam-2">
+        <div class="sf-cam-box sf-cam-2 is-offline">
           <video class="sf-cam-video sf-cam-2-video" autoplay playsinline muted></video>
           <span class="sf-cam-label">CAM 2</span>
         </div>
@@ -56,54 +58,75 @@ export class StreamFrame extends OverlayComponent {
     }
   }
 
+  private async acquire(constraints: MediaStreamConstraints): Promise<MediaStream | null> {
+    try {
+      return await navigator.mediaDevices.getUserMedia(constraints);
+    } catch {
+      return null;
+    }
+  }
+
+  private attach(video: HTMLVideoElement, stream: MediaStream): void {
+    video.srcObject = stream;
+    void video.play().catch(() => undefined);
+  }
+
   private async startCameraFeed(): Promise<void> {
     if (this.activeStream) return;
     if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) return;
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
+    const primary =
+      (await this.acquire({
         video: { width: { ideal: 1280 }, height: { ideal: 720 } },
         audio: false,
-      });
-      this.activeStream = stream;
-      if (this.cam1Video) {
-        this.cam1Video.srcObject = stream;
-        void this.cam1Video.play().catch(() => undefined);
-      }
-    } catch {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-        this.activeStream = stream;
-        if (this.cam1Video) {
-          this.cam1Video.srcObject = stream;
-          void this.cam1Video.play().catch(() => undefined);
-        }
-      } catch {
-        // Camera unavailable, in use by another app, or permissions not granted
-      }
-    }
+      })) ??
+      // Camera busy or the requested size unsupported: take whatever the OS offers.
+      (await this.acquire({ video: true, audio: false }));
+    if (!primary) return;
+    this.activeStream = primary;
+    if (this.cam1Video) this.attach(this.cam1Video, primary);
+    await this.startSecondCamera(primary);
+  }
+
+  /** CAM 2 only goes on air when a *different* capture device backs it. */
+  private async startSecondCamera(primary: MediaStream): Promise<void> {
+    this.cam2Box.classList.add('is-offline');
+    if (this.cameraMode !== 'two') return;
+    const enumerate = navigator.mediaDevices.enumerateDevices;
+    if (typeof enumerate !== 'function') return;
+    const taken = new Set(primary.getVideoTracks().map((t) => t.getSettings().deviceId));
+    const devices = await enumerate.call(navigator.mediaDevices).catch(() => []);
+    const next = devices.find((d) => d.kind === 'videoinput' && d.deviceId && !taken.has(d.deviceId));
+    if (!next) return;
+    const second = await this.acquire({ video: { deviceId: { exact: next.deviceId } }, audio: false });
+    if (!second || !this.cam2Video) return;
+    this.secondaryStream = second;
+    this.attach(this.cam2Video, second);
+    this.cam2Box.classList.remove('is-offline');
   }
 
   private stopCameraFeed(): void {
-    if (this.activeStream) {
+    for (const stream of [this.activeStream, this.secondaryStream]) {
       try {
-        this.activeStream.getTracks().forEach((track) => track.stop());
+        stream?.getTracks().forEach((track) => track.stop());
       } catch {
         // ignore
       }
-      this.activeStream = null;
     }
-    if (this.cam1Video) {
-      this.cam1Video.srcObject = null;
-    }
+    this.activeStream = null;
+    this.secondaryStream = null;
+    if (this.cam1Video) this.cam1Video.srcObject = null;
+    if (this.cam2Video) this.cam2Video.srcObject = null;
+    this.cam2Box.classList.add('is-offline');
   }
 
   setCameraMode(mode: 'none' | 'one' | 'two'): void {
+    this.cameraMode = mode;
     this.root.dataset.cameraMode = mode;
-    if (mode === 'one' || mode === 'two') {
-      void this.startCameraFeed();
-    } else {
-      this.stopCameraFeed();
-    }
+    if (mode === 'none') this.stopCameraFeed();
+    else if (this.activeStream) {
+      if (mode === 'two') void this.startSecondCamera(this.activeStream);
+      else this.cam2Box.classList.add('is-offline');
+    } else void this.startCameraFeed();
   }
 
   override destroy(): void {

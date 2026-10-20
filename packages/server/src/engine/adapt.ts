@@ -1,5 +1,6 @@
 import {
   createBall,
+  resolveTeam,
   slug,
   type BallEvent,
   type MatchFormat,
@@ -12,16 +13,32 @@ import {
 const PALETTE = ['#19D3C5', '#FF6B57'] as const;
 const PLACEHOLDER = '—';
 
-const teamFor = (name: string, index: number): Team => ({
-  id: `team-${slug(name) || `unknown-${index}`}`,
-  name,
-  short:
-    name
-      .replace(/[^A-Za-z]/g, '')
-      .slice(0, 3)
-      .toUpperCase() || `T${index + 1}`,
-  color: PALETTE[index % 2]!,
-});
+/**
+ * A scraped name becomes a canonical team. Unknown sides keep a name-derived id but get no crest
+ * code, because a near-miss code can point at a real flag of a different country.
+ */
+const teamFor = (name: string, index: number, scrapedShort?: string): Team => {
+  const known = resolveTeam(scrapedShort) ?? resolveTeam(name);
+  if (known) {
+    return {
+      id: `team-${known.code}`,
+      name: known.name,
+      short: known.code.toUpperCase(),
+      color: known.colors[0],
+      logoAssetId: `team-${known.code}`,
+    };
+  }
+  return {
+    id: `team-${slug(name) || `unknown-${index}`}`,
+    name,
+    short:
+      name
+        .replace(/[^A-Za-z]/g, '')
+        .slice(0, 3)
+        .toUpperCase() || `T${index + 1}`,
+    color: PALETTE[index % 2]!,
+  };
+};
 
 export const inferFormat = (raw: RawUpdate): MatchFormat => {
   const f = raw.fields;
@@ -93,7 +110,15 @@ export const tokensToBalls = (
       const type = ({ wd: 'wide', nb: 'noball', b: 'bye', lb: 'legbye' } as const)[
         extra[2] as 'wd' | 'nb' | 'b' | 'lb'
       ];
-      return createBall({ ...base, runs: 0, extras: { type, runs: Number(extra[1] || 1) } });
+      const total = Number(extra[1] || 1);
+      // A no-ball's total is bat runs + the one penalty run, and only the bat part counts as a
+      // boundary; wides/byes never are.
+      const batRuns = type === 'noball' ? Math.max(0, total - 1) : 0;
+      return createBall({
+        ...base,
+        runs: batRuns,
+        extras: { type, runs: type === 'noball' ? total - batRuns : total },
+      });
     }
     const n = t === '.' ? 0 : Number(t);
     return createBall({ ...base, runs: Number.isInteger(n) && n >= 0 && n <= 7 ? n : 0 });
@@ -119,7 +144,10 @@ export const rawToBaseState = (raw: RawUpdate, updatedAt: string): MatchState =>
       if (!names[1] && titleMatch[2]) names[1] = titleMatch[2].trim();
     }
   }
-  const teams: [Team, Team] = [teamFor(names[0] ?? 'Team A', 0), teamFor(names[1] ?? 'Team B', 1)];
+  const teams: [Team, Team] = [
+    teamFor(names[0] ?? 'Team A', 0, f.teams[0]?.short),
+    teamFor(names[1] ?? 'Team B', 1, f.teams[1]?.short),
+  ];
 
   const innings = f.innings.map((inn, i) => {
     const t = teams.find((x) => x.name === inn.team) ?? teams[Math.min(i % 2, 1)]!;

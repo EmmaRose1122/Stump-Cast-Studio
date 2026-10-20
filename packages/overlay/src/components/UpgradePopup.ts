@@ -8,6 +8,7 @@ export class UpgradePopup extends OverlayComponent {
   protected override readonly alwaysVisible = true;
 
   private timer: ReturnType<typeof setInterval> | null = null;
+  private introTimer: ReturnType<typeof setTimeout> | null = null;
   private hideTimer: ReturnType<typeof setTimeout> | null = null;
   private popupShown = false;
 
@@ -41,13 +42,20 @@ export class UpgradePopup extends OverlayComponent {
   start(): void {
     if (this.timer) return;
     this.timer = setInterval(() => this.showPopup(), POPUP_INTERVAL_MS);
-    setTimeout(() => this.showPopup(), 3000);
+    // Cancellable like the rest: a licence applied in the first 3 s must not pop the ad on air.
+    this.introTimer = setTimeout(() => { this.introTimer = null; this.showPopup(); }, 3000);
   }
 
   stop(): void {
     if (this.timer) { clearInterval(this.timer); this.timer = null; }
+    if (this.introTimer) { clearTimeout(this.introTimer); this.introTimer = null; }
     if (this.hideTimer) { clearTimeout(this.hideTimer); this.hideTimer = null; }
     this.hidePopup();
+  }
+
+  override destroy(): void {
+    this.stop();
+    super.destroy?.();
   }
 
   private showPopup(): void {

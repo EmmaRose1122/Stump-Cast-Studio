@@ -10,6 +10,7 @@ interface ObsClient {
   connect(url: string, password?: string, params?: { rpcVersion?: number }): Promise<unknown>;
   disconnect(): Promise<unknown>;
   call(requestType: string, requestData?: Record<string, unknown>): Promise<unknown>;
+  on?(event: string, cb: (...args: unknown[]) => void): void;
 }
 
 export interface ObsSource {
@@ -25,17 +26,47 @@ export interface ObsStatus {
   error: string | null;
 }
 
+export interface ObsRotationConfig {
+  enabled: boolean;
+  intervalSec: number;
+  layouts: LayoutPresetId[];
+  map: Partial<Record<ObsRole, string>>;
+  sceneName?: string;
+}
+
+export interface ObsTimers {
+  setTimeout(fn: () => void, ms: number): unknown;
+  clearTimeout(id: unknown): void;
+}
+
+const realTimers: ObsTimers = {
+  setTimeout: (fn, ms) => setTimeout(fn, ms),
+  clearTimeout: (id) => clearTimeout(id as ReturnType<typeof setTimeout>),
+};
+
+/** obs-websocket-js signals a dropped or ended session with these two events. */
+const LOST_EVENTS = ['SessionLost', 'SessionDestroyed'];
+const RECONNECT_START_MS = 2000;
+const RECONNECT_MAX_MS = 30_000;
+
 const obsClient = (): ObsClient => new OBSWebSocket() as unknown as ObsClient;
 
 export class OBSLink {
   private client: ObsClient | null = null;
   private host: string | null = null;
   private port: number | null = null;
+  private password: string | undefined;
   private connectedAt: number | null = null;
   private error: string | null = null;
   private rotationTimer: ReturnType<typeof setInterval> | null = null;
+  private rotation: ObsRotationConfig | null = null;
+  private retryTimer: unknown = null;
+  private retryDelayMs = RECONNECT_START_MS;
 
-  constructor(private readonly createClient: () => ObsClient = obsClient) {}
+  constructor(
+    private readonly createClient: () => ObsClient = obsClient,
+    private readonly timers: ObsTimers = realTimers,
+  ) {}
 
   get connected(): boolean {
     return this.client !== null;
@@ -52,7 +83,8 @@ export class OBSLink {
   }
 
   async connect(host: string, port: number, password?: string): Promise<ObsStatus> {
-    await this.disconnect();
+    await this.closeSocket();
+    this.cancelRetry();
     const client = this.createClient();
     const safeHost = host.trim().replace(/^\[|\]$/g, '');
     if (!safeHost || /[\s/@?#]/.test(safeHost)) throw new Error('Enter a valid OBS host name');
@@ -63,20 +95,35 @@ export class OBSLink {
       this.client = client;
       this.host = safeHost;
       this.port = port;
+      this.password = password;
       this.connectedAt = Date.now();
       this.error = null;
+      this.retryDelayMs = RECONNECT_START_MS;
+      // OBS quitting or dropping the socket must show up as disconnected, not as a stale
+      // "connected" that makes every later scene call fail silently for the rest of the stream.
+      for (const event of LOST_EVENTS) client.on?.(event, () => this.onSessionLost(event));
+      if (this.rotation) this.startRotationClock();
       return this.status;
     } catch (err) {
       this.client = null;
       this.host = safeHost;
       this.port = port;
+      this.password = password;
       this.connectedAt = null;
       this.error = err instanceof Error ? err.message : 'Could not connect to OBS';
       throw new Error(this.error);
     }
   }
 
+  /** Operator-initiated: close the link, stop rotating and give up on reconnecting. */
   async disconnect(): Promise<ObsStatus> {
+    this.cancelRetry();
+    this.rotation = null;
+    this.clearRotationClock();
+    return this.closeSocket();
+  }
+
+  private async closeSocket(): Promise<ObsStatus> {
     const client = this.client;
     this.client = null;
     this.connectedAt = null;
@@ -84,21 +131,56 @@ export class OBSLink {
     return this.status;
   }
 
-  setRotation(config: {
-    enabled: boolean;
-    intervalSec: number;
-    layouts: LayoutPresetId[];
-    map: Partial<Record<ObsRole, string>>;
-    sceneName?: string;
-  }): void {
-    if (this.rotationTimer !== null) clearInterval(this.rotationTimer);
-    this.rotationTimer = null;
-    if (!config.enabled || config.layouts.length < 2) return;
+  private onSessionLost(reason: string): void {
+    if (this.client === null) return;
+    this.client = null;
+    this.connectedAt = null;
+    this.error = `Connection to OBS lost (${reason})`;
+    this.clearRotationClock();
+    this.scheduleRetry();
+  }
+
+  private scheduleRetry(): void {
+    if (this.retryTimer !== null || this.host === null || this.port === null) return;
+    const delay = this.retryDelayMs;
+    this.retryDelayMs = Math.min(this.retryDelayMs * 2, RECONNECT_MAX_MS);
+    this.retryTimer = this.timers.setTimeout(() => {
+      this.retryTimer = null;
+      if (this.client !== null || this.host === null || this.port === null) return;
+      void this.connect(this.host, this.port, this.password).catch(() => {
+        this.scheduleRetry();
+      });
+    }, delay);
+  }
+
+  private cancelRetry(): void {
+    if (this.retryTimer !== null) {
+      this.timers.clearTimeout(this.retryTimer);
+      this.retryTimer = null;
+    }
+  }
+
+  /** Remembered so a reconnect picks the rotation back up instead of losing it silently. */
+  setRotation(config: ObsRotationConfig): void {
+    this.clearRotationClock();
+    this.rotation = config.enabled && config.layouts.length >= 2 ? config : null;
+    if (this.rotation && this.client) this.startRotationClock();
+  }
+
+  private startRotationClock(): void {
+    const config = this.rotation!;
     this.rotationTimer = setInterval(() => {
       const id = config.layouts[Math.floor(Math.random() * config.layouts.length)]!;
       void this.applyLayout(id, config.map, config.sceneName).catch(() => undefined);
     }, config.intervalSec * 1000);
     this.rotationTimer.unref?.();
+  }
+
+  private clearRotationClock(): void {
+    if (this.rotationTimer !== null) {
+      clearInterval(this.rotationTimer);
+      this.rotationTimer = null;
+    }
   }
 
   async listScenes(): Promise<{ scenes: string[]; current: string }> {

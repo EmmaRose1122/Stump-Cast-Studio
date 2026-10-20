@@ -38,7 +38,13 @@ export const useLiveSocket = (): void => {
         void qc.invalidateQueries();
       };
       ws.onmessage = (e) => {
-        const msg = ServerMessageSchema.safeParse(JSON.parse(String(e.data)));
+        let data: unknown;
+        try {
+          data = JSON.parse(String(e.data));
+        } catch {
+          return; // a heartbeat, proxy error page or partial frame must not kill the socket handler
+        }
+        const msg = ServerMessageSchema.safeParse(data);
         if (!msg.success || msg.data.type !== 'message') return;
         const { channel, event, payload } = msg.data;
         if (channel === 'health') {

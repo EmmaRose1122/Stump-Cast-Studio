@@ -232,3 +232,40 @@ describe('Director: mode switching and carousel', () => {
     });
   });
 });
+
+describe('Director: queued cards and bounded baselines', () => {
+  it('hide(cardId) cancels a card that is still queued', () => {
+    const { d, c, shows } = setup('smart');
+    d.show('worm', 3); // an operator card owns the screen
+    d.onEvent(ev('WICKET')); // bowler-spell cannot start, so it waits
+    expect(d.state.queued).toEqual(['bowler-spell']);
+
+    d.hide('bowler-spell');
+    expect(d.state.queued).toEqual([]);
+    expect(shows()).toEqual(['operator:worm']); // hiding the queued card left the on-air one alone
+
+    c.advance(5000); // worm ends; the cancelled card must not walk back on air
+    expect(shows()).toEqual(['operator:worm']);
+  });
+
+  it('keeps batter baselines bounded across many matches and innings', () => {
+    const { d } = setup('smart');
+    const mk = (id: string, innings: number, runs: number) =>
+      createMatchState({
+        id,
+        currentInnings: innings,
+        batters: [
+          { playerId: 'a', name: 'A', runs, balls: 30, fours: 0, sixes: 0, onStrike: true },
+          { playerId: 'b', name: 'B', runs, balls: 30, fours: 0, sixes: 0, onStrike: false },
+        ],
+      });
+    for (let m = 0; m < 60; m++) {
+      for (let inn = 1; inn <= 4; inn++) {
+        d.onState(mk(`m${m}`, inn, 10 + m));
+      }
+    }
+    // 60 matches x 4 innings x 2 batters would be 480 keys; each innings change drops the old ones,
+    // so only the two current batters per match survive.
+    expect(d.baselineCount).toBeLessThanOrEqual(60 * 2);
+  });
+});

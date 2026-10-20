@@ -67,6 +67,8 @@ export class Watchdog {
   }
 
   start(intervalMs = 5000): void {
+    // A second start() must not orphan the first timer: stop() first, then re-arm.
+    this.stop();
     const sched = this.opts.sched;
     const tick = () => {
       this.check();

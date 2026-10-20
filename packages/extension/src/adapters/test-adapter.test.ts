@@ -50,7 +50,7 @@ describe('modern and legacy Cricbuzz compatibility', () => {
     expect(fixtureResult).toEqual(expectedFixture);
   });
 
-  it('extracts multi-day domestic Ranji Trophy match 163643 (JK vs VID) with high confidence', () => {
+  it('extracts multi-day domestic Ranji Trophy match 163643 (JK vs VID) and flags the overs it cannot see', () => {
     const root = path.resolve(import.meta.dirname, '../../../..');
     const ranjiHtml = fs.readFileSync(path.join(root, 'fixtures/cricbuzz/ranji-live.html'), 'utf8');
     const ranjiDom = new JSDOM(ranjiHtml);
@@ -63,8 +63,10 @@ describe('modern and legacy Cricbuzz compatibility', () => {
       now: Date.now(),
     });
 
-    expect(result.confidence).toBe(1);
-    expect(result.missing).toEqual([]);
+    // JK's overs appear nowhere on this page, so the reading must report that instead of
+    // claiming a confident 0.0 ov.
+    expect(result.confidence).toBe(0.5);
+    expect(result.missing).toEqual(['overs']);
     expect(result.fields.teams.map((t) => t.name)).toEqual(['JK', 'VID']);
     expect(result.fields.innings.length).toBe(2);
     expect(result.fields.innings[0]).toEqual({

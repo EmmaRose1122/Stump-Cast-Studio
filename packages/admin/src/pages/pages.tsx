@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import clsx from 'clsx';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { api, selectorsApi } from '../lib/api';
 import { ProLooksModal } from '../shell/ProLooksModal';
@@ -62,6 +62,25 @@ export const SettingsPage = () => {
     onError: () => toast({ title: 'Could not save settings', kind: 'error' }),
   });
   const s = settings.data;
+
+  // These sliders used to PUT the whole settings document on every input event: a one-second
+  // drag fired dozens of concurrent saves, the last response won, and the handle snapped back.
+  const savedNumbers = useRef<Record<string, number>>({});
+  const commitDelay = () => {
+    if (!s || savedNumbers.current.delay === delay) return;
+    savedNumbers.current.delay = delay;
+    save.mutate({ ...s, syncDelaySec: delay });
+  };
+  const commitCardScale = () => {
+    if (!s || savedNumbers.current.cardScale === cardScale) return;
+    savedNumbers.current.cardScale = cardScale;
+    save.mutate({ ...s, cardScale });
+  };
+  const commitSideScale = () => {
+    if (!s || savedNumbers.current.sideCardScale === sideCardScale) return;
+    savedNumbers.current.sideCardScale = sideCardScale;
+    save.mutate({ ...s, sideCardScale });
+  };
 
   const selectorsStatus = useQuery({
     queryKey: ['selectorsStatus'],
@@ -308,11 +327,10 @@ export const SettingsPage = () => {
             min="0"
             max="60"
             value={delay}
-            onChange={(e) => {
-              const val = Number(e.target.value);
-              setDelay(val);
-              if (s) save.mutate({ ...s, syncDelaySec: val });
-            }}
+            onChange={(e) => setDelay(Number(e.target.value))}
+            onPointerUp={commitDelay}
+            onKeyUp={commitDelay}
+            onBlur={commitDelay}
             className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-blue-100 accent-orange-500"
           />
         </div>
@@ -378,11 +396,10 @@ export const SettingsPage = () => {
             max="2.0"
             step="0.05"
             value={cardScale}
-            onChange={(e) => {
-              const val = Number(e.target.value);
-              setCardScale(val);
-              if (s) save.mutate({ ...s, cardScale: val });
-            }}
+            onChange={(e) => setCardScale(Number(e.target.value))}
+            onPointerUp={commitCardScale}
+            onKeyUp={commitCardScale}
+            onBlur={commitCardScale}
             className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-blue-100 accent-orange-500"
           />
           <div className="flex justify-between text-[10px] text-slate-400 mt-1">
@@ -402,14 +419,15 @@ export const SettingsPage = () => {
           <div className="flex flex-wrap gap-2">
             {[
               { id: 'narrow', label: 'Narrow (3XL)' },
-              { id: 'normal', label: 'Wide (4XL)' },
-              { id: 'wide', label: 'XL (5XL)' },
-              { id: 'full', label: 'Full Width (6XL)' },
+              { id: 'normal', label: 'Normal (4XL)' },
+              { id: 'wide', label: 'Wide (5XL)' },
             ].map((w) => (
               <button
                 key={w.id}
                 onClick={() => {
-                  const target = (w.id === 'full' ? 'wide' : w.id) as typeof cardWidth;
+                  // `cardWidth` only has three values; 'full' used to store 'wide' as well, so
+                  // picking "Full Width (6XL)" highlighted "XL (5XL)" instead.
+                  const target = w.id as typeof cardWidth;
                   setCardWidth(target);
                   if (s) save.mutate({ ...s, cardWidth: target });
                 }}
@@ -487,11 +505,10 @@ export const SettingsPage = () => {
             max="2.0"
             step="0.05"
             value={sideCardScale}
-            onChange={(e) => {
-              const val = Number(e.target.value);
-              setSideCardScale(val);
-              if (s) save.mutate({ ...s, sideCardScale: val });
-            }}
+            onChange={(e) => setSideCardScale(Number(e.target.value))}
+            onPointerUp={commitSideScale}
+            onKeyUp={commitSideScale}
+            onBlur={commitSideScale}
             className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-blue-100 accent-orange-500"
           />
           <div className="flex justify-between text-[10px] text-slate-400 mt-1">
@@ -527,7 +544,7 @@ export const SettingsPage = () => {
             onClick={() => setKeyModalOpen(true)}
             className="flex items-center gap-1.5 rounded-lg border border-blue-200 bg-white px-3 py-1.5 text-xs font-bold uppercase text-blue-700 hover:bg-blue-50 transition shadow-xs"
           >
-            <span>⚙️</span> AI API KEYS <span className="text-orange-500">[NOT SET]</span>
+            <span>⚙️</span> AI API KEYS <span className="text-slate-400">[UNAVAILABLE]</span>
           </button>
         </div>
 
@@ -657,18 +674,26 @@ export const SettingsPage = () => {
 
         {/* Action Buttons */}
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-blue-100 pt-4">
-          <button
-            onClick={() => toast({ title: 'Selected all missing squad cutouts', kind: 'info' })}
-            className="rounded-lg border border-blue-200 bg-white px-4 py-2 text-xs font-bold uppercase text-blue-700 hover:bg-blue-50 transition shadow-xs"
-          >
-            SELECT ALL MISSING
-          </button>
-          <button
-            onClick={() => toast({ title: 'AI generation started for selected players', kind: 'success' })}
-            className="flex items-center gap-1.5 rounded-lg bg-orange-500 px-5 py-2 text-xs font-bold uppercase tracking-wider text-white hover:bg-orange-600 border border-orange-400 shadow-sm transition"
-          >
-            <span>🎨</span> GENERATE SELECTED
-          </button>
+          <span className="text-[11px] text-slate-500">
+            AI cutout generation is not wired up in this build, so these stay disabled rather
+            than reporting a save that never happened.
+          </span>
+          <div className="flex gap-2">
+            <button
+              disabled
+              title="No server endpoint for cutout selection yet"
+              className="rounded-lg border border-blue-200 bg-slate-50 px-4 py-2 text-xs font-bold uppercase text-slate-400 shadow-xs"
+            >
+              SELECT ALL MISSING
+            </button>
+            <button
+              disabled
+              title="No image-generation endpoint yet"
+              className="flex items-center gap-1.5 rounded-lg bg-slate-200 px-5 py-2 text-xs font-bold uppercase tracking-wider text-slate-500 shadow-sm"
+            >
+              <span>🎨</span> GENERATE SELECTED
+            </button>
+          </div>
         </div>
       </div>
 
@@ -676,19 +701,10 @@ export const SettingsPage = () => {
         open={keyModalOpen}
         onOpenChange={setKeyModalOpen}
         title="Configure AI API Keys"
-        description="Add your Google AI Studio Gemini API key or OpenAI API key to enable AI cutout portraits generation."
+        description="Image generation is not available in this build, so there is nowhere to store a key yet. Add it here once the feature ships."
         actions={
           <div className="flex gap-2">
-            <Button onClick={() => setKeyModalOpen(false)}>Cancel</Button>
-            <Button
-              variant="primary"
-              onClick={() => {
-                setKeyModalOpen(false);
-                toast({ title: 'API Key saved', kind: 'success' });
-              }}
-            >
-              Save Key
-            </Button>
+            <Button onClick={() => setKeyModalOpen(false)}>Close</Button>
           </div>
         }
       >
@@ -699,7 +715,8 @@ export const SettingsPage = () => {
             value={geminiKey}
             onChange={(e) => setGeminiKey(e.target.value)}
             placeholder="AIzaSy..."
-            className="w-full rounded-lg border border-blue-200 bg-white px-3 py-2 text-xs text-slate-800 focus:border-orange-500 focus:outline-none"
+            disabled
+            className="w-full rounded-lg border border-blue-200 bg-slate-50 px-3 py-2 text-xs text-slate-500 focus:outline-none"
           />
         </div>
       </Dialog>

@@ -23,6 +23,26 @@ describe('cricbuzz adapter against saved fixtures', () => {
     });
   }
 
+  // Answer-key guards: the shapes below once passed while carrying scraped garbage.
+  describe('answer keys stay plausible', () => {
+    for (const state of STATES) {
+      it.skipIf(!have(state))(`${state} keeps teams, rates and ball strips honest`, () => {
+        const { expected } = runFixture(createCricbuzzAdapter().adapter, 'cricbuzz', state);
+        const f = expected.fields;
+        for (const inn of f.innings) {
+          expect(inn.team).not.toMatch(/^\(?\d{1,4}[-/]\d{1,2}\)?$/);
+          expect(inn.team).not.toMatch(/^(?:GMT|LOCAL|Batter)/i);
+        }
+        for (const t of f.teams) expect(t.name).not.toMatch(/\d+[-/]\d+/);
+        if (f.crr !== undefined) {
+          expect(f.crr).toBeGreaterThanOrEqual(0);
+          expect(f.crr).toBeLessThanOrEqual(20);
+        }
+        if (f.toss !== undefined) expect(f.toss).toMatch(/won the toss|opt to|elected to/i);
+      });
+    }
+  });
+
   it('correctly extracts full title, teams, and scores from real Cricbuzz pages', async () => {
     const { JSDOM } = await import('jsdom');
     const nepPath = path.join(FIXTURES_DIR, 'cricbuzz', 'nep-vs-oman.html');

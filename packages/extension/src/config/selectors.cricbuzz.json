@@ -94,10 +94,7 @@
         "#sticky-mscore .font-bold.text-lg",
         "#miniscore-branding-container .text-xl > div:first-child",
         "#miniscore-branding-container [class*=\"flex-row\"]:last-child .mr-2",
-        "[id^=\"sticky-m\"] [class*=\"flex-row\"]:last-child .mr-2",
-        ".cb-min-bat-rw .cb-font-20",
-        ".cb-min-bat-rw span:first-child",
-        ".cb-min-bat-rw"
+        "[id^=\"sticky-m\"] [class*=\"flex-row\"]:last-child .mr-2"
       ]
     },
     "inn1.team": {
@@ -318,7 +315,11 @@
       ]
     },
     "thisOver": {
-      "selectors": ["p.text-\\[\\#666\\]", ".text-\\[\\#666\\]", ".cb-min-rec", "span.cb-min-rec", "div.cb-min-rec"]
+      "selectors": [".cb-min-rec", "span.cb-min-rec", "div.cb-min-rec"]
+    },
+    "lastBalls": {
+      "selectors": ["p.text-\\[\\#666\\]", ".text-\\[\\#666\\]"],
+      "label": "Recent"
     },
     "partnership": {
       "selectors": [
@@ -332,10 +333,9 @@
     "crr": {
       "selectors": [
         "#miniscore-branding-container .text-cbTxtSec.ml-1",
-        "#miniscore-branding-container .text-xl span:last-child",
-        ".cb-col-100:has(span.cb-font-12)",
-        ".cb-min-bat-rw"
-      ]
+        "#miniscore-branding-container .inline-block"
+      ],
+      "regex": "(?:CRR|Current Rate)[:\\s]*([\\d.]+)"
     },
     "rrr": {
       "selectors": [

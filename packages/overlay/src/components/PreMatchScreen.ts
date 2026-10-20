@@ -1,8 +1,19 @@
-import type { MatchState } from '@stumpcast/shared';
+import type { MatchState, Team } from '@stumpcast/shared';
 import { assetUrl, attachImage, teamAssetId } from '../assets';
 import { OverlayComponent } from '../component';
 
 export type PreMatchScene = 'auto' | 'clock' | 'toss' | 'squad1' | 'squad2';
+
+/** Seconds a pinned auto-cycle stays on one scene (Settings > Video can override; see `sceneSec`). */
+const CYCLE_MS = 15_000;
+
+const STATUS_LINE: Record<string, string> = {
+  pre: 'YET TO BEGIN',
+  live: 'IN PLAY',
+  break: 'BREAK',
+  innings_break: 'INNINGS BREAK',
+  result: 'COMPLETE',
+};
 
 /**
  * Pre-Match TV broadcast presentation screen showing countdown clock, captains comparison,
@@ -35,12 +46,18 @@ export class PreMatchScreen extends OverlayComponent {
             <span class="pms-live-dot"></span>
             <span>PRE-MATCH BROADCAST</span>
           </div>
-          <h1 class="pms-title">SOUTH AFRICA VS AUSTRALIA</h1>
-          <p class="pms-venue">1ST TEST • KINGSMEAD, DURBAN • 10:00 AM LOCAL</p>
+          <h1 class="pms-title"></h1>
+          <p class="pms-venue"></p>
         </header>
 
         <!-- Dynamic Scene Content Area -->
-        <main class="pms-scene-area"></main>
+        <main class="pms-scene-area">
+          <div class="pms-scene pms-scene-clock">
+            <div class="pms-clock-center">
+              <span class="pms-clock-label">WAITING FOR MATCH DATA</span>
+            </div>
+          </div>
+        </main>
       </div>
     `;
 
@@ -57,15 +74,18 @@ export class PreMatchScreen extends OverlayComponent {
   }
 
   private setCrest(host: HTMLElement, short: string): void {
-    const url = assetUrl('teams', teamAssetId(short));
+    const id = teamAssetId(short);
+    const url = id ? assetUrl('teams', id) : '';
     if (host.dataset.src === url) return;
     host.dataset.src = url;
     host.replaceChildren();
-    attachImage(host, url);
+    if (url) attachImage(host, url);
   }
 
   setScene(scene: PreMatchScene): void {
     this.activeScene = scene;
+    if (scene !== 'auto') this.autoCycleIndex = 0;
+    this.syncCycle();
     if (this.currentState) this.renderScene(this.currentState);
   }
 
@@ -86,182 +106,139 @@ export class PreMatchScreen extends OverlayComponent {
     area.replaceChildren();
 
     if (effectiveScene === 'clock') {
-      // Countdown & Captains Comparison
+      // Match info panel. The feed carries no start time, captain or pitch report, so none is shown.
       const el = document.createElement('div');
       el.className = 'pms-scene pms-scene-clock';
+      const teamCard = (t: (typeof teamA), side: 'a' | 'b') => `
+        <div class="pms-captain-card">
+          <div class="pms-cap-badge">${t.short}</div>
+          <div class="pms-cap-crest pms-crest-${side}"></div>
+          <h2 class="pms-cap-name">${t.name.toUpperCase()}</h2>
+          <div class="pms-cap-stats">
+            <div class="pms-cap-stat"><span>TOSS</span><strong>${this.tossRole(s, t.id)}</strong></div>
+          </div>
+        </div>`;
       el.innerHTML = `
         <div class="pms-captains-grid">
-          <!-- Captain A -->
-          <div class="pms-captain-card">
-            <div class="pms-cap-badge">CAPTAIN • ${teamA.short}</div>
-            <div class="pms-cap-crest pms-crest-a"></div>
-            <h2 class="pms-cap-name">TEMBA BAVUMA</h2>
-            <div class="pms-cap-stats">
-              <div class="pms-cap-stat"><span>MATCHES</span><strong>58</strong></div>
-              <div class="pms-cap-stat"><span>RUNS</span><strong>3,184</strong></div>
-              <div class="pms-cap-stat"><span>AVG</span><strong>37.45</strong></div>
-            </div>
-          </div>
+          ${teamCard(teamA, 'a')}
 
-          <!-- Countdown Center Clock -->
           <div class="pms-clock-center">
-            <span class="pms-clock-label">COUNTDOWN TO TOSS / START</span>
+            <span class="pms-clock-label">MATCH STATUS</span>
             <div class="pms-clock-display">
-              <div class="pms-clock-unit"><strong>00</strong><span>HRS</span></div>
-              <span class="pms-clock-sep">:</span>
-              <div class="pms-clock-unit"><strong>14</strong><span>MIN</span></div>
-              <span class="pms-clock-sep">:</span>
-              <div class="pms-clock-unit pms-unit-sec"><strong>25</strong><span>SEC</span></div>
+              <div class="pms-clock-unit">
+                <strong>${STATUS_LINE[s.status] ?? s.status.toUpperCase()}</strong>
+                <span>${s.format}</span>
+              </div>
             </div>
             <div class="pms-pitch-badge">
-              <span>PITCH REPORT: HARD GREEN SURFACE, ASSISTING SEAM</span>
+              <span>${(s.venue ?? 'VENUE NOT ANNOUNCED').toUpperCase()}</span>
             </div>
           </div>
 
-          <!-- Captain B -->
-          <div class="pms-captain-card">
-            <div class="pms-cap-badge">CAPTAIN • ${teamB.short}</div>
-            <div class="pms-cap-crest pms-crest-b"></div>
-            <h2 class="pms-cap-name">PAT CUMMINS</h2>
-            <div class="pms-cap-stats">
-              <div class="pms-cap-stat"><span>MATCHES</span><strong>62</strong></div>
-              <div class="pms-cap-stat"><span>WICKETS</span><strong>269</strong></div>
-              <div class="pms-cap-stat"><span>AVG</span><strong>22.53</strong></div>
-            </div>
-          </div>
+          ${teamCard(teamB, 'b')}
         </div>
       `;
       this.setCrest(el.querySelector<HTMLElement>('.pms-crest-a')!, teamA.short);
       this.setCrest(el.querySelector<HTMLElement>('.pms-crest-b')!, teamB.short);
       area.appendChild(el);
     } else if (effectiveScene === 'toss') {
-      // Official Toss Presentation
-      const tossTeam = s.toss ? (s.toss.winnerTeamId === teamA.id ? teamA : teamB) : teamB;
-      const decision = s.toss?.decision === 'bat' ? 'BAT' : 'BOWL';
+      // Official toss presentation — nothing is claimed until the feed reports a toss.
+      const tossTeam = s.toss ? (s.toss.winnerTeamId === teamA.id ? teamA : teamB) : null;
       const el = document.createElement('div');
       el.className = 'pms-scene pms-scene-toss';
       el.innerHTML = `
         <div class="pms-toss-card">
-          <div class="pms-toss-badge">OFFICIAL TOSS RESULT</div>
+          <div class="pms-toss-badge">${s.toss ? 'OFFICIAL TOSS RESULT' : 'PRE-MATCH'}</div>
           <div class="pms-toss-crest"></div>
-          <h2 class="pms-toss-headline">${tossTeam.name.toUpperCase()} WON THE TOSS</h2>
-          <p class="pms-toss-decision">ELECTED TO ${decision} FIRST</p>
+          <h2 class="pms-toss-headline">
+            ${tossTeam ? `${tossTeam.name.toUpperCase()} WON THE TOSS` : 'THE TOSS IS YET TO TAKE PLACE'}
+          </h2>
+          <p class="pms-toss-decision">
+            ${s.toss ? `ELECTED TO ${s.toss.decision.toUpperCase()} FIRST` : 'CONFIRMED AS SOON AS IT IS CALLED'}
+          </p>
           <div class="pms-toss-teams-row">
-            <span class="pms-toss-pill">${teamA.name}: FIELDING FIRST</span>
-            <span class="pms-toss-pill">${teamB.name}: BATTING FIRST</span>
+            <span class="pms-toss-pill">${teamA.name}: ${this.tossRole(s, teamA.id)}</span>
+            <span class="pms-toss-pill">${teamB.name}: ${this.tossRole(s, teamB.id)}</span>
           </div>
         </div>
       `;
-      this.setCrest(el.querySelector<HTMLElement>('.pms-toss-crest')!, tossTeam.short);
+      if (tossTeam) this.setCrest(el.querySelector<HTMLElement>('.pms-toss-crest')!, tossTeam.short);
       area.appendChild(el);
     } else if (effectiveScene === 'squad1') {
-      // Team 1 Playing XI
-      const squad = [
-        { name: 'Aiden Markram', role: 'Opening Batter' },
-        { name: 'Ryan Rickelton', role: 'Batter' },
-        { name: 'David Bedingham', role: 'Batter' },
-        { name: 'Temba Bavuma', role: 'Captain', cap: true },
-        { name: 'Tristan Stubbs', role: 'Batter' },
-        { name: 'Kyle Verreynne', role: 'Wicket-Keeper', wk: true },
-        { name: 'Wiaan Mulder', role: 'All-Rounder' },
-        { name: 'Marco Jansen', role: 'Bowling All-Rounder' },
-        { name: 'Keshav Maharaj', role: 'Spin Bowler' },
-        { name: 'Kagiso Rabada', role: 'Fast Bowler' },
-        { name: 'Lungi Ngidi', role: 'Fast Bowler' },
-      ];
-      const el = document.createElement('div');
-      el.className = 'pms-scene pms-scene-squad';
-      el.innerHTML = `
-        <div class="pms-squad-container">
-          <div class="pms-squad-header">
-            <div class="pms-squad-crest"></div>
-            <div>
-              <h2 class="pms-squad-team-name">${teamA.name.toUpperCase()} PLAYING XI</h2>
-              <span class="pms-squad-sub">OFFICIAL LINE-UP</span>
-            </div>
-          </div>
-          <div class="pms-squad-list">
-            ${squad
-              .map(
-                (p, i) => `
-              <div class="pms-squad-player">
-                <span class="pms-player-no">${i + 1}</span>
-                <span class="pms-player-name">${p.name} ${p.cap ? '(C)' : ''} ${p.wk ? '(WK)' : ''}</span>
-                <span class="pms-player-role">${p.role}</span>
-              </div>
-            `,
-              )
-              .join('')}
-          </div>
-        </div>
-      `;
-      this.setCrest(el.querySelector<HTMLElement>('.pms-squad-crest')!, teamA.short);
-      area.appendChild(el);
+      this.renderSquad(area, teamA);
     } else if (effectiveScene === 'squad2') {
-      // Team 2 Playing XI
-      const squad = [
-        { name: 'Usman Khawaja', role: 'Opening Batter' },
-        { name: 'Matt Renshaw', role: 'Opening Batter' },
-        { name: 'Marnus Labuschagne', role: 'Batter' },
-        { name: 'Steven Smith', role: 'Batter' },
-        { name: 'Travis Head', role: 'Batter' },
-        { name: 'Mitchell Marsh', role: 'All-Rounder' },
-        { name: 'Alex Carey', role: 'Wicket-Keeper', wk: true },
-        { name: 'Pat Cummins', role: 'Captain & Fast Bowler', cap: true },
-        { name: 'Mitchell Starc', role: 'Fast Bowler' },
-        { name: 'Nathan Lyon', role: 'Off-Spin Bowler' },
-        { name: 'Josh Hazlewood', role: 'Fast Bowler' },
-      ];
-      const el = document.createElement('div');
-      el.className = 'pms-scene pms-scene-squad';
-      el.innerHTML = `
-        <div class="pms-squad-container">
-          <div class="pms-squad-header">
-            <div class="pms-squad-crest"></div>
-            <div>
-              <h2 class="pms-squad-team-name">${teamB.name.toUpperCase()} PLAYING XI</h2>
-              <span class="pms-squad-sub">OFFICIAL LINE-UP</span>
-            </div>
-          </div>
-          <div class="pms-squad-list">
-            ${squad
-              .map(
-                (p, i) => `
-              <div class="pms-squad-player">
-                <span class="pms-player-no">${i + 1}</span>
-                <span class="pms-player-name">${p.name} ${p.cap ? '(C)' : ''} ${p.wk ? '(WK)' : ''}</span>
-                <span class="pms-player-role">${p.role}</span>
-              </div>
-            `,
-              )
-              .join('')}
+      this.renderSquad(area, teamB);
+    }
+  }
+
+  /** The feed carries no line-ups, so the squad scene says so instead of listing invented players. */
+  private renderSquad(area: HTMLElement, team: Team): void {
+    const el = document.createElement('div');
+    el.className = 'pms-scene pms-scene-squad';
+    el.innerHTML = `
+      <div class="pms-squad-container">
+        <div class="pms-squad-header">
+          <div class="pms-squad-crest"></div>
+          <div>
+            <h2 class="pms-squad-team-name">${team.name.toUpperCase()} PLAYING XI</h2>
+            <span class="pms-squad-sub">LINE-UP NOT ANNOUNCED IN THE FEED</span>
           </div>
         </div>
-      `;
-      this.setCrest(el.querySelector<HTMLElement>('.pms-squad-crest')!, teamB.short);
-      area.appendChild(el);
-    }
+      </div>
+    `;
+    this.setCrest(el.querySelector<HTMLElement>('.pms-squad-crest')!, team.short);
+    area.appendChild(el);
+  }
+
+  /** What the toss decided for one side, or a pending label while the toss has not happened. */
+  private tossRole(s: MatchState, teamId: string): string {
+    if (!s.toss) return 'PENDING';
+    const winnerBats = s.toss.decision === 'bat';
+    const isWinner = s.toss.winnerTeamId === teamId;
+    if (isWinner) return winnerBats ? 'BATTING FIRST' : 'FIELDING FIRST';
+    return winnerBats ? 'FIELDING FIRST' : 'BATTING FIRST';
   }
 
   update(s: MatchState): void {
     this.currentState = s;
     this.renderScene(s);
+    this.syncCycle();
+  }
 
-    if (this.activeScene === 'auto' && !this.timer) {
-      this.timer = window.setInterval(() => {
-        if (this.activeScene === 'auto' && this.currentState) {
-          this.autoCycleIndex++;
-          this.renderScene(this.currentState);
-        }
-      }, 15000);
+  override show(data?: unknown): void {
+    super.show(data);
+    this.syncCycle();
+  }
+
+  override hide(): void {
+    this.stopCycle();
+    super.hide();
+  }
+
+  /** The cycler runs only while the screen is on air and the operator has not pinned a scene. */
+  private syncCycle(): void {
+    if (this.activeScene !== 'auto' || !this.isVisible || !this.currentState) {
+      this.stopCycle();
+      return;
+    }
+    if (this.timer !== null) return;
+    this.timer = window.setInterval(() => {
+      if (this.activeScene === 'auto' && this.currentState) {
+        this.autoCycleIndex++;
+        this.renderScene(this.currentState);
+      }
+    }, CYCLE_MS);
+  }
+
+  private stopCycle(): void {
+    if (this.timer !== null) {
+      clearInterval(this.timer);
+      this.timer = null;
     }
   }
 
   override destroy(): void {
-    if (this.timer) {
-      clearInterval(this.timer);
-      this.timer = null;
-    }
+    this.stopCycle();
     super.destroy?.();
   }
 }

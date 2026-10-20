@@ -6,6 +6,13 @@ export interface FailoverEvent {
   source: string;
 }
 
+/**
+ * After an automatic switch, wait this long before switching again. Two feeds that both flap
+ * between stale and connected otherwise ping-pong the broadcast, flashing a full scorecard
+ * every few seconds.
+ */
+export const FAILOVER_COOLDOWN_MS = 30_000;
+
 export interface CandidateMatch {
   id: string;
   title: string;
@@ -110,6 +117,11 @@ export class ProviderFailoverManager {
       alarmCode === 'PROVIDER_DOWN';
 
     if (!isProblematic) {
+      return { failedOver: false, event: null };
+    }
+
+    // Hold off right after a switch so a flapping pair of feeds cannot bounce the broadcast.
+    if (this.lastFailover && this.now - this.lastFailover.at < FAILOVER_COOLDOWN_MS) {
       return { failedOver: false, event: null };
     }
 

@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_DIRECTOR_RULES } from '@stumpcast/shared';
+import { ALL_AVAILABLE_LOOKS, DEFAULT_DIRECTOR_RULES, DirectorRuleSchema } from '@stumpcast/shared';
+import type { DirectorRule } from '@stumpcast/shared';
+import { PRO_LOOKS_CATALOG } from './shell/ProLooksModal';
 import {
   ALL_CARDS,
   CARD_GROUPS,
@@ -38,7 +40,13 @@ describe('card catalogue', () => {
 });
 
 describe('validateRule', () => {
-  const ok = { on: 'OVER_END', card: 'manhattan', durationSec: 8, cooldownSec: 30, priority: 1 };
+  const ok: DirectorRule = {
+    on: 'OVER_END',
+    card: 'manhattan',
+    durationSec: 8,
+    cooldownSec: 30,
+    priority: 1,
+  };
   it('accepts a sensible rule', () => {
     expect(validateRule(ok)).toBeNull();
   });
@@ -49,6 +57,11 @@ describe('validateRule', () => {
     expect(validateRule({ ...ok, cooldownSec: Number.NaN })).toMatch(/Cooldown/);
     expect(validateRule({ ...ok, card: '' })).toMatch(/card/);
   });
+  it('refuses a trigger that no engine event produces', () => {
+    // 'FOURES' used to save happily and then never show a card.
+    expect(DirectorRuleSchema.safeParse({ ...ok, on: 'FOURES' }).success).toBe(false);
+    expect(DirectorRuleSchema.safeParse({ ...ok, on: 'BATTER_90' }).success).toBe(true);
+  });
 });
 
 describe('toggleCarouselCard', () => {
@@ -58,5 +71,17 @@ describe('toggleCarouselCard', () => {
   });
   it('never empties the carousel', () => {
     expect(toggleCarouselCard(['a'], 'a')).toEqual(['a']);
+  });
+});
+
+describe('Pro Looks catalog', () => {
+  // Two cards shared the id k15: React warned about duplicate keys, both lit up "Active on
+  // stream" together, and one of them activated the wrong look.
+  it('has a unique id and badge per card, matching a real look', () => {
+    const ids = PRO_LOOKS_CATALOG.map((l) => l.id);
+    const badges = PRO_LOOKS_CATALOG.map((l) => l.badge);
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(new Set(badges).size).toBe(badges.length);
+    for (const id of ids) expect(ALL_AVAILABLE_LOOKS.some((look) => look.id === id)).toBe(true);
   });
 });

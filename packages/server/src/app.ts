@@ -16,6 +16,7 @@ import { z } from 'zod';
 import {
   SettingsSchema,
   createSettings,
+  type CommentaryItem,
   type Settings,
   type EngineEvent,
   type MatchState,
@@ -50,7 +51,16 @@ import { WsHub } from './ws/hub';
 import { signLicenceToken, verifyLicenceToken, type LicencePayload } from './licence/licence';
 
 const SETTINGS_KEY = 'app';
-export const APP_VERSION = '1.0.2';
+export const APP_VERSION = '1.0.3';
+
+/** One engine tick waiting on the broadcast delay, with the commentary already written for it. */
+interface PendingRelease {
+  state: MatchState;
+  events: EngineEvent[];
+  spoken: (CommentaryItem | null)[];
+  /** Ball-by-ball line for a state that produced no event of its own. */
+  ball: CommentaryItem | null;
+}
 
 export interface StumpCastApp {
   fastify: FastifyInstance;
@@ -65,7 +75,7 @@ export interface StumpCastApp {
   assets: AssetService;
   sounds: SoundService;
   obs: OBSLink;
-  delay: DelayBuffer<{ state: MatchState; events: EngineEvent[] }>;
+  delay: DelayBuffer<PendingRelease>;
   /** Port actually bound; set by `start`. */
   port: number | null;
   start(): Promise<number>;
@@ -200,7 +210,7 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
     if (query?.simulate === '1' || simulatedUpdate || process.env.STUMPCAST_UPDATE_SIMULATE === '1') {
       return {
         currentVersion: APP_VERSION,
-        latestVersion: '1.0.2',
+        latestVersion: '1.0.3',
         updateAvailable: true,
         releaseNotes:
           '• Direct In-App Desktop Updater with live transfer progress bar\n• Ultra-fast Cricbuzz & Crex match state scrapers\n• White, Royal Blue & Cricket Orange studio broadcast look\n• Responsive operator control room layout\n• Automatic background installer updates',
@@ -264,6 +274,10 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
 
   fastify.get('/api/app/update-download-file', async (_req, reply) => {
     const candidates = [
+      path.resolve(process.cwd(), 'release', 'StumpCast-Studio-Setup-1.0.3.exe'),
+      path.resolve(import.meta.dirname, '..', '..', '..', 'release', 'StumpCast-Studio-Setup-1.0.3.exe'),
+      'C:\\Users\\IK\\Downloads\\StumpCast Studio\\stumpcast\\release\\StumpCast-Studio-Setup-1.0.3.exe',
+      path.join(process.env.USERPROFILE || '', 'Downloads', 'StumpCast Studio', 'stumpcast', 'release', 'StumpCast-Studio-Setup-1.0.3.exe'),
       path.resolve(process.cwd(), 'release', 'StumpCast-Studio-Setup-1.0.2.exe'),
       path.resolve(import.meta.dirname, '..', '..', '..', 'release', 'StumpCast-Studio-Setup-1.0.2.exe'),
       'C:\\Users\\IK\\Downloads\\StumpCast Studio\\stumpcast\\release\\StumpCast-Studio-Setup-1.0.2.exe',
@@ -303,7 +317,7 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
     return {
       simulated: simulatedUpdate,
       currentVersion: APP_VERSION,
-      latestVersion: simulatedUpdate ? '1.0.2' : APP_VERSION,
+      latestVersion: simulatedUpdate ? '1.0.3' : APP_VERSION,
     };
   });
 
@@ -416,30 +430,20 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
 
   const commentary = new CommentaryService();
 
-  const delay = new DelayBuffer<{ state: MatchState; events: EngineEvent[] }>(
-    ({ state: s, events }) => {
-      published.set(s.id, s);
-      hub.broadcast('state', 'match-state', s, 'live');
-      director.onState(s);
-      for (const e of events) {
-        persistEvent(e);
-        hub.broadcast('events', 'engine-event', e, 'live');
-        director.onEvent(e);
-        sound.auto?.autoFor(e.type, loadSettings().sounds.auto);
-        const comm = commentary.onEvent(e, s);
-        if (comm) hub.broadcast('commentary', 'speak', comm, 'live');
-      }
-    },
-    loadSettings().syncDelaySec,
-  );
-
-  // Always clean out legacy mock/seed matches from DB immediately on start
-  try {
-    db.delete(schema.matches).where(eq(schema.matches.id, '147920')).run();
-    db.delete(schema.matches).where(eq(schema.matches.id, 'seed-match')).run();
-  } catch {
-    /* ignore */
-  }
+  const delay = new DelayBuffer<PendingRelease>(({ state: s, events, spoken, ball }) => {
+    published.set(s.id, s);
+    hub.broadcast('state', 'match-state', s, 'live');
+    director.onState(s);
+    events.forEach((e, i) => {
+      persistEvent(e);
+      hub.broadcast('events', 'engine-event', e, 'live');
+      director.onEvent(e);
+      sound.auto?.autoFor(e.type, loadSettings().sounds.auto);
+      const comm = spoken[i];
+      if (comm) hub.broadcast('commentary', 'speak', comm, 'live');
+    });
+    if (ball) hub.broadcast('commentary', 'speak', ball, 'live');
+  }, loadSettings().syncDelaySec);
 
   const engine = new MatchEngine({
     db,
@@ -447,28 +451,27 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
       const events = detector.observe(s);
       // The admin preview socket sees everything immediately; overlays get the delayed feed.
       hub.broadcast('state', 'match-state', s, 'preview');
-      for (const e of events) {
+      // Written once per event and carried through the delay, so preview and the on-stream
+      // feed speak the same line instead of the operator hearing everything twice.
+      const spoken = events.map((e) => {
         hub.broadcast('events', 'engine-event', e, 'preview');
-        const comm = commentary.onEvent(e, s);
-        if (comm) hub.broadcast('commentary', 'speak', comm, 'preview');
-      }
-      delay.push({ state: s, events });
+        const item = commentary.onEvent(e, s);
+        if (item) hub.broadcast('commentary', 'speak', item, 'preview');
+        return item;
+      });
+      // Between the big moments the voice keeps describing deliveries instead of falling silent.
+      const ball = spoken.some((i) => i !== null) ? null : commentary.onBall(s);
+      if (ball) hub.broadcast('commentary', 'speak', ball, 'preview');
+      delay.push({ state: s, events, spoken, ball });
     },
   });
 
   extension.onUpdate((u) => {
     engine.process(u);
-    // When a real match update arrives, auto-purge any old mock seed match from memory and DB
-    if (u.matchId !== '147920' && u.matchId !== 'seed-match') {
-      engine.deleteMatch('147920');
-      engine.deleteMatch('seed-match');
-      extension.deleteMatch('147920');
-      extension.deleteMatch('seed-match');
-      db.delete(schema.matches).where(eq(schema.matches.id, '147920')).run();
-      db.delete(schema.matches).where(eq(schema.matches.id, 'seed-match')).run();
-    }
+    // First real match seen becomes the on-air one, unless the operator already chose. Nothing is
+    // ever purged by match id: a scraped Cricbuzz number is a real match, not demo data.
     const s = loadSettings();
-    if (!s.onStreamMatchId || s.onStreamMatchId === '147920' || s.onStreamMatchId === 'seed-match') {
+    if (!s.onStreamMatchId) {
       const next = { ...s, onStreamMatchId: u.matchId };
       db.insert(schema.settings)
         .values({ key: SETTINGS_KEY, value: next })
@@ -479,9 +482,12 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
   });
 
   // Optional backup source: operator-scored matches share the same engine and overlay pipeline.
-  const manual = new ManualProvider(sqlite);
+  const manual = new ManualProvider(sqlite, Date.now, {
+    // An undone ball must not still be sitting in the broadcast-delay queue.
+    onRewind: (matchId) => delay.discard(({ state }) => state.id === matchId),
+  });
   manual.onUpdate((u) => engine.process(u));
-  registerManualRoutes(fastify, manual);
+  registerManualRoutes(fastify, manual, (id) => purgeMatch(id));
   manual.republishAll();
 
   // API provider (backup official data API source)
@@ -522,9 +528,7 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
   fastify.get('/api/matches', async () => {
     const settings = loadSettings();
     const onStream = settings.onStreamMatchId;
-    const states = engine
-      .allStates()
-      .filter((s) => s.id !== '147920' && s.id !== 'seed-match');
+    const states = engine.allStates();
     // Sort: on-stream match first, then by updatedAt descending
     states.sort((a, b) => {
       if (a.id === onStream) return -1;
@@ -534,10 +538,31 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
     return states;
   });
 
+  /**
+   * One teardown for one match. Both delete routes must use it: dropping only the provider rows
+   * left the score on air, and dropping only the engine state let a restart bring the match back.
+   */
+  function purgeMatch(id: string): void {
+    delay.discard(({ state }) => state.id === id);
+    engine.deleteMatch(id);
+    extension.deleteMatch(id);
+    manual.delete(id);
+    published.delete(id);
+    db.delete(schema.matches).where(eq(schema.matches.id, id)).run();
+    db.delete(schema.snapshots).where(eq(schema.snapshots.matchId, id)).run();
+    db.delete(schema.events).where(eq(schema.events.matchId, id)).run();
+    const current = loadSettings();
+    if (current.onStreamMatchId === id) {
+      saveSettings({ ...current, onStreamMatchId: null });
+    }
+  }
+
   fastify.delete('/api/matches', async () => {
+    delay.discard();
     engine.clear();
     extension.clear();
     published.clear();
+    for (const m of manual.list()) manual.delete(m.id);
     db.delete(schema.matches).run();
     db.delete(schema.snapshots).run();
     db.delete(schema.events).run();
@@ -549,18 +574,8 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
   });
 
   fastify.delete<{ Params: { id: string } }>('/api/matches/:id', async (req) => {
-    const id = req.params.id;
-    engine.deleteMatch(id);
-    extension.deleteMatch(id);
-    published.delete(id);
-    db.delete(schema.matches).where(eq(schema.matches.id, id)).run();
-    db.delete(schema.snapshots).where(eq(schema.snapshots.matchId, id)).run();
-    db.delete(schema.events).where(eq(schema.events.matchId, id)).run();
-    const current = loadSettings();
-    if (current.onStreamMatchId === id) {
-      saveSettings({ ...current, onStreamMatchId: null });
-    }
-    return { ok: true, id };
+    purgeMatch(req.params.id);
+    return { ok: true, id: req.params.id };
   });
 
   // ---- sounds (B9) ---------------------------------------------------------------------
@@ -1012,6 +1027,7 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
   await serve(config.adminDir, '/admin/', false);
   await serve(config.licenseAdminDir, '/license-admin/', false);
   await serve(config.licenseAdminDir, '/license-generator/', false);
+  fastify.get('/', async (_req, reply) => reply.redirect('/admin/'));
   fastify.get('/overlay', async (_req, reply) => reply.redirect('/overlay/'));
   fastify.get('/admin', async (_req, reply) => reply.redirect('/admin/'));
   fastify.get('/license-admin', async (_req, reply) => reply.redirect('/license-admin/'));

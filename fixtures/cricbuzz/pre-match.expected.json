@@ -19,7 +19,7 @@
     ],
     "innings": [
       {
-        "team": "0/0",
+        "team": "India",
         "runs": 0,
         "wkts": 0,
         "overs": 0,
@@ -28,8 +28,7 @@
     ],
     "batters": [],
     "thisOver": [],
-    "lastBalls": [],
-    "crr": 0
+    "lastBalls": []
   },
   "missing": []
 }

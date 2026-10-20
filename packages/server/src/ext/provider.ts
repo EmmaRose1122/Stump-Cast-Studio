@@ -25,7 +25,7 @@ export class ExtensionProvider implements MatchProvider {
   private readonly connectionListeners = new Set<(connected: boolean) => void>();
   private lastHeartbeatAt: number | null = null;
   private heartbeat: Heartbeat | null = null;
-  private sender: ((cmd: ExtCommand) => boolean) | null = null;
+  private sender: { owner: object; fn: (cmd: ExtCommand) => boolean } | null = null;
   /** Newest "adapter could not read the page" report; explains why no match appears. */
   private degraded: { site: string; url: string; confidence: number; missing: string[]; at: number } | null = null;
 
@@ -68,9 +68,23 @@ export class ExtensionProvider implements MatchProvider {
   }
 
   /** The WS layer registers how to push a command to the connected extension. */
-  setCommandSender(fn: ((cmd: ExtCommand) => boolean) | null): void {
-    this.sender = fn;
-    for (const cb of this.connectionListeners) cb(fn !== null);
+  setCommandSender(fn: ((cmd: ExtCommand) => boolean) | null, owner: object = this): void {
+    if (fn === null) {
+      this.releaseCommandSender(owner);
+      return;
+    }
+    this.sender = { owner, fn };
+    for (const cb of this.connectionListeners) cb(true);
+  }
+
+  /**
+   * Only the socket that owns the channel may clear it. Without this, a stale socket closing
+   * after a newer one connected would silently kill the command path of the live extension.
+   */
+  releaseCommandSender(owner: object): void {
+    if (this.sender && this.sender.owner !== owner) return;
+    this.sender = null;
+    for (const cb of this.connectionListeners) cb(false);
   }
 
   /** Called when the extension connects (true) or disconnects (false). */
@@ -80,14 +94,13 @@ export class ExtensionProvider implements MatchProvider {
   }
 
   sendCommand(cmd: ExtCommand): boolean {
-    return this.sender?.(cmd) ?? false;
+    return this.sender?.fn(cmd) ?? false;
   }
 
   // ---- MatchProvider ----------------------------------------------------------------------
 
   async listMatches(): Promise<MatchSummary[]> {
     return [...this.latest.values()]
-      .filter((u) => u.matchId !== '147920' && u.matchId !== 'seed-match')
       .map((u) => ({
         matchId: u.matchId,
         title: u.fields.title ?? u.matchId,

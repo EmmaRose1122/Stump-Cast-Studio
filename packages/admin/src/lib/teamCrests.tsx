@@ -1,120 +1,22 @@
-import { slug } from '@stumpcast/shared';
+import { resolveTeam, slug } from '@stumpcast/shared';
 import React, { useState } from 'react';
 
 /**
- * Normalizes any international, franchise, or league team name/short code
- * into its canonical asset id (e.g. 'team-rsa', 'team-aus', 'team-pak', 'team-sl').
+ * Canonical team code for any name or abbreviation. The registry lives in `@stumpcast/shared` so
+ * the control room, the server and the overlay all agree on one crest file — three copies of an
+ * alias table is how one surface ended up showing Sierra Leone for Sri Lanka.
  */
 export const normalizeTeamCode = (shortOrName?: string): string => {
   if (!shortOrName) return 'gen';
-  const clean = shortOrName.trim().toLowerCase();
-
-  const MAP: Record<string, string> = {
-    // International teams
-    rsa: 'rsa',
-    sou: 'rsa',
-    sa: 'rsa',
-    'south africa': 'rsa',
-    aus: 'aus',
-    australia: 'aus',
-    pak: 'pak',
-    pakistan: 'pak',
-    ind: 'ind',
-    india: 'ind',
-    sl: 'sl',
-    sri: 'sl',
-    'sri lanka': 'sl',
-    eng: 'eng',
-    england: 'eng',
-    nz: 'nz',
-    'new zealand': 'nz',
-    wi: 'wi',
-    'west indies': 'wi',
-    ban: 'ban',
-    bangladesh: 'ban',
-    afg: 'afg',
-    afghanistan: 'afg',
-    zim: 'zim',
-    zimbabwe: 'zim',
-    ire: 'ire',
-    ireland: 'ire',
-    ned: 'ned',
-    netherlands: 'ned',
-    sco: 'sco',
-    scotland: 'sco',
-    oma: 'oma',
-    oman: 'oma',
-    uae: 'uae',
-    usa: 'usa',
-    'united states': 'usa',
-    nep: 'nep',
-    nepal: 'nep',
-    nam: 'nam',
-    namibia: 'nam',
-
-    // IPL
-    csk: 'csk',
-    'chennai super kings': 'csk',
-    mi: 'mi',
-    'mumbai indians': 'mi',
-    rcb: 'rcb',
-    'royal challengers bengaluru': 'rcb',
-    'royal challengers bangalore': 'rcb',
-    kkr: 'kkr',
-    'kolkata knight riders': 'kkr',
-    dc: 'dc',
-    'delhi capitals': 'dc',
-    srh: 'srh',
-    'sunrisers hyderabad': 'srh',
-    rr: 'rr',
-    rjr: 'rr',
-    'rajasthan royals': 'rr',
-    pbks: 'pbks',
-    kxip: 'pbks',
-    'punjab kings': 'pbks',
-    gt: 'gt',
-    'gujarat titans': 'gt',
-    lsg: 'lsg',
-    'lucknow super giants': 'lsg',
-
-    // PSL
-    isu: 'isu',
-    'islamabad united': 'isu',
-    kk: 'kk',
-    krk: 'kk',
-    'karachi kings': 'kk',
-    lq: 'lq',
-    lhq: 'lq',
-    'lahore qalandars': 'lq',
-    ms: 'ms',
-    'multan sultans': 'ms',
-    pz: 'pz',
-    psz: 'pz',
-    'peshawar zalmi': 'pz',
-    qg: 'qg',
-    qtg: 'qg',
-    'quetta gladiators': 'qg',
-
-    // BBL
-    ads: 'ads',
-    brh: 'brh',
-    hbh: 'hbh',
-    mlr: 'mlr',
-    mls: 'mls',
-    prs: 'prs',
-    sys: 'sys',
-    syt: 'syt',
-  };
-
-  if (MAP[clean]) return MAP[clean];
-  const s = slug(clean);
-  if (MAP[s]) return MAP[s];
-  return s || 'gen';
+  const known = resolveTeam(shortOrName);
+  if (known) return known.code;
+  return slug(shortOrName) || 'gen';
 };
 
 export const getTeamAssetId = (shortOrName?: string): string => {
   return `team-${normalizeTeamCode(shortOrName)}`;
 };
+
 
 export const getTeamLogoUrl = (shortOrName?: string, ext: 'webp' | 'svg' = 'webp'): string => {
   return `/assets/teams/${getTeamAssetId(shortOrName)}.${ext}`;

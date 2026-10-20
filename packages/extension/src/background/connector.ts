@@ -8,6 +8,7 @@ import {
   type SelectorBundle,
   type TabInfo,
 } from '@stumpcast/shared';
+import { SelectorConfigSchema } from '../adapters/config';
 import type { ContentMessage } from '../messages';
 
 export const HEARTBEAT_MS = 5000;
@@ -63,6 +64,12 @@ interface TrackedTab extends TabInfo {
 }
 
 const OPEN = 1;
+/** A full localhost port sweep is expensive; do not repeat it more often than this. */
+const DISCOVERY_COOLDOWN_MS = 15_000;
+/** How often to re-probe for other local Studio instances. */
+const PEER_PROBE_MS = 60_000;
+/** Heartbeats carry at most this many open matches; the same bound keeps storage small. */
+const MAX_TRACKED_TABS = 20;
 
 export class Connector {
   private token: string | null = null;
@@ -77,12 +84,22 @@ export class Connector {
   private started = false;
   private activeSelectorsVersion: number | null = null;
   private readonly tracked = new Map<string, TrackedTab>();
+  private lastDiscoveryAt: number | null = null;
+  private discoveryInFlight: Promise<number | null> | null = null;
+  private pairInFlight: Promise<boolean> | null = null;
+  private lastPairFailureAt: number | null = null;
+  private peerPorts: number[] = [];
+  private peerProbeAt: number | null = null;
 
   constructor(private readonly deps: ConnectorDeps) {}
 
   // ---- lifecycle --------------------------------------------------------------------------
 
-  /** Safe to call on every service-worker wake-up. */
+  /**
+   * Safe to call on every service-worker wake-up. The MV3 worker is killed after ~30 s idle, so
+   * the open-match list is kept in storage: without it "close match tab"/"focus" find no tab and
+   * the heartbeat reports zero open matches while scores keep flowing.
+   */
   async init(): Promise<void> {
     if (!this.started) {
       this.started = true;
@@ -91,9 +108,22 @@ export class Connector {
       this.killed = ((await this.deps.storage.get('killed')) as boolean | null) ?? false;
       const custom = (await this.deps.storage.get('customSelectors')) as SelectorBundle | undefined;
       if (custom?.version) this.activeSelectorsVersion = custom.version;
+      const saved = (await this.deps.storage.get('trackedTabs')) as TrackedTab[] | null;
+      if (Array.isArray(saved)) {
+        for (const t of saved) {
+          if (t && typeof t.matchId === 'string') this.tracked.set(t.matchId, t);
+        }
+      }
     }
     if (this.token && !this.socket) await this.connect();
     else if (!this.token && !this.killed) await this.autoPair();
+  }
+
+  private persistTracked(): void {
+    const keep = [...this.tracked.values()]
+      .sort((a, b) => b.lastUpdateAt - a.lastUpdateAt)
+      .slice(0, MAX_TRACKED_TABS);
+    void Promise.resolve(this.deps.storage.set('trackedTabs', keep)).catch(() => undefined);
   }
 
   get paired(): boolean {
@@ -104,7 +134,31 @@ export class Connector {
     return this.port;
   }
 
+  /**
+   * Pair without a code. Concurrent content scripts must share one attempt, and a failed
+   * attempt is remembered so a server that is not running is not swept and re-paired every
+   * few seconds per tab.
+   */
   async autoPair(): Promise<boolean> {
+    if (this.token) return true;
+    if (this.pairInFlight) return this.pairInFlight;
+    const now = this.deps.now();
+    if (this.lastPairFailureAt !== null && now - this.lastPairFailureAt < DISCOVERY_COOLDOWN_MS) {
+      return false;
+    }
+    const run = this.tryAutoPair().then((ok) => {
+      this.lastPairFailureAt = ok ? null : this.deps.now();
+      return ok;
+    });
+    this.pairInFlight = run;
+    try {
+      return await run;
+    } finally {
+      if (this.pairInFlight === run) this.pairInFlight = null;
+    }
+  }
+
+  private async tryAutoPair(): Promise<boolean> {
     const port = await this.discoverPort();
     if (port === null) return false;
     for (const host of ['127.0.0.1', 'localhost']) {
@@ -165,6 +219,11 @@ export class Connector {
 
   // ---- messages from content scripts ------------------------------------------------------
 
+  private track(info: TrackedTab): void {
+    this.tracked.set(info.matchId, info);
+    this.persistTracked();
+  }
+
   async onContentMessage(msg: ContentMessage, tabId: number | null): Promise<void> {
     if (this.killed) return;
     if (!this.token) {
@@ -173,7 +232,7 @@ export class Connector {
     const now = this.deps.now();
     if (msg.type === 'score-update') {
       const u = msg.update;
-      this.tracked.set(u.matchId, {
+      this.track({
         matchId: u.matchId,
         url: u.url,
         lastUpdateAt: now,
@@ -182,7 +241,7 @@ export class Connector {
       });
       await this.send({ type: 'update', update: u });
     } else if (msg.type === 'tick') {
-      this.tracked.set(msg.matchId, {
+      this.track({
         matchId: msg.matchId,
         url: msg.url,
         lastUpdateAt: now,
@@ -197,7 +256,7 @@ export class Connector {
       } catch {
         // ignore
       }
-      this.tracked.set(matchId, {
+      this.track({
         matchId,
         url: msg.url,
         lastUpdateAt: now,
@@ -217,11 +276,19 @@ export class Connector {
 
   /** Tab closed by the user: stop reporting it so the server can mark it gone. */
   onTabRemoved(tabId: number): void {
-    for (const [id, t] of this.tracked) if (t.tabId === tabId) this.tracked.delete(id);
+    let changed = false;
+    for (const [id, t] of this.tracked)
+      if (t.tabId === tabId) {
+        this.tracked.delete(id);
+        changed = true;
+      }
+    if (changed) this.persistTracked();
   }
 
   get tabs(): TabInfo[] {
-    return [...this.tracked.values()].map(({ tabId: _tabId, ...t }) => t);
+    return [...this.tracked.values()]
+      .slice(0, MAX_TRACKED_TABS)
+      .map(({ tabId: _tabId, ...t }) => t);
   }
 
   // ---- transport --------------------------------------------------------------------------
@@ -257,30 +324,50 @@ export class Connector {
         sentWs = false;
       }
     }
-    // Always use HTTP postIngest for match score updates to guarantee immediate delivery
-    if (!sentWs || msg.type === 'update') {
-      await this.postIngest(msg);
-    }
+    // HTTP is the fallback only. Sending an update over the socket *and* by POST made the
+    // server process the same ball twice per tick.
+    if (!sentWs) await this.postIngest(msg);
 
-    // Replicate to other active local Studio instances (e.g. if both 4000 and 4002 are running)
-    const activePorts = [4000, 4002].filter((p) => p !== this.port);
-    for (const p of activePorts) {
+    // Replicate to other local Studio instances, but only to peers that answered the last
+    // probe: hammering two fixed ports for every ball wasted work when they were not there.
+    for (const p of await this.livePeers()) {
       try {
         const token = await this.ensurePeerToken(p);
         if (token) {
-          void this.deps.fetch(`http://127.0.0.1:${p}/api/ext/ingest`, {
-            method: 'POST',
-            headers: {
-              'content-type': 'application/json',
-              authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify(msg),
-          }).catch(() => undefined);
+          void this.deps
+            .fetch(`http://127.0.0.1:${p}/api/ext/ingest`, {
+              method: 'POST',
+              headers: {
+                'content-type': 'application/json',
+                authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify(msg),
+            })
+            .catch(() => undefined);
         }
       } catch {
         /* peer unreachable */
       }
     }
+  }
+
+  /** Other Studio instances on this machine, refreshed at most every PEER_PROBE_MS. */
+  private async livePeers(): Promise<number[]> {
+    const now = this.deps.now();
+    if (this.peerProbeAt !== null && now - this.peerProbeAt < PEER_PROBE_MS) return this.peerPorts;
+    const candidates = [4000, 4001, 4002, 4003, 4004].filter((p) => p !== this.port);
+    const alive: number[] = [];
+    for (const p of candidates) {
+      try {
+        const res = await this.deps.fetch(`http://127.0.0.1:${p}/api/health`);
+        if (res.ok) alive.push(p);
+      } catch {
+        /* not running */
+      }
+    }
+    this.peerPorts = alive;
+    this.peerProbeAt = now;
+    return alive;
   }
 
   private async postIngest(msg: ExtClientMessage): Promise<void> {
@@ -300,7 +387,12 @@ export class Connector {
         body: JSON.stringify(msg),
       });
       if (res.status === 401) {
-        await this.unpair(); // token revoked server-side
+        // Token revoked server-side. Drop it directly: unpair() re-enters autoPair itself, which
+        // stacked a second pairing attempt on top of the one below.
+        this.token = null;
+        await this.deps.storage.remove('token');
+        this.teardown(true);
+        this.lastPairFailureAt = null;
         const rePaired = await this.autoPair();
         if (rePaired && this.token) {
           await this.deps.fetch(`http://127.0.0.1:${port}/api/ext/ingest`, {
@@ -343,6 +435,24 @@ export class Connector {
 
   /** Cached port first, then 4002, 4000..4010 and dev ports. Verifies via GET /api/health. */
   private async discoverPort(): Promise<number | null> {
+    if (this.discoveryInFlight) return this.discoveryInFlight;
+    const now = this.deps.now();
+    if (this.lastDiscoveryAt !== null && now - this.lastDiscoveryAt < DISCOVERY_COOLDOWN_MS) {
+      return this.port;
+    }
+    const run = this.sweepPort().then((port) => {
+      this.lastDiscoveryAt = this.deps.now();
+      return port;
+    });
+    this.discoveryInFlight = run;
+    try {
+      return await run;
+    } finally {
+      if (this.discoveryInFlight === run) this.discoveryInFlight = null;
+    }
+  }
+
+  private async sweepPort(): Promise<number | null> {
     const candidates: number[] = [];
     if (this.port !== null) candidates.push(this.port);
     for (const p of [4002, 4000, 4001, 4003, 4004, 5175, 5174]) {
@@ -453,6 +563,15 @@ export class Connector {
         if (!verified.valid || !verified.bundle) {
           return false;
         }
+        // A signature only proves who wrote the bundle, not that its scraper config is usable.
+        for (const [site, config] of Object.entries(verified.bundle.selectors)) {
+          if (site !== 'cricbuzz' && site !== 'crex') return false;
+          try {
+            SelectorConfigSchema.parse(config);
+          } catch {
+            return false;
+          }
+        }
         this.activeSelectorsVersion = verified.bundle.version;
         await this.deps.storage.set('customSelectors', verified.bundle);
         this.deps.onReloadSelectors?.();
@@ -468,6 +587,9 @@ export class Connector {
     if (this.reconnectTimer !== null || this.killed) return;
     const delay = this.backoff;
     this.backoff = Math.min(this.backoff * 2, BACKOFF_MAX_MS);
+    // The server may have moved to another port; let the next attempt sweep for real.
+    this.lastDiscoveryAt = null;
+    this.peerProbeAt = null;
     this.reconnectTimer = this.deps.timers.setTimeout(() => {
       this.reconnectTimer = null;
       if (this.token) {

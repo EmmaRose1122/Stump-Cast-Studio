@@ -72,6 +72,16 @@ export class DelayBuffer<T> {
     for (const e of all) this.release(e.value);
   }
 
+  /**
+   * Drop queued items without releasing them. Used when the operator deletes a match: entries
+   * still waiting on the broadcast delay must not arrive after the tables have been cleared.
+   */
+  discard(where: (value: T) => boolean = () => true): void {
+    this.queue = this.queue.filter((e) => !where(e.value));
+    if (this.queue.length === 0) this.clearTimer();
+    else this.drain();
+  }
+
   private drain(): void {
     this.clearTimer();
     const now = this.sched.now();

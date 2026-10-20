@@ -21,6 +21,9 @@ interface Opts {
   batters?: [number, number];
   partnership?: number;
   ids?: [string, string];
+  /** Boundary counters for the striker, used by the catch-up fallback. */
+  fours?: number;
+  sixes?: number;
   status?: MatchState['status'];
   session?: MatchState['session'];
   day?: number;
@@ -40,7 +43,7 @@ const st = (o: Opts): MatchState => {
       { number: o.innings ?? 1, battingTeamId: 'team-a', score, declared: false, allOut: false },
     ],
     batters: [
-      { playerId: ids[0], name: ids[0], runs: b[0], balls: 10, fours: 0, sixes: 0, onStrike: true },
+      { playerId: ids[0], name: ids[0], runs: b[0], balls: 10, fours: o.fours ?? 0, sixes: o.sixes ?? 0, onStrike: true },
       {
         playerId: ids[1],
         name: ids[1],
@@ -136,6 +139,27 @@ describe('batches, overs and milestones', () => {
     expect(types(out[1]!)).toContain('SIX');
     expect(types(out[1]!)).toContain('WICKET');
     expect(types(out[1]!).indexOf('SIX')).toBeLessThan(types(out[1]!).indexOf('WICKET'));
+  });
+
+  it('recovers boundaries from a catch-up batch the 6-ball token stream cannot describe', () => {
+    const { out } = run(
+      st({ runs: 30, overs: 4, balls: 0, last: ['.', 1, 1, '.', 1, 1] }),
+      // 10 legal balls in one update (a stalled feed): more tokens than lastBalls can hold.
+      st({ runs: 68, overs: 5, balls: 4, last: [1, 4, 0, 6, 1, 0], fours: 2, sixes: 1 }),
+    );
+    const kinds = types(out[1]!);
+    expect(kinds.filter((t) => t === 'FOUR')).toHaveLength(2);
+    expect(kinds.filter((t) => t === 'SIX')).toHaveLength(1);
+    const four = out[1]!.find((e) => e.type === 'FOUR')!;
+    expect(four.payload).toMatchObject({ batterId: 'a-1', over: 5, ball: 4 });
+  });
+
+  it('does not double-count a boundary the token stream already described', () => {
+    const { out } = run(
+      st({ runs: 30, overs: 4, balls: 3, last: ['.', 1, 1] }),
+      st({ runs: 34, overs: 4, balls: 4, last: ['.', 1, 1, 4], fours: 1 }),
+    );
+    expect(types(out[1]!).filter((t) => t === 'FOUR')).toHaveLength(1);
   });
 
   it('emits OVER_END when an over completes, once per over crossed', () => {
@@ -275,5 +299,38 @@ describe('innings, sessions and resync', () => {
     const s = st({ runs: 20, overs: 2, balls: 0 });
     expect(d.drs(s, { by: 'IND' })!.type).toBe('DRS');
     expect(d.drs(s, { by: 'IND' })).toBeNull(); // same moment, no duplicate
+  });
+
+  it('credits a boundary hit off a no-ball', () => {
+    const fourNb = createBall({
+      over: 0,
+      ball: 1,
+      batterId: 'a-1',
+      bowlerId: 'b-1',
+      runs: 4,
+      extras: { type: 'noball', runs: 1 },
+    });
+    const d = new EventDetector();
+    d.observe(st({ runs: 0, overs: 0, balls: 0, last: [] }));
+    const next = { ...st({ runs: 5, overs: 0, balls: 0, last: [] }), lastBalls: [fourNb] };
+    expect(types(d.observe(next))).toContain('FOUR');
+  });
+
+  it('emits every boundary when two extras share one legal-ball slot', () => {
+    const nb = (n: number) =>
+      createBall({
+        over: 0,
+        ball: n,
+        batterId: 'a-1',
+        bowlerId: 'b-1',
+        runs: 4,
+        extras: { type: 'noball', runs: 1 },
+      });
+    const d = new EventDetector();
+    d.observe(st({ runs: 0, overs: 0, balls: 0, last: [] }));
+    const first = { ...st({ runs: 5, overs: 0, balls: 0, last: [] }), lastBalls: [nb(1)] };
+    const second = { ...st({ runs: 10, overs: 0, balls: 0, last: [] }), lastBalls: [nb(1), nb(2)] };
+    expect(types(d.observe(first))).toContain('FOUR');
+    expect(types(d.observe(second))).toContain('FOUR');
   });
 });

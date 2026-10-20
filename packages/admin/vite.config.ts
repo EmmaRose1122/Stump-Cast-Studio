@@ -13,6 +13,7 @@ export default defineConfig({
     proxy: {
       '/api': 'http://127.0.0.1:4000',
       '/assets': 'http://127.0.0.1:4000',
+      '/ingest': 'http://127.0.0.1:4000',
       '/ws': { target: 'ws://127.0.0.1:4000', ws: true },
       '/ext': { target: 'ws://127.0.0.1:4000', ws: true },
     },

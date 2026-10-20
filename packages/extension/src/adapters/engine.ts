@@ -4,6 +4,8 @@ import type { DomRule, FieldKey, SelectorConfig } from './config';
 import { readPath } from './jsonpath';
 import {
   cleanPlayerName,
+  looksLikeScore,
+  looksLikeToss,
   parseBallTokens,
   parseDayStatus,
   parseInteger,
@@ -11,6 +13,8 @@ import {
   parseOvers,
   parsePartnership,
   parseScore,
+  type Overs,
+  type RunsWkts,
 } from './normalise';
 import { RingBuffer } from './ringbuffer';
 
@@ -85,27 +89,49 @@ const cleanPageTitle = (raw: string): string =>
     .replace(/^(?:live cricket score|commentary)\s*[-•:]\s*/i, '')
     .trim();
 
+const squashed = (s: string | null | undefined): string =>
+  (s ?? '').replace(/\s+/g, ' ').trim().toLowerCase();
+
+/** A labelled strip keeps its caption in the element right before it, or as a leading child. */
+const hasLabel = (el: Element, label: string): boolean => {
+  const want = squashed(label);
+  if (el.previousElementSibling && squashed(el.previousElementSibling.textContent).includes(want)) {
+    return true;
+  }
+  const parent = el.parentElement;
+  if (!parent) return false;
+  const leading = [...parent.children]
+    .slice(0, 2)
+    .map((c) => squashed(c.textContent))
+    .join(' ');
+  return leading.includes(want);
+};
+
 export const extractDom = (config: SelectorConfig, doc: Document): Raw => {
   const out: Raw = {};
   for (const [field, rule] of Object.entries(config.dom) as [FieldKey, DomRule][]) {
     for (const selector of rule.selectors) {
-      let el: Element | null = null;
+      let candidates: Element[] = [];
+      const label = rule.label;
       try {
-        el = doc.querySelector(selector);
+        const all = Array.from(doc.querySelectorAll(selector));
+        candidates = label ? all.filter((el) => hasLabel(el, label)) : all.slice(0, 1);
       } catch {
         continue; // invalid selector in a remote config must not break the others
       }
-      if (!el) continue;
-      let value = (rule.attr ? el.getAttribute(rule.attr) : el.textContent)?.trim() ?? '';
-      if (rule.regex) {
-        const m = new RegExp(rule.regex).exec(value);
-        value = m ? (m[1] ?? m[0]) : '';
+      for (const el of candidates) {
+        let value = (rule.attr ? el.getAttribute(rule.attr) : el.textContent)?.trim() ?? '';
+        if (rule.regex) {
+          const m = new RegExp(rule.regex).exec(value);
+          value = m ? (m[1] ?? m[0]) : '';
+        }
+        if (rule.transform) value = applyTransform(value, rule.transform);
+        if (value) {
+          out[field] = value;
+          break;
+        }
       }
-      if (rule.transform) value = applyTransform(value, rule.transform);
-      if (value) {
-        out[field] = value;
-        break;
-      }
+      if (out[field]) break;
     }
   }
 
@@ -176,6 +202,7 @@ const normalise = (raw: Raw, prev: Prev | undefined, site = 'cricbuzz', url = ''
 
   const cleanTeam = (t: string | undefined): string | undefined => {
     if (!t) return undefined;
+    if (looksLikeScore(t)) return undefined;
     if (/(?:p'?ship|crr|rrr|%|\b(?:AM|PM|GMT|LOCAL)\b|\d{1,2}:\d{2})/i.test(t)) return undefined;
     return t.trim();
   };
@@ -211,9 +238,14 @@ const normalise = (raw: Raw, prev: Prev | undefined, site = 'cricbuzz', url = ''
     }
   }
 
-  for (const k of ['title', 'status', 'venue', 'toss', 'battingTeam'] as const) {
+  // Header/table cells can land in the toss slot ("BatterRB4s6sSR", "GMT"), so only a real
+  // toss sentence is kept.
+  const tossText = looksLikeToss(text('toss')) ? text('toss') : undefined;
+
+  for (const k of ['title', 'status', 'venue', 'battingTeam'] as const) {
     pass(k, Boolean(text(k)));
   }
+  pass('toss', Boolean(tossText));
   pass('team1', Boolean(team1Name));
   pass('team2', Boolean(team2Name));
 
@@ -228,11 +260,26 @@ const normalise = (raw: Raw, prev: Prev | undefined, site = 'cricbuzz', url = ''
   const active = hasNumbered
     ? slots
     : [{ team: 'battingTeam' as FieldKey, score: 'score' as FieldKey, overs: 'overs' as FieldKey }];
+  const teamNameOf = (slot: (typeof active)[number]): string => {
+    const candidates = [slot.team && text(slot.team), text('battingTeam'), text('team1')].filter(
+      (c): c is string => Boolean(c),
+    );
+    return candidates.find((c) => !looksLikeScore(c) && !looksLikeToss(c)) ?? '';
+  };
+
+  interface Row {
+    team: string;
+    score: RunsWkts;
+    overs: Overs | undefined;
+    slot: (typeof active)[number];
+  }
+  const rows: Row[] = [];
   for (const slot of active) {
     const rawScore = text(slot.score);
     const score =
       parseScore(rawScore) ??
       (isTest || hasNumbered ? parseScore(rawScore, { allowBare: true }) : undefined);
+    if (!score) continue;
     let overs = slot.overs ? parseOvers(text(slot.overs)) : undefined;
     if (!overs && rawScore) {
       const oversFromScore = /\(\s*(\d{1,3}(?:\.\d)?)\s*(?:ov(?:ers?)?|ovs?)?\s*\)/i.exec(rawScore);
@@ -240,22 +287,38 @@ const normalise = (raw: Raw, prev: Prev | undefined, site = 'cricbuzz', url = ''
         overs = parseOvers(oversFromScore[1]);
       }
     }
+    rows.push({ team: teamNameOf(slot), score, overs, slot });
+  }
+
+  let oversUnresolved = false;
+  rows.forEach((row, i) => {
+    // A bare total only means "all out" when the innings has already closed; the live innings
+    // always shows wickets, so an unknown wicket count there is a broken selector, not a fact.
+    const wkts =
+      row.score.wkts ?? (i < rows.length - 1 ? 10 : undefined);
+    if (wkts === undefined) {
+      oversUnresolved = true;
+      return;
+    }
     // Overs are checked on their own so a broken score selector does not hide a good one.
-    if (overs && overs.overs <= maxOvers) {
-      if (slot.overs) pass(slot.overs, true);
+    const oversOk = row.overs && row.overs.overs <= maxOvers ? row.overs : undefined;
+    if (!oversOk) oversUnresolved = true;
+    innings.push({
+      team: row.team,
+      runs: row.score.runs,
+      wkts,
+      overs: row.overs?.overs ?? 0,
+      balls: row.overs?.balls ?? 0,
+    });
+    pass(row.slot.score, true);
+    pass('score', true);
+    if (oversOk) {
+      if (row.slot.overs) pass(row.slot.overs, true);
       pass('overs', true);
     }
-    if (!score) continue;
-    innings.push({
-      team: (slot.team && text(slot.team)) || text('battingTeam') || text('team1') || '',
-      runs: score.runs,
-      wkts: score.wkts,
-      overs: overs?.overs ?? 0,
-      balls: overs?.balls ?? 0,
-    });
-    pass(slot.score, true);
-    pass('score', true);
-  }
+  });
+  // An innings rendered with 0.0 overs is a lie on air, so the whole reading loses that credit.
+  if (innings.length > 0 && oversUnresolved) passed.delete('overs');
   // Sanity: runs never go backwards within the same innings.
   const last = innings.at(-1);
   if (last && prev && prev.inningsCount === innings.length && last.runs < prev.runs) {
@@ -265,17 +328,23 @@ const normalise = (raw: Raw, prev: Prev | undefined, site = 'cricbuzz', url = ''
 
   // Pre-match / toss support: when match hasn't started yet, generate a 0/0 (0 ov) initial innings
   const rawStatus = text('status') ?? '';
-  const rawToss = text('toss') ?? '';
   const isPreMatch =
     /(?:opt|toss|preview|starts|delayed|yet to start)/i.test(rawStatus) ||
-    /(?:opt|toss|won the toss)/i.test(rawToss) ||
-    Boolean(rawToss);
+    Boolean(tossText);
 
-  if (innings.length === 0 && (isPreMatch || (!text('score') && !text('overs'))) && (rawTitle || team1Name)) {
-    const tossWinner = rawToss
-      ? team1Name && rawToss.toLowerCase().includes(team1Name.toLowerCase())
+  // Nothing on the page even suggests a ball has been bowled — not just a failed score selector.
+  const nothingPlayed =
+    !text('score') &&
+    !text('overs') &&
+    !text('batter1.name') &&
+    !text('bowler.name') &&
+    !text('thisOver');
+
+  if (innings.length === 0 && (isPreMatch || nothingPlayed) && (rawTitle || team1Name)) {
+    const tossWinner = tossText
+      ? team1Name && tossText.toLowerCase().includes(team1Name.toLowerCase())
         ? team1Name
-        : team2Name && rawToss.toLowerCase().includes(team2Name.toLowerCase())
+        : team2Name && tossText.toLowerCase().includes(team2Name.toLowerCase())
           ? team2Name
           : undefined
       : undefined;
@@ -286,10 +355,13 @@ const normalise = (raw: Raw, prev: Prev | undefined, site = 'cricbuzz', url = ''
           ? team2Name
           : undefined
       : undefined;
+    const rawBattingTeam = text('battingTeam');
+    const battingTeamName =
+      rawBattingTeam && !looksLikeScore(rawBattingTeam) ? rawBattingTeam : undefined;
     const teamName =
       site === 'crex'
-        ? (text('battingTeam') || '')
-        : (tossWinner || statusWinner || text('battingTeam') || team1Name || 'Batting');
+        ? (battingTeamName ?? '')
+        : (tossWinner || statusWinner || battingTeamName || team1Name || 'Batting');
     innings.push({
       team: teamName,
       runs: 0,
@@ -376,7 +448,7 @@ const normalise = (raw: Raw, prev: Prev | undefined, site = 'cricbuzz', url = ''
     bowler,
     thisOver,
     lastBalls,
-    ...(text('toss') ? { toss: text('toss') } : {}),
+    ...(tossText ? { toss: tossText } : {}),
     ...(partnership ? { partnership } : {}),
     ...(target !== undefined && target > 0 ? { target } : {}),
     ...(crr !== undefined && crr >= 0 ? { crr } : {}),

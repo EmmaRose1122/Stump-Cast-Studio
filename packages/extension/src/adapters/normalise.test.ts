@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   cleanPlayerName,
+  looksLikeScore,
+  looksLikeToss,
   parseBallTokens,
   parseDayStatus,
   parseNumber,
@@ -40,8 +42,30 @@ describe('parseScore', () => {
   it('does not guess wickets from a bare number', () => {
     expect(parseScore('169')).toBeUndefined();
   });
-  it('allows bare numbers when allowBare option is enabled', () => {
-    expect(parseScore('260', { allowBare: true })).toEqual({ runs: 260, wkts: 10 });
+  it('allows bare numbers when allowBare option is enabled, without inventing wickets', () => {
+    expect(parseScore('260', { allowBare: true })).toEqual({ runs: 260 });
+    expect(parseScore('260 (92.0)', { allowBare: true })).toEqual({ runs: 260 });
+  });
+});
+
+describe('looksLikeScore', () => {
+  it('recognises score-shaped text so it can never be used as a team name', () => {
+    for (const s of ['145/3', '224-4', '0/0', '(145/3)', '160/6 (20.0)']) {
+      expect(looksLikeScore(s)).toBe(true);
+    }
+    for (const s of ['India', 'South Africa', 'PAK', 'Nepal opt to bat', 'Day 2: Stumps']) {
+      expect(looksLikeScore(s)).toBe(false);
+    }
+  });
+});
+
+describe('looksLikeToss', () => {
+  it('accepts only a real toss sentence', () => {
+    expect(looksLikeToss('Pakistan won the toss and elected to bowl')).toBe(true);
+    expect(looksLikeToss('Nepal opt to bat')).toBe(true);
+    expect(looksLikeToss('BatterRB4s6sSR')).toBe(false);
+    expect(looksLikeToss('GMT')).toBe(false);
+    expect(looksLikeToss(undefined)).toBe(false);
   });
 });
 
@@ -83,6 +107,14 @@ describe('parseDayStatus', () => {
   });
   it('handles a bare day', () => {
     expect(parseDayStatus('Day 2')).toEqual({ day: 2 });
+  });
+  it('finds the day when it is not the first word', () => {
+    expect(parseDayStatus('Stumps - Day 3: Australia need 319 runs')).toEqual({
+      day: 3,
+      session: 'stumps',
+      resultText: 'Australia need 319 runs',
+    });
+    expect(parseDayStatus('4th Innings: Day 2, Lunch')).toMatchObject({ day: 2, session: 'lunch' });
   });
   it('ignores non-Test status text', () => {
     expect(parseDayStatus('India need 20 runs in 12 balls')).toBeUndefined();

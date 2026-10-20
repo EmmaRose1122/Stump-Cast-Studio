@@ -23,6 +23,14 @@ interface CmdRow {
   command: string;
 }
 
+export interface ManualProviderHooks {
+  /**
+   * Called right after `undo` removes a command. The app uses it to drop that match's entries
+   * from the broadcast-delay queue, which would otherwise release the retracted ball's events.
+   */
+  onRewind?: (matchId: string) => void;
+}
+
 /**
  * Operator-scored matches (optional backup source). The command log lives in SQLite; the state
  * is rebuilt by replaying it, which makes undo trivial and restarts lossless.
@@ -36,6 +44,7 @@ export class ManualProvider implements MatchProvider {
   constructor(
     private readonly sqlite: Database.Database,
     private readonly now: () => number = Date.now,
+    private readonly hooks?: ManualProviderHooks,
   ) {
     this.load();
   }
@@ -115,10 +124,17 @@ export class ManualProvider implements MatchProvider {
     const old = this.matches.get(id);
     if (!old) throw new ManualError('Unknown match');
     const last = this.sqlite
-      .prepare('SELECT id FROM manual_commands WHERE match_id = ? ORDER BY id DESC LIMIT 1')
-      .get(id) as { id: number } | undefined;
+      .prepare('SELECT id, created_at AS createdAt FROM manual_commands WHERE match_id = ? ORDER BY id DESC LIMIT 1')
+      .get(id) as { id: number; createdAt: number } | undefined;
     if (!last) throw new ManualError('Nothing to undo');
     this.sqlite.prepare('DELETE FROM manual_commands WHERE id = ?').run(last.id);
+    // The retracted ball already produced broadcast events (banners, cards, history rows). The
+    // event log is append-only, so undo has to remove that ball's events as well as its command,
+    // otherwise the history keeps a delivery that never happened.
+    this.sqlite
+      .prepare('DELETE FROM events WHERE match_id = ? AND at >= ?')
+      .run(id, last.createdAt);
+    this.hooks?.onRewind?.(id);
 
     const rebuilt = new ManualMatch(id, old.setup);
     const cmds = this.sqlite

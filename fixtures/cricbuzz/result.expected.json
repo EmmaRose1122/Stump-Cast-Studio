@@ -18,7 +18,7 @@
     ],
     "innings": [
       {
-        "team": "160/6",
+        "team": "India",
         "runs": 160,
         "wkts": 6,
         "overs": 20,
@@ -58,8 +58,7 @@
       "1",
       "1"
     ],
-    "lastBalls": [],
-    "crr": 160
+    "lastBalls": []
   },
   "missing": []
 }

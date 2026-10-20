@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import clsx from 'clsx';
 import { useEffect, useState } from 'react';
-import { DEFAULT_DIRECTOR_RULES, type DirectorRule } from '@stumpcast/shared';
+import { DEFAULT_DIRECTOR_RULES, type DirectorRule, type DirectorTrigger } from '@stumpcast/shared';
 import { api } from '../lib/api';
 import {
   ALL_CARDS,
@@ -50,7 +50,6 @@ export const GraphicsPage = () => {
   const onAir = useAdmin((s) => s.onAirCard);
   const [showProLooks, setShowProLooks] = useState(false);
   const [cardDuration, setCardDuration] = useState('8');
-  const [rotationSpeed, setRotationSpeed] = useState('8');
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   const licenceQuery = useQuery({
@@ -70,6 +69,16 @@ export const GraphicsPage = () => {
     queryFn: async () => (await fetch('/api/director').then(json)) as unknown as DirectorState,
     refetchInterval: 3000,
   });
+
+  // Read from the server: a local default used to claim "every 8s" long after the carousel had
+  // been moved to 15 or 20, and the pills rewrote the operator's card selection with a fallback
+  // list while the query was still loading.
+  const carouselCards = directorQuery.data?.config.carousel.cards;
+  const rotationSec = directorQuery.data?.config.carousel.intervalSec;
+  const setRotationSpeed = (sec: number) => {
+    if (!carouselCards) return;
+    putDirector.mutate({ carousel: { cards: carouselCards, intervalSec: sec } });
+  };
 
   const putDirector = useMutation({
     mutationFn: async (patch: object) =>
@@ -170,7 +179,7 @@ export const GraphicsPage = () => {
               </h2>
             </div>
             <p className="mt-1 text-xs text-slate-600">
-              Auto-Director is rotating through cards every {rotationSpeed}s between deliveries.
+              Auto-Director is rotating through cards every {rotationSec ?? '—'}s between deliveries.
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -246,20 +255,13 @@ export const GraphicsPage = () => {
               ].map((item) => (
                 <button
                   key={item.val}
-                  onClick={() => {
-                    setRotationSpeed(item.val);
-                    putDirector.mutate({
-                      carousel: {
-                        cards: directorQuery.data?.config.carousel.cards ?? ['striker-profile', 'bowler-spell', 'partnership', 'manhattan'],
-                        intervalSec: Number(item.val),
-                      },
-                    });
-                  }}
+                  disabled={!carouselCards}
+                  onClick={() => setRotationSpeed(Number(item.val))}
                   className={clsx(
                     'rounded-lg px-3 py-1.5 text-xs font-semibold transition',
-                    rotationSpeed === item.val
+                    rotationSec === Number(item.val)
                       ? 'border border-blue-600 bg-blue-600 text-white font-bold shadow-xs'
-                      : 'border border-blue-200 bg-white text-slate-700 hover:bg-blue-50',
+                      : 'border border-blue-200 bg-white text-slate-700 hover:bg-blue-50 disabled:opacity-50',
                   )}
                 >
                   {item.label}
@@ -981,7 +983,7 @@ const DirectorSection = () => {
                       <Select
                         label={`Rule ${i + 1} event`}
                         value={r.on}
-                        onValueChange={(v) => updateRule(i, { on: v })}
+                        onValueChange={(v) => updateRule(i, { on: v as DirectorTrigger })}
                         options={RULE_EVENTS}
                       />
                     </td>

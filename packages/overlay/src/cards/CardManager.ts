@@ -96,17 +96,18 @@ export class CardManager {
 
   /** Apply the store's `active` card (null clears). */
   apply(active: ActiveCard | null): void {
-    if (this.timer !== null) {
-      this.clearTimer(this.timer);
-      this.timer = null;
-    }
     if (!active) {
+      this.clearHideTimer();
       this.onAir?.hide();
       this.onAir = null;
       return;
     }
     const next = this.views.get(active.cardId);
-    if (!next) return; // an id this overlay build does not know: ignore, keep what is on air
+    // An id this overlay build does not know: keep what is on air, including its hide timer.
+    // Clearing the timer before this check used to strand the current card for the rest of the
+    // broadcast, because nothing else ever hides it.
+    if (!next) return;
+    this.clearHideTimer();
 
     if (this.onAir && this.onAir !== next) this.onAir.hide();
     this.onAir = next;
@@ -116,12 +117,15 @@ export class CardManager {
 
     if (next.def.needsHistory && this.match && this.opts.fetchHistory) {
       const id = this.match.id;
-      void this.opts.fetchHistory(id).then((h) => {
-        if (h && this.onAir === next) {
-          next.history = h;
-          next.render();
-        }
-      });
+      void this.opts
+        .fetchHistory(id)
+        .then((h) => {
+          if (h && this.onAir === next) {
+            next.history = h;
+            next.render();
+          }
+        })
+        .catch(() => undefined); // a failed history fetch leaves the card showing its empty state
     }
 
     if (active.durationSec > 0) {
@@ -138,8 +142,15 @@ export class CardManager {
     }
   }
 
+  private clearHideTimer(): void {
+    if (this.timer !== null) {
+      this.clearTimer(this.timer);
+      this.timer = null;
+    }
+  }
+
   destroy(): void {
-    if (this.timer !== null) this.clearTimer(this.timer);
+    this.clearHideTimer();
     for (const v of this.views.values()) v.destroy();
     this.views.clear();
   }

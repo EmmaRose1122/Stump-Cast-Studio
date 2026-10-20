@@ -70,6 +70,12 @@ export const DomRuleSchema = z.object({
   /** Applied to the text; group 1 is used when present, otherwise the whole match. */
   regex: regexString.optional(),
   transform: z.enum(TRANSFORMS).optional(),
+  /**
+   * Text that must appear on the element's preceding sibling (or its container's leading
+   * children). Sites reuse one class for both the "This Over" and "Recent" ball strips, so the
+   * label is the only thing that tells them apart.
+   */
+  label: z.string().min(1).optional(),
 });
 export type DomRule = z.infer<typeof DomRuleSchema>;
 

@@ -14,6 +14,7 @@ import { SoundsPage } from './pages/Sounds';
 import { ExtensionPage } from './pages/Extension';
 import { ResolutionTester } from './pages/ResolutionTester';
 import { AppShell } from './shell/AppShell';
+import { ErrorBoundary } from './shell/ErrorBoundary';
 import { useAdmin } from './store';
 import { Toaster, TooltipProvider } from './ui';
 
@@ -78,7 +79,9 @@ const Root = () => {
   return (
     <TooltipProvider>
       <AppShell route={route}>
-        <Page />
+        <ErrorBoundary pageKey={route}>
+          <Page />
+        </ErrorBoundary>
       </AppShell>
       <Toaster />
     </TooltipProvider>

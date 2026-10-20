@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import clsx from 'clsx';
-import { useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { api } from '../lib/api';
 import { ROUTES, navigate } from '../lib/router';
@@ -139,6 +139,19 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
     error?: string | null;
   } | null>(null);
 
+  const progressTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+  const stopProgressPolling = useCallback(() => {
+    if (progressTimer.current !== null) {
+      clearInterval(progressTimer.current);
+      progressTimer.current = null;
+    }
+  }, []);
+  // The 150 ms progress poll used to outlive the download, the dialog and the component.
+  useEffect(() => {
+    if (!updateModalOpen) stopProgressPolling();
+  }, [updateModalOpen, stopProgressPolling]);
+  useEffect(() => () => stopProgressPolling(), [stopProgressPolling]);
+
   const provider = useQuery({
     queryKey: ['provider'],
     queryFn: api.providerStatus,
@@ -171,8 +184,8 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
           if (res?.updateAvailable) {
             return {
               updateAvailable: true,
-              latestVersion: res.latestVersion ?? res.version ?? '1.0.2',
-              currentVersion: res.currentVersion ?? '1.0.2',
+              latestVersion: res.latestVersion ?? res.version ?? '1.0.3',
+              currentVersion: res.currentVersion ?? '1.0.3',
               releaseNotes:
                 res.releaseNotes ||
                 '• Direct In-App Desktop Updater with live transfer progress bar\n• Fast Cricbuzz & Crex match state scrapers\n• Red, White & Blue studio broadcast overlays\n• Center-aligned operator control room layout',
@@ -199,8 +212,8 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
       }
       return {
         updateAvailable: false,
-        latestVersion: '1.0.2',
-        currentVersion: '1.0.2',
+        latestVersion: '1.0.3',
+        currentVersion: '1.0.3',
         releaseNotes: '',
         downloadUrl: '',
       };
@@ -226,7 +239,7 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
           kind: 'success',
         });
       } else {
-        toast({ title: `StumpCast Studio is up to date (v${refreshed.data?.currentVersion ?? '1.0.2'})`, kind: 'info' });
+        toast({ title: `StumpCast Studio is up to date (v${refreshed.data?.currentVersion ?? '1.0.3'})`, kind: 'info' });
       }
     } catch {
       toast({ title: 'Failed to check for updates', kind: 'error' });
@@ -236,6 +249,7 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
   };
 
   const handleDownloadUpdate = async () => {
+    if (isDownloading || progressTimer.current !== null) return;
     setIsDownloading(true);
     setUpdateReady(false);
     setUpdateProgress({
@@ -246,8 +260,7 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
       status: 'downloading',
     });
 
-    const isDesktop =
-      typeof window !== 'undefined' &&
+    const isDesktop =      typeof window !== 'undefined' &&
       Boolean(
         (window as unknown as { stumpcast?: { downloadUpdate?: (url?: string) => Promise<{ success: boolean; filePath?: string; error?: string }>; onUpdateProgress?: (cb: (p: { percent: number; transferred: number; total: number; bytesPerSecond: number; status: string; error?: string | null }) => void) => () => void } }).stumpcast?.downloadUpdate,
       );
@@ -290,32 +303,37 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
     } else {
       try {
         await fetch('/api/app/update-download', { method: 'POST' });
-        const timer = setInterval(async () => {
+        let misses = 0;
+        progressTimer.current = setInterval(async () => {
           try {
             const res = await fetch('/api/app/update-progress');
-            if (res.ok) {
-              const data = (await res.json()) as {
-                percent: number;
-                transferred: number;
-                total: number;
-                bytesPerSecond: number;
-                status: string;
-                error?: string | null;
-              };
-              setUpdateProgress(data);
-              if (data.status === 'ready' || data.percent >= 100) {
-                clearInterval(timer);
-                setUpdateReady(true);
-                setIsDownloading(false);
-                toast({ title: 'Update downloaded and verified!', kind: 'success' });
-              } else if (data.status === 'error') {
-                clearInterval(timer);
-                setIsDownloading(false);
-                toast({ title: data.error || 'Download error', kind: 'error' });
-              }
+            if (!res.ok) throw new Error(`Server replied ${res.status}`);
+            misses = 0;
+            const data = (await res.json()) as {
+              percent: number;
+              transferred: number;
+              total: number;
+              bytesPerSecond: number;
+              status: string;
+              error?: string | null;
+            };
+            setUpdateProgress(data);
+            if (data.status === 'ready' || data.percent >= 100) {
+              stopProgressPolling();
+              setUpdateReady(true);
+              setIsDownloading(false);
+              toast({ title: 'Update downloaded and verified!', kind: 'success' });
+            } else if (data.status === 'error') {
+              stopProgressPolling();
+              setIsDownloading(false);
+              toast({ title: data.error || 'Download error', kind: 'error' });
             }
           } catch {
-            // Keep checking
+            // The server went away: stop after a few misses instead of polling forever.
+            if (++misses < 5) return;
+            stopProgressPolling();
+            setIsDownloading(false);
+            toast({ title: 'Lost contact with the updater', kind: 'error' });
           }
         }, 150);
       } catch {
@@ -403,7 +421,7 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
                 <div className="flex items-center gap-1.5 mt-0.5 text-[11px] text-slate-500 font-medium">
                   <span className="text-slate-600 font-semibold tracking-wide">Live Broadcast Engine</span>
                   <span className="text-slate-300">·</span>
-                  <span className="font-mono text-orange-600 font-bold">v1.0.2</span>
+                  <span className="font-mono text-orange-600 font-bold">v1.0.3</span>
                 </div>
               </div>
             </div>
@@ -455,7 +473,7 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
                 title="Click to check updates"
               >
                 <span className="size-2 rounded-full bg-blue-500"></span>
-                <span>v1.0.2 · UP TO DATE</span>
+                <span>v1.0.3 · UP TO DATE</span>
               </button>
             )}
 
@@ -745,10 +763,10 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
         title="StumpCast Studio Update"
         description={
           updateReady
-            ? `Update v${updateQuery.data?.latestVersion ?? '1.0.2'} is downloaded and ready to install!`
+            ? `Update v${updateQuery.data?.latestVersion ?? '1.0.3'} is downloaded and ready to install!`
             : updateQuery.data?.updateAvailable
-            ? `New Version v${updateQuery.data.latestVersion} is available! (Current: v${updateQuery.data.currentVersion ?? '1.0.2'})`
-            : `You are running the latest version of StumpCast Studio (v${updateQuery.data?.currentVersion ?? '1.0.2'}).`
+            ? `New Version v${updateQuery.data.latestVersion} is available! (Current: v${updateQuery.data.currentVersion ?? '1.0.3'})`
+            : `You are running the latest version of StumpCast Studio (v${updateQuery.data?.currentVersion ?? '1.0.3'}).`
         }
         actions={
           <div className="flex flex-wrap items-center justify-end gap-2 w-full">

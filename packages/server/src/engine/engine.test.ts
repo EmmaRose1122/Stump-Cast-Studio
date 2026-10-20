@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   RawUpdateSchema,
   createMatchState,
@@ -10,7 +10,7 @@ import {
   type RawUpdate,
 } from '@stumpcast/shared';
 import { openDatabase, schema } from '../db';
-import { rawToBaseState } from './adapt';
+import { rawToBaseState, tokensToBalls } from './adapt';
 import { battingWinProb, deriveStats, safeDiv } from './derive';
 import { MatchEngine } from './MatchEngine';
 
@@ -149,8 +149,12 @@ describe('rawToBaseState', () => {
       '2026-01-01T00:00:00.000Z',
     );
     expect(s.format).toBe('T20');
-    expect(s.teams.map((t) => t.id)).toEqual(['team-india', 'team-australia']);
-    expect(s.battingTeamId).toBe('team-india');
+    // Canonical codes, not a slice of the name: the crest file is `team-ind`, and `team-india`
+    // would silently render nothing (or another country's flag).
+    expect(s.teams.map((t) => t.id)).toEqual(['team-ind', 'team-aus']);
+    expect(s.teams.map((t) => t.short)).toEqual(['IND', 'AUS']);
+    expect(s.teams.map((t) => t.logoAssetId)).toEqual(['team-ind', 'team-aus']);
+    expect(s.battingTeamId).toBe('team-ind');
     expect(s.batters[0].name).toBe('—');
     expect(s.thisOver).toHaveLength(3);
     expect(s.thisOver[2]?.wicket).toBeTruthy();
@@ -234,6 +238,60 @@ describe('MatchEngine', () => {
     expect(after.powerplay).toEqual({ runs: 52, wkts: 1, complete: true });
   });
 
+  it('a rejected update cannot pollute the ball-by-ball statistics', () => {
+    const e = new MatchEngine();
+    const feed = (runs: number, balls: number, thisOver: string[]) =>
+      e.process(
+        raw({
+          title: 'IND v AUS T20',
+          innings: [inn('India', runs, 0, 0, balls)],
+          thisOver,
+          lastBalls: thisOver,
+        }),
+      );
+    expect(feed(0, 1, ['.'])!.ballsObserved).toBe(1);
+
+    const bad = raw({
+      title: 'IND v AUS T20',
+      innings: [inn('India', 14, 0, 0, 4)],
+      thisOver: ['.', '4', '6', '4'],
+      lastBalls: ['.', '4', '6', '4'],
+    });
+    (bad.fields.innings![0] as { wkts: number }).wkts = 11;
+    expect(e.process(bad)).toBeNull();
+
+    // The four discarded balls must not have been counted by the tracker.
+    expect(feed(0, 2, ['.', '4'])!.ballsObserved).toBe(2);
+  });
+
+  it('deleting a match forgets its tracked balls, so a reused id starts clean', () => {
+    const e = new MatchEngine();
+    const feed = (runs: number, balls: number, thisOver: string[]) =>
+      e.process(
+        raw({
+          title: 'IND v AUS T20',
+          innings: [inn('India', runs, 0, 0, balls)],
+          thisOver,
+          lastBalls: thisOver,
+        }),
+      )!;
+    feed(0, 1, ['.']);
+    expect(feed(4, 2, ['.', '4']).ballsObserved).toBe(2);
+    expect(feed(10, 3, ['.', '4', '6']).ballsObserved).toBe(3);
+
+    e.deleteMatch('m1');
+    expect(feed(0, 1, ['.']).ballsObserved).toBe(1);
+  });
+
+  it('splits a no-ball total into bat runs and the penalty run', () => {
+    expect(tokensToBalls(['nb', '5nb', '2wd', '1lb'], 3, 'a-1', 'b-1')).toMatchObject([
+      { runs: 0, extras: { type: 'noball', runs: 1 } },
+      { runs: 4, extras: { type: 'noball', runs: 1 } },
+      { runs: 0, extras: { type: 'wide', runs: 2 } },
+      { runs: 0, extras: { type: 'legbye', runs: 1 } },
+    ]);
+  });
+
   it('does not double count a finished over that the feed keeps displaying', () => {
     const e = new MatchEngine();
     const six = ['1', '.', '1', '.', '4', '1'];
@@ -273,5 +331,22 @@ describe('MatchEngine', () => {
     const bad = raw({ innings: [inn('India', 10, 0, 1)] });
     (bad.fields.innings[0] as { wkts: number }).wkts = 11;
     expect(e.process(bad)).toBeNull();
+  });
+
+  it('a throwing subscriber does not skip the other listeners or fail the ingest', () => {
+    const e = new MatchEngine();
+    const seen: string[] = [];
+    e.subscribe(() => {
+      throw new Error('director blew up');
+    });
+    e.subscribe((s) => seen.push(s.id));
+    const err = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+
+    const state = e.process(raw({ title: 'IND v AUS T20', innings: [inn('India', 10, 0, 1)] }));
+
+    expect(state).not.toBeNull();
+    expect(seen).toEqual(['m1']);
+    expect(err).toHaveBeenCalledOnce();
+    err.mockRestore();
   });
 });

@@ -17,16 +17,28 @@ export const parseOvers = (input: string | number | undefined): Overs | undefine
 
 export interface RunsWkts {
   runs: number;
-  wkts: number;
+  /** Undefined when the page showed a bare total, so the caller must decide what it meant. */
+  wkts?: number;
 }
 
+/** "145/3", "(145/3)", "145/3 (16.0)" — a score, never a team name. */
+export const looksLikeScore = (input: string | undefined): boolean =>
+  input !== undefined &&
+  /^\(?\d{1,4}\s*[-/]\s*\d{1,2}\)?\s*(\(\s*\d{1,3}(?:\.\d)?\s*\))?$/.test(input.trim());
+
+/** "BatterRB4s6sSR", "GMT", "0 0 1" — never a toss sentence. */
+export const looksLikeToss = (input: string | undefined): boolean =>
+  input !== undefined &&
+  /(?:won the toss|opt(?:s|ed)? to (?:bat|bowl|field)|elected to (?:bat|bowl|field))/i.test(input);
+
 export interface ParseScoreOptions {
-  /** If true, allow a bare number like "260" (treated as runs with 10 wickets / all out). */
+  /** If true, allow a bare number like "260" (runs with wickets unknown). */
   allowBare?: boolean;
 }
 
 /**
- * "52-1", "52/1", "52 - 1", "52/1(8.5)" -> runs/wkts. Bare "52" (with allowBare: true) -> runs: 52, wkts: 10. All out -> wkts: 10.
+ * "52-1", "52/1", "52 - 1", "52/1(8.5)" -> runs/wkts. Bare "52" (with allowBare: true) -> runs only,
+ * wkts undefined. All out -> wkts: 10.
  */
 export const parseScore = (
   input: string | undefined,
@@ -42,7 +54,7 @@ export const parseScore = (
   if (allOut) return { runs: Number(allOut[1]), wkts: 10 };
   if (options?.allowBare) {
     const bare = /^(?:[A-Za-z]+\s+)?(\d{1,4})(?:\s*\(.*?\))?$/.exec(input.trim());
-    if (bare) return { runs: Number(bare[1]), wkts: 10 };
+    if (bare) return { runs: Number(bare[1]) };
   }
   return undefined;
 };
@@ -78,18 +90,31 @@ export interface DayStatus {
   resultText?: string;
 }
 
-/** "Day 4: Stumps - India need 319 runs" or "Day 3 - Lunch" -> { day: 4, session: "stumps", resultText: ... } */
+/** "Day 4: Stumps - India need 319 runs" or "Stumps - Day 3: Lunch" -> { day, session, resultText } */
+const SESSION_WORD = /(?:stumps?|lunch|tea|drinks|break|session|innings|over)\b/i;
+
 export const parseDayStatus = (input: string | undefined): DayStatus | undefined => {
   if (!input) return undefined;
-  const m = /^\s*day\s*(\d+)\s*[:\-–]?\s*(.+)?\s*$/i.exec(input);
+  // Sites put the day first ("Day 3: Stumps") and last ("Stumps - Day 3"); anchoring the match
+  // made real Test pages lose their day, and with it the exemption from the overs limit.
+  const m = /\bday\s*(\d{1,2})\b/i.exec(input);
   if (!m) return undefined;
   const out: DayStatus = { day: Number(m[1]) };
-  const rest = m[2]?.trim();
-  if (rest) {
-    const parts = rest.split(/[-–:]/).map((s) => s.trim()).filter(Boolean);
-    if (parts[0]) out.session = parts[0].toLowerCase();
-    if (parts.length > 1) out.resultText = parts.slice(1).join(' - ').trim();
-  }
+  const split = (text: string) =>
+    text
+      .split(/[-–:,]/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+  const before = split(input.slice(0, m.index));
+  const after = split(input.slice(m.index + m[0].length));
+  const session =
+    after.find((s) => SESSION_WORD.test(s)) ??
+    before.find((s) => SESSION_WORD.test(s)) ??
+    after[0] ??
+    before[0];
+  if (session) out.session = session.toLowerCase();
+  const rest = [...before, ...after].filter((s) => s !== session);
+  if (rest.length) out.resultText = rest.join(' - ').trim();
   return out;
 };
 

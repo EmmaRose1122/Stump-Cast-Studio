@@ -105,12 +105,14 @@ export class OverlayWsClient {
     };
     socket.onmessage = (e) => {
       this.lastMessageAt = this.now();
+      let frame: unknown;
       try {
-        const parsed = ServerMessageSchema.safeParse(JSON.parse(String(e.data)));
-        if (parsed.success) this.opts.onMessage(parsed.data);
+        frame = JSON.parse(String(e.data));
       } catch {
-        /* ignore malformed frames */
+        return; // a truncated frame is worth dropping; a broken listener is not
       }
+      const parsed = ServerMessageSchema.safeParse(frame);
+      if (parsed.success) this.opts.onMessage(parsed.data);
     };
     socket.onerror = () => undefined; // onclose always follows
     socket.onclose = () => {

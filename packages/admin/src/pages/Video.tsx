@@ -209,6 +209,7 @@ export const VideoPage = () => {
   const backgroundPicker = useRef<HTMLInputElement>(null);
   const [hostDraft, setHostDraft] = useState('127.0.0.1');
   const [portDraft, setPortDraft] = useState('4455');
+  const [sceneDraft, setSceneDraft] = useState('');
   const [customBgUrl, setCustomBgUrl] = useState('');
   const [activeTheme, setActiveTheme] = useState(video?.tvTheme || 'star-sports');
   const [activeStadiumDraft, setActiveStadiumDraft] = useState<string | null>(null);
@@ -294,19 +295,56 @@ export const VideoPage = () => {
               ? 'floodlight'
               : 'custom';
 
+  // A field the operator is editing stops tracking the server until the server agrees with the
+  // edit (their save landed). Without this, any unrelated settings save on the page — a theme
+  // click, the dim slider — rewrote whatever was half-typed in the OBS host or cam mapping boxes.
+  const dirty = useRef(new Set<string>());
+  const markDirty = (k: string) => dirty.current.add(k);
+  const clearDirty = (k: string) => dirty.current.delete(k);
+  const lastDimSaved = useRef<number | null>(null);
+  const commitDim = () => {
+    if (lastDimSaved.current === bgDimDraft) return;
+    lastDimSaved.current = bgDimDraft;
+    saveVideo.mutate({ backgroundDim: bgDimDraft });
+  };
+
   useEffect(() => {
     if (!video) return;
-    setHostDraft(video.obsHost);
-    setPortDraft(String(video.obsPort));
-    setCameraHostCount(video.cameraMode);
-    if (video.tvTheme) setActiveTheme(video.tvTheme);
-    if (typeof video.backgroundDim === 'number') setBgDimDraft(video.backgroundDim);
+    const keep = (k: string, mine: string, live: string, apply: (v: string) => void) => {
+      if (dirty.current.has(k) && mine === live) clearDirty(k);
+      if (!dirty.current.has(k)) apply(live);
+    };
+    keep('host', hostDraft, video.obsHost, setHostDraft);
+    keep('port', portDraft, String(video.obsPort), setPortDraft);
+    keep('scene', sceneDraft, video.obsScene, setSceneDraft);
+    if (!dirty.current.has('cameraMode')) setCameraHostCount(video.cameraMode);
+    if (video.tvTheme && !dirty.current.has('tvTheme')) setActiveTheme(video.tvTheme);
+    if (typeof video.backgroundDim === 'number' && !dirty.current.has('bgDim'))
+      setBgDimDraft(video.backgroundDim);
     if (video.obsMap) {
-      setCam1Draft(video.obsMap.cam1 || '');
-      setCam2Draft(video.obsMap.cam2 || '');
-      setMatchVideoDraft(video.obsMap.matchVideo || '');
+      const mine = `${matchVideoDraft}|${cam1Draft}|${cam2Draft}`;
+      const live = `${video.obsMap.matchVideo ?? ''}|${video.obsMap.cam1 ?? ''}|${video.obsMap.cam2 ?? ''}`;
+      keep('obsMap', mine, live, (v) => {
+        const [matchVideo = '', cam1 = '', cam2 = ''] = v.split('|');
+        setMatchVideoDraft(matchVideo);
+        setCam1Draft(cam1);
+        setCam2Draft(cam2);
+      });
     }
-  }, [video?.obsHost, video?.obsPort, video?.cameraMode, video?.tvTheme, video?.backgroundDim, video?.obsMap]);
+  }, [
+    video?.obsHost,
+    video?.obsPort,
+    video?.cameraMode,
+    video?.tvTheme,
+    video?.backgroundDim,
+    video?.obsMap,
+    hostDraft,
+    portDraft,
+    sceneDraft,
+    matchVideoDraft,
+    cam1Draft,
+    cam2Draft,
+  ]);
 
   const status = useQuery({
     queryKey: ['obs-status'],
@@ -326,6 +364,12 @@ export const VideoPage = () => {
   const saveSettings = useMutation({
     mutationFn: api.saveSettings,
     onSuccess: (saved) => qc.setQueryData(['settings'], saved),
+    onError: (error) =>
+      toast({
+        title: 'Could not save',
+        description: error instanceof Error ? error.message : 'The server rejected the change',
+        kind: 'error',
+      }),
   });
 
   const saveVideo = useMutation({
@@ -842,10 +886,12 @@ export const VideoPage = () => {
                 step="0.05"
                 value={bgDimDraft}
                 onChange={(e) => {
-                  const val = parseFloat(e.target.value);
-                  setBgDimDraft(val);
-                  saveVideo.mutate({ backgroundDim: val });
+                  markDirty('bgDim');
+                  setBgDimDraft(parseFloat(e.target.value));
                 }}
+                onPointerUp={commitDim}
+                onKeyUp={commitDim}
+                onBlur={commitDim}
                 className="w-28 accent-amber-500 cursor-pointer"
               />
               <span className="font-mono text-amber-400 font-bold">{Math.round(bgDimDraft * 100)}%</span>
@@ -955,8 +1001,12 @@ export const VideoPage = () => {
                 onClick={() => {
                   const val = screenLabelToValue[screen] ?? 'auto';
                   if (settings.data) {
-                    saveSettings.mutate({ ...settings.data, onAirScreen: val });
-                    toast({ title: `On-Air Screen: ${screen}`, kind: 'success' });
+                    saveSettings.mutate(
+                      { ...settings.data, onAirScreen: val },
+                      {
+                        onSuccess: () => toast({ title: `On-Air Screen: ${screen}`, kind: 'success' }),
+                      },
+                    );
                   }
                 }}
                 className={clsx(
@@ -984,11 +1034,16 @@ export const VideoPage = () => {
                 onClick={() => {
                   const val = sceneLabelToValue[scene] ?? 'auto';
                   if (settings.data) {
-                    saveSettings.mutate({
-                      ...settings.data,
-                      preMatch: { ...settings.data.preMatch, scene: val },
-                    });
-                    toast({ title: `Pre-Match Scene: ${scene}`, kind: 'success' });
+                    saveSettings.mutate(
+                      {
+                        ...settings.data,
+                        preMatch: { ...settings.data.preMatch, scene: val },
+                      },
+                      {
+                        onSuccess: () =>
+                          toast({ title: `Pre-Match Scene: ${scene}`, kind: 'success' }),
+                      },
+                    );
                   }
                 }}
                 className={clsx(
@@ -1508,7 +1563,10 @@ export const VideoPage = () => {
                 {connected && obsSources.data && obsSources.data.length > 0 ? (
                   <select
                     value={cam1Draft}
-                    onChange={(e) => setCam1Draft(e.target.value)}
+                    onChange={(e) => {
+                      markDirty('obsMap');
+                      setCam1Draft(e.target.value);
+                    }}
                     className="w-full rounded-lg border border-blue-200 bg-white px-3 py-1.5 text-xs text-slate-900 focus:outline-none focus:border-orange-500"
                   >
                     <option value="">-- Choose OBS Source --</option>
@@ -1521,7 +1579,10 @@ export const VideoPage = () => {
                 ) : (
                   <input
                     value={cam1Draft}
-                    onChange={(e) => setCam1Draft(e.target.value)}
+                    onChange={(e) => {
+                      markDirty('obsMap');
+                      setCam1Draft(e.target.value);
+                    }}
                     placeholder="e.g. Streamer Cam 1"
                     className="w-full rounded-lg border border-blue-200 bg-white px-3 py-1.5 text-xs text-slate-900 focus:outline-none focus:border-orange-500"
                   />
@@ -1538,7 +1599,10 @@ export const VideoPage = () => {
                 {connected && obsSources.data && obsSources.data.length > 0 ? (
                   <select
                     value={cam2Draft}
-                    onChange={(e) => setCam2Draft(e.target.value)}
+                    onChange={(e) => {
+                      markDirty('obsMap');
+                      setCam2Draft(e.target.value);
+                    }}
                     className="w-full rounded-lg border border-blue-200 bg-white px-3 py-1.5 text-xs text-slate-900 focus:outline-none focus:border-orange-500"
                   >
                     <option value="">-- Choose OBS Source --</option>
@@ -1551,7 +1615,10 @@ export const VideoPage = () => {
                 ) : (
                   <input
                     value={cam2Draft}
-                    onChange={(e) => setCam2Draft(e.target.value)}
+                    onChange={(e) => {
+                      markDirty('obsMap');
+                      setCam2Draft(e.target.value);
+                    }}
                     placeholder="e.g. Streamer Cam 2 / Discord"
                     className="w-full rounded-lg border border-blue-200 bg-white px-3 py-1.5 text-xs text-slate-900 focus:outline-none focus:border-orange-500"
                   />
@@ -1568,7 +1635,10 @@ export const VideoPage = () => {
                 {connected && obsSources.data && obsSources.data.length > 0 ? (
                   <select
                     value={matchVideoDraft}
-                    onChange={(e) => setMatchVideoDraft(e.target.value)}
+                    onChange={(e) => {
+                      markDirty('obsMap');
+                      setMatchVideoDraft(e.target.value);
+                    }}
                     className="w-full rounded-lg border border-blue-200 bg-white px-3 py-1.5 text-xs text-slate-900 focus:outline-none focus:border-orange-500"
                   >
                     <option value="">-- Choose OBS Source --</option>
@@ -1581,7 +1651,10 @@ export const VideoPage = () => {
                 ) : (
                   <input
                     value={matchVideoDraft}
-                    onChange={(e) => setMatchVideoDraft(e.target.value)}
+                    onChange={(e) => {
+                      markDirty('obsMap');
+                      setMatchVideoDraft(e.target.value);
+                    }}
                     placeholder="e.g. Capture Card / Game Feed"
                     className="w-full rounded-lg border border-blue-200 bg-white px-3 py-1.5 text-xs text-slate-900 focus:outline-none focus:border-orange-500"
                   />
@@ -1788,7 +1861,19 @@ export const VideoPage = () => {
               />
               Random rotation every
               <input
-                defaultValue="90"
+                type="number"
+                min={5}
+                max={600}
+                defaultValue={video.rotationSec}
+                key={video.rotationSec}
+                onBlur={(e) => {
+                  const n = Math.trunc(Number(e.target.value));
+                  if (!Number.isFinite(n) || n < 5 || n > 600) {
+                    toast({ title: 'Rotation interval must be 5-600 seconds', kind: 'error' });
+                    return;
+                  }
+                  if (n !== video.rotationSec) saveVideo.mutate({ rotationSec: n });
+                }}
                 className="w-12 rounded border border-blue-200 bg-white px-1 py-0.5 text-center text-xs text-slate-900"
               />
               seconds
@@ -1807,9 +1892,11 @@ export const VideoPage = () => {
                 key={preset.id}
                 onClick={() => {
                   const target = preset.id as LayoutPresetId;
-                  saveVideo.mutate({ activeObsLayout: target });
+                  saveVideo.mutate(
+                    { activeObsLayout: target },
+                    { onSuccess: () => toast({ title: `Scene Layout: ${preset.title}`, kind: 'success' }) },
+                  );
                   if (connected) applyLayout.mutate(target);
-                  toast({ title: `Scene Layout: ${preset.title}`, kind: 'success' });
                 }}
                 className={clsx(
                   'rounded-xl border p-3 text-left transition cursor-pointer',
@@ -1824,7 +1911,22 @@ export const VideoPage = () => {
                 </div>
                 <div className="mt-2 text-xs font-bold text-slate-900">{preset.title}</div>
                 <div className="mt-1 flex items-center gap-1 text-[10px] text-slate-500">
-                  <input type="checkbox" defaultChecked />
+                  <input
+                    type="checkbox"
+                    checked={video.rotationLayouts.includes(preset.id as LayoutPresetId)}
+                    onClick={(e) => e.stopPropagation()}
+                    onChange={(e) => {
+                      const id = preset.id as LayoutPresetId;
+                      const next = e.target.checked
+                        ? [...new Set([...video.rotationLayouts, id])]
+                        : video.rotationLayouts.filter((x) => x !== id);
+                      if (!next.length) {
+                        toast({ title: 'Keep at least one layout in the rotation', kind: 'error' });
+                        return;
+                      }
+                      saveVideo.mutate({ rotationLayouts: next });
+                    }}
+                  />
                   in random rotation
                 </div>
               </button>
@@ -1886,13 +1988,19 @@ export const VideoPage = () => {
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <input
               value={hostDraft}
-              onChange={(e) => setHostDraft(e.target.value)}
+              onChange={(e) => {
+                markDirty('host');
+                setHostDraft(e.target.value);
+              }}
               placeholder="127.0.0.1"
               className="w-28 rounded-lg border border-blue-200 bg-white px-3 py-1.5 text-xs text-slate-900 focus:outline-none focus:border-orange-500"
             />
             <input
               value={portDraft}
-              onChange={(e) => setPortDraft(e.target.value)}
+              onChange={(e) => {
+                markDirty('port');
+                setPortDraft(e.target.value);
+              }}
               placeholder="4455"
               className="w-20 rounded-lg border border-blue-200 bg-white px-3 py-1.5 text-xs text-slate-900 focus:outline-none focus:border-orange-500"
             />
@@ -1905,6 +2013,15 @@ export const VideoPage = () => {
             />
             <input
               placeholder="Scene (blank = current)"
+              value={sceneDraft}
+              onChange={(e) => {
+                markDirty('scene');
+                setSceneDraft(e.target.value);
+              }}
+              onBlur={() => {
+                if (sceneDraft === video.obsScene) return;
+                saveVideo.mutate({ obsScene: sceneDraft });
+              }}
               className="flex-1 min-w-[140px] rounded-lg border border-blue-200 bg-white px-3 py-1.5 text-xs text-slate-900 focus:outline-none focus:border-orange-500"
             />
             <button

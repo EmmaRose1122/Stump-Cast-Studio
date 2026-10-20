@@ -179,3 +179,92 @@ describe('SelectorConfigSchema', () => {
     ).toBe(false);
   });
 });
+
+describe('fields that used to be invented from adjacent text', () => {
+  it('uses the label to tell the "This Over" strip from the "Recent" strip', () => {
+    const cfg = makeConfig({
+      dom: {
+        score: { selectors: ['.sc'] },
+        overs: { selectors: ['.ov'] },
+        thisOver: { selectors: ['.balls'] },
+        lastBalls: { selectors: ['.balls'], label: 'Recent' },
+      },
+      minConfidenceFields: ['score', 'overs'],
+    });
+    const u = run(
+      createAdapter(cfg),
+      `<div class="sc">100-2</div><div class="ov">12.0</div>
+       <div><p class="lbl">This Over :</p><p class="balls">4 1 0</p></div>
+       <div><p class="lbl">Recent :</p><p class="balls">0 0 1 W</p></div>`,
+    );
+    expect(u.fields.thisOver).toEqual(['4', '1', '0']);
+    expect(u.fields.lastBalls).toEqual(['0', '0', '1', 'W']);
+  });
+
+  it('never uses score-shaped or toss-shaped text as a team name', () => {
+    const cfg = makeConfig({
+      dom: {
+        score: { selectors: ['.sc'] },
+        overs: { selectors: ['.ov'] },
+        battingTeam: { selectors: ['.sc'] },
+        team1: { selectors: ['.team1'] },
+      },
+      minConfidenceFields: ['score', 'overs'],
+    });
+    const u = run(
+      createAdapter(cfg),
+      `<div class="team1">India</div><div class="sc">145/3</div><div class="ov">16.0</div>`,
+    );
+    expect(u.fields.innings[0]?.team).toBe('India');
+  });
+
+  it('reports a live innings it cannot read instead of guessing all out', () => {
+    const cfg = makeConfig({
+      dom: { score: { selectors: ['.sc'] }, overs: { selectors: ['.gone'] } },
+      minConfidenceFields: ['score', 'overs'],
+    });
+    const u = run(createAdapter(cfg), `<div class="sc">260</div>`);
+    expect(u.fields.innings).toEqual([]);
+    expect(u.missing).toEqual(['score', 'overs']);
+    expect(isDegraded(u)).toBe(true);
+  });
+
+  it('reads a closed bare total as all out and flags the overs the page never showed', () => {
+    const cfg = makeConfig({
+      dom: {
+        'inn1.score': { selectors: ['.a'] },
+        'inn2.score': { selectors: ['.b'] },
+        'inn2.overs': { selectors: ['.ov'] },
+      },
+      minConfidenceFields: ['score', 'overs'],
+    });
+    const u = run(
+      createAdapter(cfg),
+      `<div class="a">260</div><div class="b">7/0</div><div class="ov">2.3</div>`,
+    );
+    expect(u.fields.innings.map((i) => [i.runs, i.wkts, i.overs, i.balls])).toEqual([
+      [260, 10, 0, 0],
+      [7, 0, 2, 3],
+    ]);
+    expect(u.confidence).toBe(0.5);
+    expect(u.missing).toEqual(['overs']);
+  });
+
+  it('drops a toss field that landed on a table header', () => {
+    const cfg = makeConfig({
+      dom: {
+        score: { selectors: ['.sc'] },
+        overs: { selectors: ['.ov'] },
+        toss: { selectors: ['.hdr'] },
+      },
+      minConfidenceFields: ['score', 'overs'],
+    });
+    const u = run(
+      createAdapter(cfg),
+      `<div class="hdr">BatterRB4s6sSR</div><div class="sc">145/3</div><div class="ov">16.0</div>`,
+    );
+    expect(u.fields.toss).toBeUndefined();
+    expect(u.fields.innings[0]).toMatchObject({ runs: 145, wkts: 3, overs: 16 });
+    expect(u.confidence).toBe(1);
+  });
+});

@@ -176,6 +176,35 @@ describe('extension websocket', () => {
     await waitFor(() => inbox.some((m) => m.type === 'command' && m.command === 'openMatch'));
     ws.close();
   });
+
+  it('a stale socket dying after a reconnect leaves the command channel alive', async () => {
+    const { port, pair, post } = await boot();
+    const { token } = await pair();
+    const authed = async () => {
+      const s = await openSocket(port);
+      s.ws.send(JSON.stringify({ type: 'auth', token }));
+      await waitFor(() => s.inbox.some((m) => m.type === 'authed'));
+      return s;
+    };
+    const older = await authed();
+    const newer = await authed(); // the reconnect takes over the channel
+
+    // The old socket's close arrives late. Its handler used to clear the sender regardless of
+    // who owned it, silently killing commands for the extension that is actually connected.
+    older.ws.close();
+    await new Promise((r) => setTimeout(r, 100));
+
+    let delivered = false;
+    for (let i = 0; i < 20 && !delivered; i++) {
+      const res = await post('/api/ext/command', { command: 'reloadSelectors' });
+      delivered = ((await res.json()) as { delivered: boolean }).delivered;
+      if (!delivered) await new Promise((r) => setTimeout(r, 25));
+    }
+    expect(delivered).toBe(true);
+    expect(newer.inbox.some((m) => m.type === 'command')).toBe(true);
+    expect(older.inbox.some((m) => m.type === 'command')).toBe(false);
+    newer.ws.close();
+  });
 });
 
 describe('OnAirHero /ingest protocol', () => {
@@ -356,6 +385,34 @@ describe('event wiring', () => {
     expect(app.engine.getState('m1')?.score.runs).toBe(20);
     ws.close();
   });
+
+  it('writes one commentary line per event, not one per audience', async () => {
+    const { port, pair, post } = await boot();
+    const { token } = await pair();
+    const base = `http://127.0.0.1:${port}`;
+    const mk = (runs: number, balls: number, last: string[]): RawUpdate =>
+      RawUpdateSchema.parse({
+        source: 'cricbuzz',
+        matchId: 'm1',
+        url: 'https://www.example.invalid/m1',
+        capturedAt: 1,
+        confidence: 1,
+        fields: {
+          title: 'A v B T20',
+          innings: [{ team: 'A', runs, wkts: 0, overs: 2, balls }],
+          lastBalls: last,
+          thisOver: last,
+        },
+      });
+
+    await post('/api/ext/ingest', { type: 'update', update: mk(10, 1, ['1']) }, token);
+    await post('/api/ext/ingest', { type: 'update', update: mk(14, 2, ['1', '4']) }, token);
+
+    const status = (await (await fetch(`${base}/api/commentary/status`)).json()) as {
+      history: { eventType?: string }[];
+    };
+    expect(status.history.filter((h) => h.eventType === 'FOUR')).toHaveLength(1);
+  });
 });
 
 describe('sync delay and watchdog over HTTP/WS', () => {
@@ -407,6 +464,58 @@ describe('sync delay and watchdog over HTTP/WS', () => {
     expect(app.delay.delaySec).toBe(1);
     live.ws.close();
     preview.ws.close();
+  });
+
+  it('deleting matches discards what is still waiting on the broadcast delay', async () => {
+    const { app, port, pair, post } = await boot();
+    const { token } = await pair();
+    const base = `http://127.0.0.1:${port}`;
+    await fetch(`${base}/api/settings/sync-delay`, {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ syncDelaySec: 1 }),
+    });
+
+    await post('/api/ext/ingest', { type: 'update', update: mk(10, 1) }, token);
+    expect(app.delay.size).toBe(1);
+
+    await fetch(`${base}/api/matches`, { method: 'DELETE' });
+    expect(app.delay.size).toBe(0);
+
+    // The old queue entry used to fire here and bring the wiped match back on air.
+    await new Promise((r) => setTimeout(r, 1400));
+    expect(await (await fetch(`${base}/api/state`)).json()).toEqual([]);
+    expect(await (await fetch(`${base}/api/events`)).json()).toEqual([]);
+  });
+
+  it('deleting one match keeps another match still in the delay queue', async () => {
+    const { app, port, pair, post } = await boot();
+    const { token } = await pair();
+    const base = `http://127.0.0.1:${port}`;
+    await fetch(`${base}/api/settings/sync-delay`, {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ syncDelaySec: 1 }),
+    });
+
+    const other = (id: string): RawUpdate =>
+      RawUpdateSchema.parse({
+        source: 'cricbuzz',
+        matchId: id,
+        url: `https://www.example.invalid/${id}`,
+        capturedAt: 1,
+        confidence: 1,
+        fields: { title: `Match ${id}`, innings: [{ team: 'A', runs: 8, wkts: 0, overs: 1, balls: 0 }] },
+      });
+    await post('/api/ext/ingest', { type: 'update', update: mk(10, 1) }, token);
+    await post('/api/ext/ingest', { type: 'update', update: other('m2') }, token);
+    expect(app.delay.size).toBe(2);
+
+    await fetch(`${base}/api/matches/m1`, { method: 'DELETE' });
+    expect(app.delay.size).toBe(1);
+    await new Promise((r) => setTimeout(r, 1400));
+    const live = (await (await fetch(`${base}/api/state`)).json()) as { id: string }[];
+    expect(live.map((s) => s.id)).toEqual(['m2']);
   });
 
   it('rejects an out-of-range delay', async () => {

@@ -180,7 +180,7 @@ export const testRsaVsAus: MatchState = createMatchState({
   battingTeamId: 'team-rsa',
   score: rsaScore,
   target: 421,
-  lead: -369,
+  lead: -368,
   batters: [
     {
       playerId: 'aiden-markram',
@@ -216,7 +216,7 @@ export const testRsaVsAus: MatchState = createMatchState({
   wicketsLeft: 9,
   crr: 3.06,
   rrr: 4.12,
-  winProb: { teamA: 0.34, teamB: 0.36 },
+  winProb: { teamA: 0.34, teamB: 0.66 },
   day: 4,
   session: 'evening',
   updatedAt: '2026-03-14T15:42:10.000Z',

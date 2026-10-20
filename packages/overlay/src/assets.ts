@@ -1,4 +1,4 @@
-import { slug } from '@stumpcast/shared';
+import { resolveTeam, slug } from '@stumpcast/shared';
 
 /** Bumped when the server announces `asset-updated`, so a replaced image is re-fetched. */
 const versions = new Map<string, number>();
@@ -8,7 +8,16 @@ export const bumpAsset = (id: string): void => {
   versions.set(id, ++counter);
 };
 
-export const teamAssetId = (short: string): string => `team-${slug(short)}`;
+/**
+ * Crest asset id for a team code/name, or `null` when it is not a team we have art for. Guessing
+ * here is what used to put Sierra Leone's flag next to Sri Lanka, so an unknown side gets no crest.
+ */
+export const teamAssetId = (short: string): string | null => {
+  const known = resolveTeam(short);
+  if (known) return `team-${known.code}`;
+  const s = slug(short);
+  return s && s.length === 3 ? `team-${s}` : null;
+};
 
 export const assetUrl = (kind: 'players' | 'teams', id: string): string => {
   const v = versions.get(id);

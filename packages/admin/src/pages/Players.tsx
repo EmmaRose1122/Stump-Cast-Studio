@@ -186,6 +186,7 @@ export const PlayersPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest' | 'name'>('name');
   const [pageSize, setPageSize] = useState(24);
+  const [fetching, setFetching] = useState(false);
   const [page, setPage] = useState(1);
   const [deleteConfirm, setDeleteConfirm] = useState<AssetItem | null>(null);
   const [cardUrls, setCardUrls] = useState<Record<string, string>>({});
@@ -371,6 +372,8 @@ export const PlayersPage = () => {
   const onPitchReadyCount = onPitchPlayers.filter((p) => hasPlayerCutout(p.player.name)).length;
 
   const handleAutoFetchAll = async () => {
+    if (fetching) return;
+    setFetching(true);
     toast({
       title: 'Auto-fetching missing assets...',
       description: 'Generating and saving high-res vector cutouts for all missing match players',
@@ -379,7 +382,8 @@ export const PlayersPage = () => {
 
     try {
       // Sync disk first
-      await fetch('/api/assets/sync', { method: 'POST' }).catch(() => {});
+      const sync = await fetch('/api/assets/sync', { method: 'POST' });
+      if (!sync.ok) throw new Error(`Could not sync the asset library (${sync.status})`);
 
       // Find all players from both squads and on-pitch without cutout
       const missingList: { name: string; teamShort: string }[] = [];
@@ -391,21 +395,35 @@ export const PlayersPage = () => {
         }
       }
 
-      for (const item of missingList) {
-        const file = createPlayerAvatarFile(item.name, item.teamShort);
-        await assetsApi.upload({ file, type: 'player', name: item.name, rights: true }).catch(() => {});
-      }
+      const results = await Promise.allSettled(
+        missingList.map((item) => {
+          const file = createPlayerAvatarFile(item.name, item.teamShort);
+          return assetsApi.upload({ file, type: 'player', name: item.name, rights: true });
+        }),
+      );
+      const failed = results.filter((r) => r.status === 'rejected').length;
 
       await qc.invalidateQueries({ queryKey: ['assets'] });
       await qc.invalidateQueries({ queryKey: ['missing'] });
 
-      toast({
-        title: 'Auto-fetch complete!',
-        description: `All ${missingList.length} missing squad cutouts generated and saved to disk.`,
-        kind: 'success',
-      });
+      if (failed) {
+        const first = results.find((r) => r.status === 'rejected') as PromiseRejectedResult;
+        toast({
+          title: `Auto-fetch: ${missingList.length - failed} of ${missingList.length} saved`,
+          description: `${failed} failed — ${errText(first.reason)}`,
+          kind: 'error',
+        });
+      } else {
+        toast({
+          title: 'Auto-fetch complete!',
+          description: `All ${missingList.length} missing squad cutouts generated and saved to disk.`,
+          kind: 'success',
+        });
+      }
     } catch (e) {
-      toast({ title: 'Auto-fetch finished', description: errText(e), kind: 'info' });
+      toast({ title: 'Auto-fetch stopped', description: errText(e), kind: 'error' });
+    } finally {
+      setFetching(false);
     }
   };
 
@@ -489,6 +507,7 @@ export const PlayersPage = () => {
             </button>
             <button
               onClick={handleAutoFetchAll}
+              disabled={fetching}
               className="flex items-center gap-1.5 rounded-lg bg-orange-500 px-4 py-2 text-xs font-bold uppercase tracking-wider text-white transition hover:bg-orange-600 shadow-xs border border-orange-400"
             >
               <span>✨</span> AUTO-FETCH ALL MISSING ASSETS
@@ -785,6 +804,7 @@ export const PlayersPage = () => {
           <div className="flex items-center gap-2">
             <button
               onClick={handleAutoFetchAll}
+              disabled={fetching}
               className="rounded-lg bg-orange-500 px-3.5 py-1.5 text-xs font-bold uppercase text-white hover:bg-orange-600 flex items-center gap-1 shadow-xs border border-orange-400"
             >
               <span>✨</span> AUTO-FETCH MISSING ASSETS

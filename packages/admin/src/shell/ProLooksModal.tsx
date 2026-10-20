@@ -78,14 +78,6 @@ export const PRO_LOOKS_CATALOG: ProLookItem[] = [
     gradient: 'from-green-700 via-emerald-600 to-teal-950',
   },
   {
-    id: 'k15',
-    name: 'Orange & Blue Broadcast',
-    badge: 'K15',
-    themeColor: '#f97316',
-    tags: ['slide entrances', 'scores on top', 'flat score bar', 'mirrored player cards'],
-    gradient: 'from-orange-600 via-amber-500 to-blue-600',
-  },
-  {
     id: 'k11',
     name: 'Street Blaze',
     badge: 'K11',

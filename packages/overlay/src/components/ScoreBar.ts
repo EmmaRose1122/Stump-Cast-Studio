@@ -93,13 +93,14 @@ export class ScoreBar extends OverlayComponent {
 
   /** Crest image over a coloured letter; only touches the DOM when the team changed. */
   private setCrest(host: HTMLElement, short: string): void {
-    const url = assetUrl('teams', teamAssetId(short));
+    const id = teamAssetId(short);
+    const url = id ? assetUrl('teams', id) : '';
     if (host.dataset.src === url) return;
     host.dataset.src = url;
     host.replaceChildren();
     host.classList.remove('has-image');
     host.textContent = short.slice(0, 1);
-    attachImage(host, url);
+    if (url) attachImage(host, url);
   }
 
   update(s: MatchState): void {
@@ -141,8 +142,14 @@ export class ScoreBar extends OverlayComponent {
 
     if (s.target !== undefined) {
       const needed = Math.max(0, s.target - s.score.runs);
-      this.e.needLabel.textContent = 'NEED';
-      this.e.needVal.textContent = String(needed);
+      if (needed === 0) {
+        // A chase that is already won must not read "NEED 0".
+        this.e.needLabel.textContent = 'TARGET';
+        this.e.needVal.textContent = String(s.target);
+      } else {
+        this.e.needLabel.textContent = 'NEED';
+        this.e.needVal.textContent = String(needed);
+      }
     } else if (s.lead !== undefined && s.lead < 0) {
       this.e.needLabel.textContent = 'NEED';
       this.e.needVal.textContent = String(Math.abs(s.lead));

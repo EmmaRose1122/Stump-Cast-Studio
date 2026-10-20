@@ -5,6 +5,7 @@ import {
   LookSchema,
   MatchStateSchema,
   ScoreSchema,
+  battingWinProb,
   createMatchState,
   createPlayer,
   createSettings,
@@ -50,6 +51,50 @@ describe('schemas', () => {
         bowlerId: 'y',
       }).success,
     ).toBe(true);
+  });
+
+  it('rejects runs credited to a bowled/lbw/stumped/hit-wicket batter', () => {
+    const ball = { over: 3, ball: 2, batterId: 'x', bowlerId: 'y' };
+    expect(
+      BallEventSchema.safeParse({
+        ...ball,
+        runs: 4,
+        wicket: { kind: 'bowled', playerOutId: 'x' },
+      }).success,
+    ).toBe(false);
+    expect(
+      BallEventSchema.safeParse({
+        ...ball,
+        runs: 4,
+        wicket: { kind: 'caught', playerOutId: 'x' },
+      }).success,
+    ).toBe(true);
+    // 6 off the bat plus overthrows is legal, so the ceiling stays at 7.
+    expect(BallEventSchema.safeParse({ ...ball, runs: 7 }).success).toBe(true);
+    expect(BallEventSchema.safeParse({ ...ball, runs: 8 }).success).toBe(false);
+  });
+
+  it('requires the two win probabilities to be one number split in two', () => {
+    const base = { ...fixtures.test, winProb: { teamA: 0.34, teamB: 0.36 } };
+    expect(MatchStateSchema.safeParse(base).success).toBe(false);
+    expect(MatchStateSchema.safeParse({ ...base, winProb: { teamA: 0.34, teamB: 0.66 } }).success).toBe(
+      true,
+    );
+  });
+
+  it('sizes a first-innings projection against the innings actually being played', () => {
+    // A 10-over game projected at 82 is on par; it must not be judged against a T20 165.
+    const tenOvers = {
+      ...fixtures.t20,
+      format: 'OTHER' as const,
+      oversLimit: 10,
+      target: undefined,
+      runsNeeded: undefined,
+      projected: 82,
+      ballsLeft: 60,
+      wicketsLeft: 5,
+    };
+    expect(battingWinProb(tenOvers)).toBeGreaterThan(0.4);
   });
 
   it('validates an engine event and defaults payload', () => {

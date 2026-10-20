@@ -309,6 +309,27 @@ describe('Connector commands', () => {
     expect(env.store.customSelectors).toEqual(bundle);
   });
 
+  it('reloadSelectors rejects a signed bundle whose scraper config is unusable', async () => {
+    const bundle: SelectorBundle = {
+      version: 556,
+      updatedAt: 1775000000000,
+      selectors: {
+        // valid on its face, but the regex inside would be handed to new RegExp by the adapter
+        cricbuzz: { version: 556, site: 'cricbuzz', urlPatterns: ['('] },
+      },
+    };
+    const signed = await signSelectorBundle(bundle);
+    const env = makeEnv({
+      livePort: 4000,
+      store: { token: 'tok-abcdefghijklmnopqrstuvwx' },
+      selectorsResponse: () => Response.json(signed),
+    });
+    const c = new Connector(env.deps);
+    await connectAuthed(env, c);
+    expect(await c.reloadSelectors()).toBe(false);
+    expect(env.store.customSelectors).toBeUndefined();
+  });
+
   it('reloadSelectors rejects tampered bundle and ignores it', async () => {
     const bundle: SelectorBundle = {
       version: 555,
@@ -330,6 +351,76 @@ describe('Connector commands', () => {
     const ok = await c.reloadSelectors();
     expect(ok).toBe(false);
     expect(env.store.customSelectors).toBeUndefined();
+  });
+});
+
+describe('delivery reliability', () => {
+  const healthCalls = (env: ReturnType<typeof makeEnv>) =>
+    env.fetched.filter((f) => String(f.url).endsWith('/api/health')).length;
+  const ingestCalls = (env: ReturnType<typeof makeEnv>) =>
+    env.fetched.filter((f) => String(f.url).endsWith('/api/ext/ingest')).length;
+
+  it('sends a score update once when the socket is open', async () => {
+    const env = makeEnv({
+      livePort: 4000,
+      store: { token: 'tok-abcdefghijklmnopqrstuvwx', port: 4000 },
+    });
+    const c = new Connector(env.deps);
+    const s = await connectAuthed(env, c);
+
+    await c.onContentMessage({ type: 'score-update', update: update('m1') }, 7);
+
+    expect(s.sent.filter((m) => m.type === 'update')).toHaveLength(1);
+    expect(ingestCalls(env)).toBe(0);
+  });
+
+  it('falls back to HTTP ingest when the socket is not usable', async () => {
+    const env = makeEnv({ livePort: 4000, store: { token: 'tok-abcdefghijklmnopqrstuvwx' } });
+    const c = new Connector(env.deps);
+    await c.init(); // no socket opened/authed
+
+    await c.onContentMessage({ type: 'score-update', update: update('m1') }, 7);
+    expect(ingestCalls(env)).toBe(1);
+  });
+
+  it('bounds the localhost port sweep when no server is running', async () => {
+    const env = makeEnv(); // nothing listening
+    const c = new Connector(env.deps);
+    await c.init();
+    const afterInit = healthCalls(env);
+    expect(afterInit).toBeGreaterThan(0);
+
+    for (let i = 0; i < 10; i++) {
+      await c.onContentMessage({ type: 'score-update', update: update('m1') }, 7);
+    }
+    // Same clock: discovery and pairing answers are cached. At most one peer probe (5 ports)
+    // may be added — never a fresh 26-call sweep per message.
+    expect(healthCalls(env) - afterInit).toBeLessThanOrEqual(5);
+
+    env.advance(16_000);
+    await c.onContentMessage({ type: 'score-update', update: update('m1') }, 7);
+    expect(healthCalls(env)).toBeGreaterThan(afterInit + 5);
+  });
+
+  it('remembers open matches across a service-worker restart', async () => {
+    const env = makeEnv({
+      livePort: 4000,
+      store: { token: 'tok-abcdefghijklmnopqrstuvwx', port: 4000 },
+    });
+    const c = new Connector(env.deps);
+    await c.init();
+    await c.onContentMessage({ type: 'score-update', update: update('m1') }, 7);
+    await flush();
+    expect((env.store.trackedTabs as { matchId: string }[]).map((t) => t.matchId)).toEqual(['m1']);
+
+    // MV3 killed the worker: a fresh Connector must rehydrate the same open-match list.
+    const revived = new Connector(env.deps);
+    await revived.init();
+    expect(revived.tabs.map((t) => t.matchId)).toEqual(['m1']);
+
+    revived.onTabRemoved(7);
+    await flush();
+    expect(revived.tabs).toEqual([]);
   });
 });
 
