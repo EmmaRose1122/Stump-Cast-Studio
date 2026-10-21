@@ -221,6 +221,14 @@ const normalise = (raw: Raw, prev: Prev | undefined, site = 'cricbuzz', url = ''
     if (ok) passed.add(k);
   };
   const text = (k: FieldKey) => raw[k];
+  /**
+   * A scraped picture. Absolute http(s) only, so whatever a page puts in an `src` can never reach
+   * the server as anything but an image URL.
+   */
+  const picture = (k: FieldKey): string | undefined => {
+    const v = text(k)?.trim();
+    return v && /^https?:\/\/\S+$/i.test(v) ? v : undefined;
+  };
   const dayStatus = parseDayStatus(text('status'));
   const day = parseInteger(text('day')) ?? dayStatus?.day;
   const isTest = day !== undefined;
@@ -413,6 +421,8 @@ const normalise = (raw: Raw, prev: Prev | undefined, site = 'cricbuzz', url = ''
       sixes: parseInteger(text(`batter${n}.sixes` as FieldKey)),
     };
     if (name.onStrike) b.onStrike = true;
+    const photo = picture(`batter${n}.photo` as FieldKey);
+    if (photo) b.imageUrl = photo;
     batters.push(b);
   }
 
@@ -434,6 +444,8 @@ const normalise = (raw: Raw, prev: Prev | undefined, site = 'cricbuzz', url = ''
       for (const k of ['bowler.name', 'bowler.overs', 'bowler.runs', 'bowler.wkts'] as const) {
         pass(k, true);
       }
+      const photo = picture('bowler.photo');
+      if (photo) bowler.imageUrl = photo;
     }
   }
 
@@ -456,9 +468,15 @@ const normalise = (raw: Raw, prev: Prev | undefined, site = 'cricbuzz', url = ''
   pass('resultText', Boolean(text('resultText') ?? dayStatus?.resultText));
   pass('commentaryLast', Boolean(text('commentaryLast')));
 
-  const teams = (site === 'crex' ? [cleanTeam(text('team1')), cleanTeam(text('team2'))] : [team1Name, team2Name])
-    .filter((t): t is string => Boolean(t))
-    .map((name) => ({ name }));
+  // Zip before dropping: filtering the names first would pair a crest with the wrong team.
+  const teamNames =
+    site === 'crex' ? [cleanTeam(text('team1')), cleanTeam(text('team2'))] : [team1Name, team2Name];
+  const teamLogos = [picture('team1.logo'), picture('team2.logo')];
+  const teams = teamNames
+    .map((name, i): { name: string; logoUrl?: string } | null =>
+      name ? { name, ...(teamLogos[i] ? { logoUrl: teamLogos[i] } : {}) } : null,
+    )
+    .filter((t): t is { name: string; logoUrl?: string } => t !== null);
 
   // A source that states the format is better than guessing from the page title, and the format
   // is what fixes the overs limit for every chase calculation downstream.

@@ -562,6 +562,9 @@ ipcMain.handle('stumpcast:download-update', async (_event, downloadUrl?: string)
 
 		// Local / Simulation fallback: copy or simulate transfer
 		const localCandidates = [
+			path.join(workspaceRoot, 'release', 'StumpCast-Studio-Setup-1.0.6.exe'),
+			'C:\\Users\\IK\\Downloads\\StumpCast Studio\\stumpcast\\release\\StumpCast-Studio-Setup-1.0.6.exe',
+			path.join(process.env.USERPROFILE || '', 'Downloads', 'StumpCast Studio', 'stumpcast', 'release', 'StumpCast-Studio-Setup-1.0.6.exe'),
 			path.join(workspaceRoot, 'release', 'StumpCast-Studio-Setup-1.0.5.exe'),
 			'C:\\Users\\IK\\Downloads\\StumpCast Studio\\stumpcast\\release\\StumpCast-Studio-Setup-1.0.5.exe',
 			path.join(process.env.USERPROFILE || '', 'Downloads', 'StumpCast Studio', 'stumpcast', 'release', 'StumpCast-Studio-Setup-1.0.5.exe'),
@@ -635,6 +638,8 @@ ipcMain.handle('stumpcast:install-update', () => {
 	}
 	if (!installerToRun || !fs.existsSync(installerToRun)) {
 		const candidates = [
+			path.join(workspaceRoot, 'release', 'StumpCast-Studio-Setup-1.0.6.exe'),
+			'C:\\Users\\IK\\Downloads\\StumpCast Studio\\stumpcast\\release\\StumpCast-Studio-Setup-1.0.6.exe',
 			path.join(workspaceRoot, 'release', 'StumpCast-Studio-Setup-1.0.5.exe'),
 			'C:\\Users\\IK\\Downloads\\StumpCast Studio\\stumpcast\\release\\StumpCast-Studio-Setup-1.0.5.exe',
 			path.join(workspaceRoot, 'release', 'StumpCast-Studio-Setup-1.0.4.exe'),

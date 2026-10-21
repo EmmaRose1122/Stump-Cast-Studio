@@ -9,59 +9,150 @@
   "jsonTaps": [],
   "dom": {
     "title": {
-      "selectors": ["h1", ".match-info h1", "title", ".header-title", "[class*=\"matchTitle\"]", "[class*=\"headerTitle\"]"]
+      "selectors": [
+        "h1",
+        ".match-info h1",
+        "title",
+        ".header-title",
+        "[class*=\"matchTitle\"]",
+        "[class*=\"headerTitle\"]"
+      ]
     },
     "status": {
-      "selectors": [".match-status", ".live-status", ".match-note", ".status-text", "[class*=\"matchStatus\"]", "[class*=\"liveStatus\"]"]
+      "selectors": [
+        ".match-status",
+        ".live-status",
+        ".match-note",
+        ".status-text",
+        "[class*=\"matchStatus\"]",
+        "[class*=\"liveStatus\"]"
+      ]
     },
     "venue": {
-      "selectors": [".venue-name", ".match-venue", "[class*=\"venue\"]"]
+      "selectors": [
+        ".venue-name",
+        ".match-venue",
+        "[class*=\"venue\"]"
+      ]
     },
     "team1": {
-      "selectors": [".team-name:first-child", ".team-1-name", "[class*=\"teamName\"]:first-child", "[class*=\"team-name\"]:first-child"]
+      "selectors": [
+        ".team-name:first-child",
+        ".team-1-name",
+        "[class*=\"teamName\"]:first-child",
+        "[class*=\"team-name\"]:first-child"
+      ]
     },
     "team2": {
-      "selectors": [".team-name:last-child", ".team-2-name", "[class*=\"teamName\"]:last-child", "[class*=\"team-name\"]:last-child"]
+      "selectors": [
+        ".team-name:last-child",
+        ".team-2-name",
+        "[class*=\"teamName\"]:last-child",
+        "[class*=\"team-name\"]:last-child"
+      ]
     },
     "score": {
-      "selectors": [".live-score", ".team-score", ".score-wrap", ".score", "[class*=\"liveScore\"]", "[class*=\"teamScore\"]", "[class*=\"score\"]"]
+      "selectors": [
+        ".live-score",
+        ".team-score",
+        ".score-wrap",
+        ".score",
+        "[class*=\"liveScore\"]",
+        "[class*=\"teamScore\"]",
+        "[class*=\"score\"]"
+      ]
     },
     "overs": {
-      "selectors": [".overs", ".live-overs", ".overs-wrap", "[class*=\"liveOvers\"]", "[class*=\"overs\"]"]
+      "selectors": [
+        ".overs",
+        ".live-overs",
+        ".overs-wrap",
+        "[class*=\"liveOvers\"]",
+        "[class*=\"overs\"]"
+      ]
     },
     "batter1.name": {
-      "selectors": [".batter-name", ".batsman:first-child .name"]
+      "selectors": [
+        ".batter-name",
+        ".batsman:first-child .name"
+      ]
     },
     "batter1.runs": {
-      "selectors": [".batter-runs", ".batsman:first-child .runs"]
+      "selectors": [
+        ".batter-runs",
+        ".batsman:first-child .runs"
+      ]
     },
     "batter1.balls": {
-      "selectors": [".batter-balls", ".batsman:first-child .balls"]
+      "selectors": [
+        ".batter-balls",
+        ".batsman:first-child .balls"
+      ]
     },
     "batter2.name": {
-      "selectors": [".batsman:nth-child(2) .name"]
+      "selectors": [
+        ".batsman:nth-child(2) .name"
+      ]
     },
     "batter2.runs": {
-      "selectors": [".batsman:nth-child(2) .runs"]
+      "selectors": [
+        ".batsman:nth-child(2) .runs"
+      ]
     },
     "batter2.balls": {
-      "selectors": [".batsman:nth-child(2) .balls"]
+      "selectors": [
+        ".batsman:nth-child(2) .balls"
+      ]
     },
     "bowler.name": {
-      "selectors": [".bowler-name", ".bowler .name"]
+      "selectors": [
+        ".bowler-name",
+        ".bowler .name"
+      ]
     },
     "bowler.overs": {
-      "selectors": [".bowler-overs", ".bowler .overs"]
+      "selectors": [
+        ".bowler-overs",
+        ".bowler .overs"
+      ]
     },
     "bowler.runs": {
-      "selectors": [".bowler-runs", ".bowler .runs"]
+      "selectors": [
+        ".bowler-runs",
+        ".bowler .runs"
+      ]
     },
     "bowler.wkts": {
-      "selectors": [".bowler-wkts", ".bowler .wickets"]
+      "selectors": [
+        ".bowler-wkts",
+        ".bowler .wickets"
+      ]
     },
     "thisOver": {
-      "selectors": [".recent-balls", ".this-over", ".overs-balls"]
+      "selectors": [
+        ".recent-balls",
+        ".this-over",
+        ".overs-balls"
+      ]
+    },
+    "team1.logo": {
+      "selectors": [
+        ".team1 .team-logo img",
+        "[class*=\"team1\"] img[class*=\"team-head\"]",
+        "img.team-head-img"
+      ],
+      "attr": "src"
+    },
+    "team2.logo": {
+      "selectors": [
+        ".team2 .team-logo img",
+        "[class*=\"team2\"] img[class*=\"team-head\"]"
+      ],
+      "attr": "src"
     }
   },
-  "minConfidenceFields": ["score", "overs"]
+  "minConfidenceFields": [
+    "score",
+    "overs"
+  ]
 }

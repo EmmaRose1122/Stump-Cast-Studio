@@ -31,7 +31,18 @@ export const RawUpdateSchema = z.object({
     venue: z.string().optional(),
     toss: z.string().optional(),
     teams: z
-      .array(z.object({ name: z.string(), short: z.string().optional() }))
+      .array(
+        z.object({
+          name: z.string(),
+          short: z.string().optional(),
+          /**
+           * The crest the page itself shows. The app never guesses where a team's logo lives:
+           * whatever the operator is already watching carries it, and the first sighting of a new
+           * team is what files its crest in the asset store.
+           */
+          logoUrl: z.string().url().optional(),
+        }),
+      )
       .max(2)
       .default([]),
     innings: z
@@ -54,6 +65,8 @@ export const RawUpdateSchema = z.object({
           fours: z.number().int().min(0).optional(),
           sixes: z.number().int().min(0).optional(),
           onStrike: z.boolean().optional(),
+          /** Photo shown on the page, same idea as a team crest. */
+          imageUrl: z.string().url().optional(),
         }),
       )
       .default([]),
@@ -65,6 +78,7 @@ export const RawUpdateSchema = z.object({
         maidens: z.number().int().min(0),
         runs: z.number().int().min(0),
         wkts: z.number().int().min(0).max(10),
+        imageUrl: z.string().url().optional(),
       })
       .optional(),
     thisOver: z.array(z.string()).default([]),

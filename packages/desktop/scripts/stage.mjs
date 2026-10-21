@@ -53,9 +53,12 @@ cpSync(path.join(packages, 'admin', 'dist'), path.join(stage, 'packages', 'admin
 if (existsSync(path.join(packages, 'license-admin', 'dist'))) {
   cpSync(path.join(packages, 'license-admin', 'dist'), path.join(stage, 'packages', 'license-admin', 'dist'), { recursive: true });
 }
+// The signing halves stay on the seller's machine. Copying `.secrets` into the installer handed
+// every customer the private keys for licences and selector bundles, which is the whole paid
+// model handed back to them. The customer's own secrets (Gemini key) live in the encrypted store
+// under the data directory, which this does not touch.
 if (existsSync(path.join(packages, '..', '.secrets'))) {
-  cpSync(path.join(packages, '..', '.secrets'), path.join(stage, '.secrets'), { recursive: true });
-  cpSync(path.join(packages, '..', '.secrets'), path.join(stage, 'packages', '.secrets'), { recursive: true });
+  console.log('stage: leaving .secrets out of the package (licence/selector signing is seller-side)');
 }
 
 const serverAssets = path.join(packages, 'server', 'data', 'assets');

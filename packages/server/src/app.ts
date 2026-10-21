@@ -17,6 +17,7 @@ import { z } from 'zod';
 import {
   SettingsSchema,
   createSettings,
+  DEFAULT_LOOK,
   CommentaryLanguageSchema,
   type CommentaryItem,
   type Settings,
@@ -27,6 +28,7 @@ import type { ServerConfig } from './config';
 import { openDatabase, schema } from './db';
 import { ExtensionAuth } from './ext/auth';
 import { AssetService } from './assets/AssetService';
+import { AutoAssets } from './assets/AutoAssets';
 import { registerSoundRoutes } from './sound/routes';
 import { SoundService } from './sound/SoundService';
 import { CommentaryService } from './sound/CommentaryService';
@@ -59,7 +61,7 @@ const SETTINGS_KEY = 'app';
 const GEMINI_KEY = 'gemini_api_key';
 const OPENAI_KEY = 'openai_api_key';
 const CRICKET_KEY = 'cricket_api_key';
-export const APP_VERSION = '1.0.5';
+export const APP_VERSION = '1.0.6';
 
 /** One engine tick waiting on the broadcast delay, with the commentary already written for it. */
 interface PendingRelease {
@@ -292,6 +294,10 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
 
   fastify.get('/api/app/update-download-file', async (_req, reply) => {
     const candidates = [
+      path.resolve(process.cwd(), 'release', 'StumpCast-Studio-Setup-1.0.6.exe'),
+      path.resolve(import.meta.dirname, '..', '..', '..', 'release', 'StumpCast-Studio-Setup-1.0.6.exe'),
+      'C:\\Users\\IK\\Downloads\\StumpCast Studio\\stumpcast\\release\\StumpCast-Studio-Setup-1.0.6.exe',
+      path.join(process.env.USERPROFILE || '', 'Downloads', 'StumpCast Studio', 'stumpcast', 'release', 'StumpCast-Studio-Setup-1.0.6.exe'),
       path.resolve(process.cwd(), 'release', 'StumpCast-Studio-Setup-1.0.5.exe'),
       path.resolve(import.meta.dirname, '..', '..', '..', 'release', 'StumpCast-Studio-Setup-1.0.5.exe'),
       'C:\\Users\\IK\\Downloads\\StumpCast Studio\\stumpcast\\release\\StumpCast-Studio-Setup-1.0.5.exe',
@@ -383,6 +389,11 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
 
   fastify.post('/api/app/update-install', async () => {
     const candidates = [
+      'C:\\Users\\IK\\AppData\\Roaming\\StumpCast Studio\\updates\\StumpCast-Studio-Setup-1.0.6.exe',
+      path.resolve(process.cwd(), 'release', 'StumpCast-Studio-Setup-1.0.6.exe'),
+      path.resolve(import.meta.dirname, '..', '..', '..', 'release', 'StumpCast-Studio-Setup-1.0.6.exe'),
+      'C:\\Users\\IK\\Downloads\\StumpCast Studio\\stumpcast\\release\\StumpCast-Studio-Setup-1.0.6.exe',
+      path.join(process.env.USERPROFILE || '', 'Downloads', 'StumpCast Studio', 'stumpcast', 'release', 'StumpCast-Studio-Setup-1.0.6.exe'),
       'C:\\Users\\IK\\AppData\\Roaming\\StumpCast Studio\\updates\\StumpCast-Studio-Setup-1.0.5.exe',
       path.resolve(process.cwd(), 'release', 'StumpCast-Studio-Setup-1.0.5.exe'),
       path.resolve(import.meta.dirname, '..', '..', '..', 'release', 'StumpCast-Studio-Setup-1.0.5.exe'),
@@ -556,7 +567,8 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
   for (const s of engine.restore(db)) published.set(s.id, s);
 
   extension.onUpdate((u) => {
-    engine.process(u);
+    const state = engine.process(u);
+    if (state) autoAssets.consider(u, state);
     // First real match seen becomes the on-air one, unless the operator already chose. Nothing is
     // ever purged by match id: a scraped Cricbuzz number is a real match, not demo data.
     const s = loadSettings();
@@ -689,6 +701,16 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
   // ---- assets (B8) ------------------------------------------------------------------
   const assets = new AssetService(db, config.dataDir);
   assets.syncFromDisk();
+  // A scraped page already shows the crest; the first time a side or batter appears on air its
+  // image is copied into the library, so the next broadcast of that team needs nothing from anyone.
+  const autoAssets = new AutoAssets(assets, {
+    enabled: () => loadSettings().assets.autoFetch,
+    onAdded: (kind, id) => {
+      hub.broadcast('cards', 'asset', { action: 'asset-updated', id, kind });
+      fastify.log.info(`auto ${kind} image stored: ${id}`);
+    },
+    onError: (id, err) => fastify.log.warn({ err }, `auto image could not be stored: ${id}`),
+  });
   await registerAssetRoutes(fastify, {
     assets,
     hub,
@@ -728,6 +750,20 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
   };
   const looks = new LookService(db, isLicensed);
   const activeLookId = () => loadSettings().theme;
+  /**
+   * A channel that stops paying must not keep the paid look it bought: drop back to the free
+   * default. Without this, removing a licence changed nothing the viewer ever saw on air.
+   */
+  const enforceLookLicence = () => {
+    const s = loadSettings();
+    if (isLicensed()) return;
+    const current = looks.get(s.theme);
+    if (!current || current.plan !== 'pro') return;
+    const free = looks.get(DEFAULT_LOOK.id);
+    if (!free) return;
+    saveSettings({ ...s, theme: free.id });
+    hub.broadcast('layout', 'look', free);
+  };
   const lookFail = (reply: FastifyReply, err: unknown) => {
     if (err instanceof LookError) return reply.code(err.status).send({ error: err.message });
     throw err;
@@ -760,6 +796,12 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
   })();
 
   fastify.post('/api/licence/generate', async (req, reply) => {
+    // Issuing keys is the seller's job and happens on the seller's machine
+    // (`scripts/licence-keygen.bat`). Left open here, any customer who happened to have a private
+    // key on disk could mint themselves a paid licence, so signing has to be asked for on purpose.
+    if (process.env.STUMPCAST_LICENCE_SIGNING !== '1') {
+      return reply.code(404).send({ error: 'Licence signing is not available on this server' });
+    }
     if (!privateKeyHex) {
       return reply.code(503).send({ error: 'Licence private key not found on server' });
     }
@@ -827,7 +869,8 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
   fastify.delete('/api/licence', async () => {
     db.delete(schema.licence).run();
     hub.broadcast('licence', 'updated', { licensed: config.licensed, token: null });
-    return { ok: true, licensed: config.licensed };
+    enforceLookLicence();
+    return { ok: true, licensed: isLicensed() };
   });
 
   // ---- looks routes ----
@@ -912,6 +955,12 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
   };
 
   registerObsRoutes(fastify, { obs, getSettings: loadSettings, saveSettings });
+
+  // Once the app is ready, not during setup: a studio that is no longer licensed drops its saved
+  // Pro look back to the free default, so a lapsed key cannot leave the paid graphics on air.
+  fastify.addHook('onReady', async () => {
+    enforceLookLicence();
+  });
 
   fastify.post<{ Params: { id: string } }>('/api/cards/:id/show', async (req, reply) => {
     const id = CardSlugSchema.safeParse(req.params.id);

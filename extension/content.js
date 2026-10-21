@@ -4958,7 +4958,7 @@
   var ink_gold_default = {
     id: "ink-gold",
     name: "Ink & Gold",
-    plan: "pro",
+    plan: "free",
     tokens: {
       colors: {
         bg: "#0A0A0C",
@@ -6515,6 +6515,14 @@
         wicket: external_exports.string().nullable().default(null),
         milestone: external_exports.string().nullable().default(null)
       }).default({})
+    }).default({}),
+    assets: external_exports.object({
+      /**
+       * Keep a local copy of the crest/photo the live page shows for a team or player the studio
+       * has never seen. On by default because it is the only way a new side gets a logo without
+       * the operator uploading one; off if a channel would rather approve every image by hand.
+       */
+      autoFetch: external_exports.boolean().default(true)
     }).default({})
   });
 
@@ -6582,7 +6590,18 @@
       status: external_exports.string().optional(),
       venue: external_exports.string().optional(),
       toss: external_exports.string().optional(),
-      teams: external_exports.array(external_exports.object({ name: external_exports.string(), short: external_exports.string().optional() })).max(2).default([]),
+      teams: external_exports.array(
+        external_exports.object({
+          name: external_exports.string(),
+          short: external_exports.string().optional(),
+          /**
+           * The crest the page itself shows. The app never guesses where a team's logo lives:
+           * whatever the operator is already watching carries it, and the first sighting of a new
+           * team is what files its crest in the asset store.
+           */
+          logoUrl: external_exports.string().url().optional()
+        })
+      ).max(2).default([]),
       innings: external_exports.array(
         external_exports.object({
           team: external_exports.string(),
@@ -6597,7 +6616,9 @@
           balls: external_exports.number().int().min(0),
           fours: external_exports.number().int().min(0).optional(),
           sixes: external_exports.number().int().min(0).optional(),
-          onStrike: external_exports.boolean().optional()
+          onStrike: external_exports.boolean().optional(),
+          /** Photo shown on the page, same idea as a team crest. */
+          imageUrl: external_exports.string().url().optional()
         })
       ).default([]),
       bowler: external_exports.object({
@@ -6606,7 +6627,8 @@
         balls: external_exports.number().int().min(0).max(5).default(0),
         maidens: external_exports.number().int().min(0),
         runs: external_exports.number().int().min(0),
-        wkts: external_exports.number().int().min(0).max(10)
+        wkts: external_exports.number().int().min(0).max(10),
+        imageUrl: external_exports.string().url().optional()
       }).optional(),
       thisOver: external_exports.array(external_exports.string()).default([]),
       lastBalls: external_exports.array(external_exports.string()).default([]),
@@ -7202,6 +7224,16 @@
     "bowler.wkts",
     "thisOver",
     "lastBalls",
+    /**
+     * Pictures the page already shows. Each is read with `attr: 'src'`, and the server files the
+     * first one it sees for a team or player into the asset store — that is how a new team's crest
+     * and a new batter's photo appear on air without anyone uploading them.
+     */
+    "team1.logo",
+    "team2.logo",
+    "batter1.photo",
+    "batter2.photo",
+    "bowler.photo",
     "partnership",
     "target",
     "crr",
@@ -7507,6 +7539,10 @@
       if (ok) passed.add(k);
     };
     const text = (k) => raw[k];
+    const picture = (k) => {
+      const v = text(k)?.trim();
+      return v && /^https?:\/\/\S+$/i.test(v) ? v : void 0;
+    };
     const dayStatus = parseDayStatus(text("status"));
     const day = parseInteger(text("day")) ?? dayStatus?.day;
     const isTest = day !== void 0;
@@ -7646,6 +7682,8 @@
         sixes: parseInteger(text(`batter${n}.sixes`))
       };
       if (name.onStrike) b.onStrike = true;
+      const photo = picture(`batter${n}.photo`);
+      if (photo) b.imageUrl = photo;
       batters.push(b);
     }
     let bowler;
@@ -7666,6 +7704,8 @@
         for (const k of ["bowler.name", "bowler.overs", "bowler.runs", "bowler.wkts"]) {
           pass(k, true);
         }
+        const photo = picture("bowler.photo");
+        if (photo) bowler.imageUrl = photo;
       }
     }
     const thisOver = parseBallTokens(text("thisOver"));
@@ -7684,7 +7724,11 @@
     pass("session", Boolean(text("session") ?? dayStatus?.session));
     pass("resultText", Boolean(text("resultText") ?? dayStatus?.resultText));
     pass("commentaryLast", Boolean(text("commentaryLast")));
-    const teams = (site === "crex" ? [cleanTeam(text("team1")), cleanTeam(text("team2"))] : [team1Name, team2Name]).filter((t) => Boolean(t)).map((name) => ({ name }));
+    const teamNames = site === "crex" ? [cleanTeam(text("team1")), cleanTeam(text("team2"))] : [team1Name, team2Name];
+    const teamLogos = [picture("team1.logo"), picture("team2.logo")];
+    const teams = teamNames.map(
+      (name, i) => name ? { name, ...teamLogos[i] ? { logoUrl: teamLogos[i] } : {} } : null
+    ).filter((t) => t !== null);
     const scrapedFormat = FORMATS.find((x) => x === text("format")?.trim().toUpperCase());
     pass("format", scrapedFormat !== void 0);
     const fields = {
@@ -7804,61 +7848,152 @@
     jsonTaps: [],
     dom: {
       title: {
-        selectors: ["h1", ".match-info h1", "title", ".header-title", '[class*="matchTitle"]', '[class*="headerTitle"]']
+        selectors: [
+          "h1",
+          ".match-info h1",
+          "title",
+          ".header-title",
+          '[class*="matchTitle"]',
+          '[class*="headerTitle"]'
+        ]
       },
       status: {
-        selectors: [".match-status", ".live-status", ".match-note", ".status-text", '[class*="matchStatus"]', '[class*="liveStatus"]']
+        selectors: [
+          ".match-status",
+          ".live-status",
+          ".match-note",
+          ".status-text",
+          '[class*="matchStatus"]',
+          '[class*="liveStatus"]'
+        ]
       },
       venue: {
-        selectors: [".venue-name", ".match-venue", '[class*="venue"]']
+        selectors: [
+          ".venue-name",
+          ".match-venue",
+          '[class*="venue"]'
+        ]
       },
       team1: {
-        selectors: [".team-name:first-child", ".team-1-name", '[class*="teamName"]:first-child', '[class*="team-name"]:first-child']
+        selectors: [
+          ".team-name:first-child",
+          ".team-1-name",
+          '[class*="teamName"]:first-child',
+          '[class*="team-name"]:first-child'
+        ]
       },
       team2: {
-        selectors: [".team-name:last-child", ".team-2-name", '[class*="teamName"]:last-child', '[class*="team-name"]:last-child']
+        selectors: [
+          ".team-name:last-child",
+          ".team-2-name",
+          '[class*="teamName"]:last-child',
+          '[class*="team-name"]:last-child'
+        ]
       },
       score: {
-        selectors: [".live-score", ".team-score", ".score-wrap", ".score", '[class*="liveScore"]', '[class*="teamScore"]', '[class*="score"]']
+        selectors: [
+          ".live-score",
+          ".team-score",
+          ".score-wrap",
+          ".score",
+          '[class*="liveScore"]',
+          '[class*="teamScore"]',
+          '[class*="score"]'
+        ]
       },
       overs: {
-        selectors: [".overs", ".live-overs", ".overs-wrap", '[class*="liveOvers"]', '[class*="overs"]']
+        selectors: [
+          ".overs",
+          ".live-overs",
+          ".overs-wrap",
+          '[class*="liveOvers"]',
+          '[class*="overs"]'
+        ]
       },
       "batter1.name": {
-        selectors: [".batter-name", ".batsman:first-child .name"]
+        selectors: [
+          ".batter-name",
+          ".batsman:first-child .name"
+        ]
       },
       "batter1.runs": {
-        selectors: [".batter-runs", ".batsman:first-child .runs"]
+        selectors: [
+          ".batter-runs",
+          ".batsman:first-child .runs"
+        ]
       },
       "batter1.balls": {
-        selectors: [".batter-balls", ".batsman:first-child .balls"]
+        selectors: [
+          ".batter-balls",
+          ".batsman:first-child .balls"
+        ]
       },
       "batter2.name": {
-        selectors: [".batsman:nth-child(2) .name"]
+        selectors: [
+          ".batsman:nth-child(2) .name"
+        ]
       },
       "batter2.runs": {
-        selectors: [".batsman:nth-child(2) .runs"]
+        selectors: [
+          ".batsman:nth-child(2) .runs"
+        ]
       },
       "batter2.balls": {
-        selectors: [".batsman:nth-child(2) .balls"]
+        selectors: [
+          ".batsman:nth-child(2) .balls"
+        ]
       },
       "bowler.name": {
-        selectors: [".bowler-name", ".bowler .name"]
+        selectors: [
+          ".bowler-name",
+          ".bowler .name"
+        ]
       },
       "bowler.overs": {
-        selectors: [".bowler-overs", ".bowler .overs"]
+        selectors: [
+          ".bowler-overs",
+          ".bowler .overs"
+        ]
       },
       "bowler.runs": {
-        selectors: [".bowler-runs", ".bowler .runs"]
+        selectors: [
+          ".bowler-runs",
+          ".bowler .runs"
+        ]
       },
       "bowler.wkts": {
-        selectors: [".bowler-wkts", ".bowler .wickets"]
+        selectors: [
+          ".bowler-wkts",
+          ".bowler .wickets"
+        ]
       },
       thisOver: {
-        selectors: [".recent-balls", ".this-over", ".overs-balls"]
+        selectors: [
+          ".recent-balls",
+          ".this-over",
+          ".overs-balls"
+        ]
+      },
+      "team1.logo": {
+        selectors: [
+          ".team1 .team-logo img",
+          '[class*="team1"] img[class*="team-head"]',
+          "img.team-head-img"
+        ],
+        attr: "src"
+      },
+      "team2.logo": {
+        selectors: [
+          ".team2 .team-logo img",
+          '[class*="team2"] img[class*="team-head"]'
+        ],
+        attr: "src"
       }
     },
-    minConfidenceFields: ["score", "overs"]
+    minConfidenceFields: [
+      "score",
+      "overs"
+    ]
   };
 
   // src/adapters/crex.ts

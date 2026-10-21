@@ -41,6 +41,16 @@ export const FIELD_KEYS = [
   'bowler.wkts',
   'thisOver',
   'lastBalls',
+  /**
+   * Pictures the page already shows. Each is read with `attr: 'src'`, and the server files the
+   * first one it sees for a team or player into the asset store — that is how a new team's crest
+   * and a new batter's photo appear on air without anyone uploading them.
+   */
+  'team1.logo',
+  'team2.logo',
+  'batter1.photo',
+  'batter2.photo',
+  'bowler.photo',
   'partnership',
   'target',
   'crr',

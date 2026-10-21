@@ -4958,7 +4958,7 @@
   var ink_gold_default = {
     id: "ink-gold",
     name: "Ink & Gold",
-    plan: "pro",
+    plan: "free",
     tokens: {
       colors: {
         bg: "#0A0A0C",
@@ -6515,6 +6515,14 @@
         wicket: external_exports.string().nullable().default(null),
         milestone: external_exports.string().nullable().default(null)
       }).default({})
+    }).default({}),
+    assets: external_exports.object({
+      /**
+       * Keep a local copy of the crest/photo the live page shows for a team or player the studio
+       * has never seen. On by default because it is the only way a new side gets a logo without
+       * the operator uploading one; off if a channel would rather approve every image by hand.
+       */
+      autoFetch: external_exports.boolean().default(true)
     }).default({})
   });
 
@@ -6582,7 +6590,18 @@
       status: external_exports.string().optional(),
       venue: external_exports.string().optional(),
       toss: external_exports.string().optional(),
-      teams: external_exports.array(external_exports.object({ name: external_exports.string(), short: external_exports.string().optional() })).max(2).default([]),
+      teams: external_exports.array(
+        external_exports.object({
+          name: external_exports.string(),
+          short: external_exports.string().optional(),
+          /**
+           * The crest the page itself shows. The app never guesses where a team's logo lives:
+           * whatever the operator is already watching carries it, and the first sighting of a new
+           * team is what files its crest in the asset store.
+           */
+          logoUrl: external_exports.string().url().optional()
+        })
+      ).max(2).default([]),
       innings: external_exports.array(
         external_exports.object({
           team: external_exports.string(),
@@ -6597,7 +6616,9 @@
           balls: external_exports.number().int().min(0),
           fours: external_exports.number().int().min(0).optional(),
           sixes: external_exports.number().int().min(0).optional(),
-          onStrike: external_exports.boolean().optional()
+          onStrike: external_exports.boolean().optional(),
+          /** Photo shown on the page, same idea as a team crest. */
+          imageUrl: external_exports.string().url().optional()
         })
       ).default([]),
       bowler: external_exports.object({
@@ -6606,7 +6627,8 @@
         balls: external_exports.number().int().min(0).max(5).default(0),
         maidens: external_exports.number().int().min(0),
         runs: external_exports.number().int().min(0),
-        wkts: external_exports.number().int().min(0).max(10)
+        wkts: external_exports.number().int().min(0).max(10),
+        imageUrl: external_exports.string().url().optional()
       }).optional(),
       thisOver: external_exports.array(external_exports.string()).default([]),
       lastBalls: external_exports.array(external_exports.string()).default([]),
@@ -7258,6 +7280,16 @@
     "bowler.wkts",
     "thisOver",
     "lastBalls",
+    /**
+     * Pictures the page already shows. Each is read with `attr: 'src'`, and the server files the
+     * first one it sees for a team or player into the asset store — that is how a new team's crest
+     * and a new batter's photo appear on air without anyone uploading them.
+     */
+    "team1.logo",
+    "team2.logo",
+    "batter1.photo",
+    "batter2.photo",
+    "bowler.photo",
     "partnership",
     "target",
     "crr",

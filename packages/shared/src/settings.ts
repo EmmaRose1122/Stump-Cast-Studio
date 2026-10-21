@@ -120,6 +120,16 @@ export const SettingsSchema = z.object({
         .default({}),
     })
     .default({}),
+  assets: z
+    .object({
+      /**
+       * Keep a local copy of the crest/photo the live page shows for a team or player the studio
+       * has never seen. On by default because it is the only way a new side gets a logo without
+       * the operator uploading one; off if a channel would rather approve every image by hand.
+       */
+      autoFetch: z.boolean().default(true),
+    })
+    .default({}),
 });
 export type Settings = z.infer<typeof SettingsSchema>;
 
