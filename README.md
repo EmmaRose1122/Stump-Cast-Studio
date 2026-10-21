@@ -37,10 +37,10 @@ You do **NOT** need to make your desktop app source code public. Here is the pro
 
 1. **Upload Release Files to GitHub Releases:**
    - In your `stumpcast-website` (or app) repository on GitHub, click on **"Releases"** -> **"Draft a new release"**.
-   - **Tag:** `v1.0.5`
-   - **Title:** `StumpCast Studio v1.0.5`
+   - **Tag:** `v1.0.6`
+   - **Title:** `StumpCast Studio v1.0.6`
    - **Attach files:** Drag & drop:
-     1. `release\StumpCast-Studio-Setup-1.0.5.exe`
+     1. `release\StumpCast-Studio-Setup-1.0.6.exe`
      2. `release\latest.yml`
    - Click **"Publish release"**.
 
