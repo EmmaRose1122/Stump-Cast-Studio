@@ -61,7 +61,7 @@ const SETTINGS_KEY = 'app';
 const GEMINI_KEY = 'gemini_api_key';
 const OPENAI_KEY = 'openai_api_key';
 const CRICKET_KEY = 'cricket_api_key';
-export const APP_VERSION = '1.0.6';
+export const APP_VERSION = '1.0.7';
 
 /** One engine tick waiting on the broadcast delay, with the commentary already written for it. */
 interface PendingRelease {
@@ -294,6 +294,10 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
 
   fastify.get('/api/app/update-download-file', async (_req, reply) => {
     const candidates = [
+      path.resolve(process.cwd(), 'release', 'StumpCast-Studio-Setup-1.0.7.exe'),
+      path.resolve(import.meta.dirname, '..', '..', '..', 'release', 'StumpCast-Studio-Setup-1.0.7.exe'),
+      'C:\\Users\\IK\\Downloads\\StumpCast Studio\\stumpcast\\release\\StumpCast-Studio-Setup-1.0.7.exe',
+      path.join(process.env.USERPROFILE || '', 'Downloads', 'StumpCast Studio', 'stumpcast', 'release', 'StumpCast-Studio-Setup-1.0.7.exe'),
       path.resolve(process.cwd(), 'release', 'StumpCast-Studio-Setup-1.0.6.exe'),
       path.resolve(import.meta.dirname, '..', '..', '..', 'release', 'StumpCast-Studio-Setup-1.0.6.exe'),
       'C:\\Users\\IK\\Downloads\\StumpCast Studio\\stumpcast\\release\\StumpCast-Studio-Setup-1.0.6.exe',
@@ -367,7 +371,8 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
     };
 
     setTimeout(async () => {
-      for (let p = 15; p <= 100; p += 15) {
+      const steps = [15, 30, 50, 70, 85, 95, 100];
+      for (const p of steps) {
         await new Promise((r) => setTimeout(r, 120));
         serverDownloadProgress.percent = p;
         serverDownloadProgress.transferred = Math.round((p / 100) * serverDownloadProgress.total);
@@ -389,6 +394,11 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
 
   fastify.post('/api/app/update-install', async () => {
     const candidates = [
+      'C:\\Users\\IK\\AppData\\Roaming\\StumpCast Studio\\updates\\StumpCast-Studio-Setup-1.0.7.exe',
+      path.resolve(process.cwd(), 'release', 'StumpCast-Studio-Setup-1.0.7.exe'),
+      path.resolve(import.meta.dirname, '..', '..', '..', 'release', 'StumpCast-Studio-Setup-1.0.7.exe'),
+      'C:\\Users\\IK\\Downloads\\StumpCast Studio\\stumpcast\\release\\StumpCast-Studio-Setup-1.0.7.exe',
+      path.join(process.env.USERPROFILE || '', 'Downloads', 'StumpCast Studio', 'stumpcast', 'release', 'StumpCast-Studio-Setup-1.0.7.exe'),
       'C:\\Users\\IK\\AppData\\Roaming\\StumpCast Studio\\updates\\StumpCast-Studio-Setup-1.0.6.exe',
       path.resolve(process.cwd(), 'release', 'StumpCast-Studio-Setup-1.0.6.exe'),
       path.resolve(import.meta.dirname, '..', '..', '..', 'release', 'StumpCast-Studio-Setup-1.0.6.exe'),

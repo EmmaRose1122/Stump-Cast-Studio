@@ -68,16 +68,22 @@ if (existsSync(serverAssets)) {
   cpSync(serverAssets, path.join(stage, 'assets'), { recursive: true });
 }
 
+const server = readJson(path.join(packages, 'server', 'package.json'));
+const self = readJson(path.join(desktop, 'package.json'));
+const appVersion = process.env.STUMPCAST_VERSION ?? self.version;
+
 if (existsSync(path.join(desktop, 'build', 'splash.html'))) {
   mkdirSync(path.join(stage, 'packages', 'desktop', 'build'), { recursive: true });
-  cpSync(path.join(desktop, 'build', 'splash.html'), path.join(stage, 'packages', 'desktop', 'build', 'splash.html'));
+  let splashContent = readFileSync(path.join(desktop, 'build', 'splash.html'), 'utf8');
+  splashContent = splashContent.replace(/<div class="version"[^>]*>.*?<\/div>/, `<div class="version" id="appVersion">v${appVersion}</div>`);
+  writeFileSync(path.join(stage, 'packages', 'desktop', 'build', 'splash.html'), splashContent, 'utf8');
+  writeFileSync(path.join(stage, 'packages', 'desktop', 'splash.html'), splashContent, 'utf8');
+  writeFileSync(path.join(stage, 'splash.html'), splashContent, 'utf8');
 }
 if (existsSync(path.join(desktop, 'build', 'icons'))) {
   cpSync(path.join(desktop, 'build', 'icons'), path.join(stage, 'packages', 'desktop', 'build', 'icons'), { recursive: true });
 }
 
-const server = readJson(path.join(packages, 'server', 'package.json'));
-const self = readJson(path.join(desktop, 'package.json'));
 writeFileSync(
   path.join(stage, 'package.json'),
   JSON.stringify(

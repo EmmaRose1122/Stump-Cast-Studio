@@ -205,7 +205,20 @@ const createSplashWindow = (): void => {
 		webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true },
 		backgroundColor: '#060c16',
 	});
-	void splashWindow.loadFile(splashHtmlPath());
+	const appVersion = app.getVersion();
+	void splashWindow.loadFile(splashHtmlPath(), {
+		search: `v=${encodeURIComponent(appVersion)}`,
+	});
+	splashWindow.webContents.on('did-finish-load', () => {
+		if (!splashWindow || splashWindow.isDestroyed()) return;
+		const displayVer = `v${appVersion}`;
+		void splashWindow.webContents.executeJavaScript(
+			`(() => {
+				const el = document.getElementById('appVersion') || document.querySelector('.version');
+				if (el) el.textContent = ${JSON.stringify(displayVer)};
+			})()`,
+		).catch(() => {});
+	});
 	splashWindow.once('closed', () => { splashWindow = undefined; });
 };
 
@@ -562,6 +575,9 @@ ipcMain.handle('stumpcast:download-update', async (_event, downloadUrl?: string)
 
 		// Local / Simulation fallback: copy or simulate transfer
 		const localCandidates = [
+			path.join(workspaceRoot, 'release', 'StumpCast-Studio-Setup-1.0.7.exe'),
+			'C:\\Users\\IK\\Downloads\\StumpCast Studio\\stumpcast\\release\\StumpCast-Studio-Setup-1.0.7.exe',
+			path.join(process.env.USERPROFILE || '', 'Downloads', 'StumpCast Studio', 'stumpcast', 'release', 'StumpCast-Studio-Setup-1.0.7.exe'),
 			path.join(workspaceRoot, 'release', 'StumpCast-Studio-Setup-1.0.6.exe'),
 			'C:\\Users\\IK\\Downloads\\StumpCast Studio\\stumpcast\\release\\StumpCast-Studio-Setup-1.0.6.exe',
 			path.join(process.env.USERPROFILE || '', 'Downloads', 'StumpCast Studio', 'stumpcast', 'release', 'StumpCast-Studio-Setup-1.0.6.exe'),
@@ -583,9 +599,10 @@ ipcMain.handle('stumpcast:download-update', async (_event, downloadUrl?: string)
 		const existingExe = localCandidates.find((f) => fs.existsSync(f));
 		const totalSize = existingExe ? fs.statSync(existingExe).size : 129_412_818;
 
-		for (let pct = 15; pct <= 100; pct += 15) {
+		const pcts = [15, 30, 50, 70, 85, 95, 100];
+		for (const pct of pcts) {
 			if (activeDownloadAbort.signal.aborted) throw new Error('Download cancelled');
-			await new Promise((r) => setTimeout(r, 150));
+			await new Promise((r) => setTimeout(r, 140));
 			sendProgress({
 				percent: pct,
 				transferred: Math.round((pct / 100) * totalSize),
@@ -602,6 +619,14 @@ ipcMain.handle('stumpcast:download-update', async (_event, downloadUrl?: string)
 			fs.writeFileSync(destPath, 'StumpCast Studio update package binary');
 			cachedDownloadedInstaller = destPath;
 		}
+
+		sendProgress({
+			percent: 100,
+			transferred: totalSize,
+			total: totalSize,
+			bytesPerSecond: 0,
+			status: 'ready',
+		});
 
 		return { success: true, filePath: destPath };
 	} catch (err: unknown) {
@@ -638,6 +663,9 @@ ipcMain.handle('stumpcast:install-update', () => {
 	}
 	if (!installerToRun || !fs.existsSync(installerToRun)) {
 		const candidates = [
+			path.join(workspaceRoot, 'release', 'StumpCast-Studio-Setup-1.0.7.exe'),
+			'C:\\Users\\IK\\Downloads\\StumpCast Studio\\stumpcast\\release\\StumpCast-Studio-Setup-1.0.7.exe',
+			path.join(process.env.USERPROFILE || '', 'Downloads', 'StumpCast Studio', 'stumpcast', 'release', 'StumpCast-Studio-Setup-1.0.7.exe'),
 			path.join(workspaceRoot, 'release', 'StumpCast-Studio-Setup-1.0.6.exe'),
 			'C:\\Users\\IK\\Downloads\\StumpCast Studio\\stumpcast\\release\\StumpCast-Studio-Setup-1.0.6.exe',
 			path.join(workspaceRoot, 'release', 'StumpCast-Studio-Setup-1.0.5.exe'),

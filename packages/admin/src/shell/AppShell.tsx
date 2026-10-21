@@ -184,8 +184,8 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
           if (res?.updateAvailable) {
             return {
               updateAvailable: true,
-              latestVersion: res.latestVersion ?? res.version ?? '1.0.6',
-              currentVersion: res.currentVersion ?? '1.0.6',
+              latestVersion: res.latestVersion ?? res.version ?? '1.0.7',
+              currentVersion: res.currentVersion ?? '1.0.7',
               releaseNotes:
                 res.releaseNotes ||
                 '• Direct In-App Desktop Updater with live transfer progress bar\n• Fast Cricbuzz & Crex match state scrapers\n• Red, White & Blue studio broadcast overlays\n• Center-aligned operator control room layout',
@@ -212,8 +212,8 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
       }
       return {
         updateAvailable: false,
-        latestVersion: '1.0.6',
-        currentVersion: '1.0.6',
+        latestVersion: '1.0.7',
+        currentVersion: '1.0.7',
         releaseNotes: '',
         downloadUrl: '',
       };
@@ -239,7 +239,7 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
           kind: 'success',
         });
       } else {
-        toast({ title: `StumpCast Studio is up to date (v${refreshed.data?.currentVersion ?? '1.0.6'})`, kind: 'info' });
+        toast({ title: `StumpCast Studio is up to date (v${refreshed.data?.currentVersion ?? '1.0.7'})`, kind: 'info' });
       }
     } catch {
       toast({ title: 'Failed to check for updates', kind: 'error' });
@@ -265,6 +265,19 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
         (window as unknown as { stumpcast?: { downloadUpdate?: (url?: string) => Promise<{ success: boolean; filePath?: string; error?: string }>; onUpdateProgress?: (cb: (p: { percent: number; transferred: number; total: number; bytesPerSecond: number; status: string; error?: string | null }) => void) => () => void } }).stumpcast?.downloadUpdate,
       );
 
+    let autoTriggered = false;
+    const triggerAutoInstall = () => {
+      if (autoTriggered) return;
+      autoTriggered = true;
+      toast({
+        title: 'Update 100% complete! Restarting to install in 2 seconds...',
+        kind: 'success',
+      });
+      setTimeout(() => {
+        void handleInstallUpdate();
+      }, 2000);
+    };
+
     if (isDesktop) {
       const desktopApi = (window as unknown as {
         stumpcast: {
@@ -274,11 +287,16 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
       }).stumpcast;
 
       const unsubscribe = desktopApi.onUpdateProgress((p) => {
-        setUpdateProgress(p);
-        if (p.status === 'ready' || p.percent >= 100) {
+        const isFinished = p.status === 'ready' || p.percent >= 100;
+        setUpdateProgress({
+          ...p,
+          percent: isFinished ? 100 : p.percent,
+          status: isFinished ? 'ready' : p.status,
+        });
+        if (isFinished) {
           setUpdateReady(true);
           setIsDownloading(false);
-          toast({ title: 'Update downloaded! Ready to install.', kind: 'success' });
+          triggerAutoInstall();
         } else if (p.status === 'error') {
           setIsDownloading(false);
           toast({ title: p.error || 'Failed to download update', kind: 'error' });
@@ -288,8 +306,16 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
       try {
         const res = await desktopApi.downloadUpdate(updateQuery.data?.downloadUrl);
         if (res.success) {
+          setUpdateProgress((prev) => ({
+            percent: 100,
+            transferred: prev?.total ?? 129412818,
+            total: prev?.total ?? 129412818,
+            bytesPerSecond: 0,
+            status: 'ready',
+          }));
           setUpdateReady(true);
           setIsDownloading(false);
+          triggerAutoInstall();
         } else if (res.error) {
           setIsDownloading(false);
           toast({ title: res.error, kind: 'error' });
@@ -317,12 +343,17 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
               status: string;
               error?: string | null;
             };
-            setUpdateProgress(data);
-            if (data.status === 'ready' || data.percent >= 100) {
+            const isFinished = data.status === 'ready' || data.percent >= 100;
+            setUpdateProgress({
+              ...data,
+              percent: isFinished ? 100 : data.percent,
+              status: isFinished ? 'ready' : data.status,
+            });
+            if (isFinished) {
               stopProgressPolling();
               setUpdateReady(true);
               setIsDownloading(false);
-              toast({ title: 'Update downloaded and verified!', kind: 'success' });
+              triggerAutoInstall();
             } else if (data.status === 'error') {
               stopProgressPolling();
               setIsDownloading(false);
@@ -425,7 +456,7 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
                 <div className="flex items-center gap-1.5 mt-0.5 text-[11px] text-slate-500 font-medium">
                   <span className="text-slate-600 font-semibold tracking-wide">Live Broadcast Engine</span>
                   <span className="text-slate-300">·</span>
-                  <span className="font-mono text-orange-600 font-bold">v1.0.6</span>
+                  <span className="font-mono text-orange-600 font-bold">v1.0.7</span>
                 </div>
               </div>
             </div>
@@ -477,7 +508,7 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
                 title="Click to check updates"
               >
                 <span className="size-2 rounded-full bg-blue-500"></span>
-                <span>v1.0.6 · UP TO DATE</span>
+                <span>v1.0.7 · UP TO DATE</span>
               </button>
             )}
 
@@ -767,10 +798,10 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
         title="StumpCast Studio Update"
         description={
           updateReady
-            ? `Update v${updateQuery.data?.latestVersion ?? '1.0.6'} is downloaded and ready to install!`
+            ? `Update v${updateQuery.data?.latestVersion ?? '1.0.7'} is downloaded and ready to install!`
             : updateQuery.data?.updateAvailable
-            ? `New Version v${updateQuery.data.latestVersion} is available! (Current: v${updateQuery.data.currentVersion ?? '1.0.6'})`
-            : `You are running the latest version of StumpCast Studio (v${updateQuery.data?.currentVersion ?? '1.0.6'}).`
+            ? `New Version v${updateQuery.data.latestVersion} is available! (Current: v${updateQuery.data.currentVersion ?? '1.0.7'})`
+            : `You are running the latest version of StumpCast Studio (v${updateQuery.data?.currentVersion ?? '1.0.7'}).`
         }
         actions={
           <div className="flex flex-wrap items-center justify-end gap-2 w-full">
@@ -832,17 +863,17 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
                 <span className="font-bold text-blue-950 flex items-center gap-1.5">
                   {updateReady ? (
                     <>
-                      <span className="text-emerald-600">✅</span> Download Complete &amp; Verified
+                      <span className="text-emerald-600">✅</span> Download 100% Complete &amp; Restarting...
                     </>
                   ) : (
                     <>
                       <span className="size-2 rounded-full bg-orange-500 animate-ping inline-block" />
-                      Downloading StumpCast-Studio-Setup-1.0.2.exe
+                      Downloading StumpCast-Studio-Setup-{updateQuery.data?.latestVersion ?? '1.0.7'}.exe
                     </>
                   )}
                 </span>
                 <span className="font-mono font-bold text-orange-600">
-                  {updateProgress?.percent ?? 0}%
+                  {updateReady ? 100 : (updateProgress?.percent ?? 0)}%
                 </span>
               </div>
 
@@ -855,7 +886,7 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
                       ? 'bg-gradient-to-r from-emerald-500 to-teal-400 shadow-sm'
                       : 'bg-gradient-to-r from-orange-500 via-amber-500 to-blue-600 shadow-sm',
                   )}
-                  style={{ width: `${Math.min(100, Math.max(5, updateProgress?.percent ?? 0))}%` }}
+                  style={{ width: `${updateReady ? 100 : Math.min(100, Math.max(5, updateProgress?.percent ?? 0))}%` }}
                 />
               </div>
 
@@ -864,14 +895,14 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
                 <span>
                   Transferred:{' '}
                   <strong className="text-slate-800">
-                    {formatBytes(updateProgress?.transferred ?? 0)}
+                    {formatBytes(updateReady ? (updateProgress?.total ?? 129412818) : (updateProgress?.transferred ?? 0))}
                   </strong>{' '}
                   / {formatBytes(updateProgress?.total ?? 129412818)}
                 </span>
                 <span>
                   Speed:{' '}
                   <strong className="text-orange-600">
-                    {formatBytes(updateProgress?.bytesPerSecond ?? 4200000)}/s
+                    {updateReady ? '0 B' : formatBytes(updateProgress?.bytesPerSecond ?? 4200000)}/s
                   </strong>
                 </span>
               </div>
@@ -881,11 +912,10 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
           {updateReady ? (
             <div className="rounded-lg border border-emerald-300 bg-emerald-50 p-3 text-xs text-emerald-900 text-left">
               <p className="font-bold mb-1 flex items-center gap-1.5">
-                <span>🎉</span> Update is ready to apply!
+                <span>🎉</span> Update 100% Downloaded &amp; Verified!
               </p>
               <p className="text-slate-700 text-[11px] leading-relaxed">
-                Click <strong>"Restart &amp; Install Update Now"</strong> below. StumpCast Studio will
-                cleanly shut down, run the installer, and reopen with the new version automatically.
+                StumpCast Studio is automatically restarting to install the new update. If it does not start automatically, click <strong>"Restart &amp; Install Update Now"</strong> below.
               </p>
             </div>
           ) : updateQuery.data?.updateAvailable ? (

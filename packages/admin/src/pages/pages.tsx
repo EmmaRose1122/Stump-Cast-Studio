@@ -270,7 +270,7 @@ export const SettingsPage = () => {
                     void qc.invalidateQueries({ queryKey: ['app-update'] });
                   } else {
                     toast({
-                      title: `StumpCast Studio is running the latest version (v${data.currentVersion ?? '1.0.6'})`,
+                      title: `StumpCast Studio is running the latest version (v${data.currentVersion ?? '1.0.7'})`,
                       kind: 'info',
                     });
                   }
