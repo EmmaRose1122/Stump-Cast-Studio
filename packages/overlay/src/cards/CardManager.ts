@@ -55,6 +55,7 @@ export class CardManager {
   private timer: unknown = null;
   private match: MatchState | undefined;
   private look: Look;
+  private layoutObserver: MutationObserver | undefined;
   private readonly setTimer: (fn: () => void, ms: number) => unknown;
   private readonly clearTimer: (id: unknown) => void;
 
@@ -73,6 +74,29 @@ export class CardManager {
       v.mount(zone, look);
       this.views.set(def.id, v);
     }
+    this.watchLayout();
+  }
+
+  /**
+   * Follows the stage's `data-layout` so cards resize themselves when the operator switches
+   * layouts: arena cards fit the video window, fullscreen cards use the whole canvas.
+   */
+  private watchLayout(): void {
+    const stage = this.zone.closest('#stage');
+    if (!stage || typeof MutationObserver === 'undefined') return;
+    this.applyLayout(stage.getAttribute('data-layout') ?? '');
+    this.layoutObserver = new MutationObserver(() => {
+      this.applyLayout(stage.getAttribute('data-layout') ?? '');
+    });
+    this.layoutObserver.observe(stage, { attributes: true, attributeFilter: ['data-layout'] });
+  }
+
+  private applyLayout(layout: string): void {
+    // Card content is authored against the arena video window; other layouts have more room,
+    // so the same card is drawn slightly larger there. The CSS still owns position.
+    const scale =
+      layout === 'fullscreen' ? 1.15 : layout === 'arena' ? 1 : layout === 'ticker' ? 0.85 : 1;
+    this.zone.style.setProperty('--layout-card-scale', String(scale));
   }
 
   get activeId(): string | null {
@@ -100,6 +124,7 @@ export class CardManager {
       this.clearHideTimer();
       this.onAir?.hide();
       this.onAir = null;
+      this.zone.removeAttribute('data-on-air');
       return;
     }
     const next = this.views.get(active.cardId);
@@ -114,6 +139,7 @@ export class CardManager {
     if (this.match) next.update(this.match);
     next.setLook(this.look);
     next.show();
+    this.zone.dataset.onAir = active.cardId;
 
     if (next.def.needsHistory && this.match && this.opts.fetchHistory) {
       const id = this.match.id;
@@ -135,6 +161,7 @@ export class CardManager {
           if (this.onAir === next) {
             next.hide();
             this.onAir = null;
+            this.zone.removeAttribute('data-on-air');
           }
         },
         active.durationSec * 1000 + SAFETY_MS,
@@ -150,6 +177,7 @@ export class CardManager {
   }
 
   destroy(): void {
+    this.layoutObserver?.disconnect();
     this.clearHideTimer();
     for (const v of this.views.values()) v.destroy();
     this.views.clear();

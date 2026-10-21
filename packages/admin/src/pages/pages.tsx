@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import type { Settings } from '@stumpcast/shared';
 import clsx from 'clsx';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -66,21 +67,24 @@ export const SettingsPage = () => {
   // These sliders used to PUT the whole settings document on every input event: a one-second
   // drag fired dozens of concurrent saves, the last response won, and the handle snapped back.
   const savedNumbers = useRef<Record<string, number>>({});
-  const commitDelay = () => {
-    if (!s || savedNumbers.current.delay === delay) return;
-    savedNumbers.current.delay = delay;
-    save.mutate({ ...s, syncDelaySec: delay });
+  // The marker is written before the request so a drag cannot queue the same save twice, and
+  // dropped again if the save fails: otherwise a value that never reached the server is treated
+  // as already saved and the slider can never retry it.
+  const commitNumber = (key: string, value: number, patch: Partial<Settings>) => {
+    if (!s || savedNumbers.current[key] === value) return;
+    savedNumbers.current[key] = value;
+    save.mutate(
+      { ...s, ...patch },
+      {
+        onError: () => {
+          if (savedNumbers.current[key] === value) delete savedNumbers.current[key];
+        },
+      },
+    );
   };
-  const commitCardScale = () => {
-    if (!s || savedNumbers.current.cardScale === cardScale) return;
-    savedNumbers.current.cardScale = cardScale;
-    save.mutate({ ...s, cardScale });
-  };
-  const commitSideScale = () => {
-    if (!s || savedNumbers.current.sideCardScale === sideCardScale) return;
-    savedNumbers.current.sideCardScale = sideCardScale;
-    save.mutate({ ...s, sideCardScale });
-  };
+  const commitDelay = () => commitNumber('delay', delay, { syncDelaySec: delay });
+  const commitCardScale = () => commitNumber('cardScale', cardScale, { cardScale });
+  const commitSideScale = () => commitNumber('sideCardScale', sideCardScale, { sideCardScale });
 
   const selectorsStatus = useQuery({
     queryKey: ['selectorsStatus'],
@@ -189,7 +193,7 @@ export const SettingsPage = () => {
                 toast({ title: 'Checking release server for updates...', kind: 'info' });
                 try {
                   const res = await fetch('/api/app/update-check');
-                  const data = (await res.json()) as { updateAvailable?: boolean; latestVersion?: string };
+                  const data = (await res.json()) as { updateAvailable?: boolean; latestVersion?: string; currentVersion?: string };
                   if (data.updateAvailable) {
                     toast({
                       title: `New version v${data.latestVersion} available! Click update badge in top header.`,
@@ -198,7 +202,7 @@ export const SettingsPage = () => {
                     void qc.invalidateQueries({ queryKey: ['app-update'] });
                   } else {
                     toast({
-                      title: 'StumpCast Studio is running the latest version (v1.0.2)',
+                      title: `StumpCast Studio is running the latest version (v${data.currentVersion ?? '1.0.4'})`,
                       kind: 'info',
                     });
                   }

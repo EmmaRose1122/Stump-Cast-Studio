@@ -1,5 +1,44 @@
 import { describe, expect, it, vi } from 'vitest';
-import { OverlayCommentary } from './commentary';
+import { OverlayCommentary, type AudioPlayerLike } from './commentary';
+
+/** A stand-in for HTMLAudioElement whose outcome the test decides. */
+interface FakePlayer extends AudioPlayerLike {
+  url: string;
+  plays: number;
+  pauses: number;
+  /** A real element resolves play() when audio actually starts; `false` models one that never does. */
+  starts: boolean;
+}
+
+const fakePlayer = (url: string, into: FakePlayer[], starts = true): FakePlayer => {
+  const p: FakePlayer = {
+    url,
+    volume: 1,
+    playbackRate: 1,
+    plays: 0,
+    pauses: 0,
+    starts,
+    play: () => {
+      p.plays++;
+      return starts ? Promise.resolve() : new Promise<void>(() => {});
+    },
+    pause: () => {
+      p.pauses++;
+    },
+    onended: null,
+    onerror: null,
+  };
+  into.push(p);
+  return p;
+};
+
+/** A browser speech engine that records what it was asked to read. */
+const browserEngine = (spoken: string[]) =>
+  ({
+    speak: (u: { text: string }) => spoken.push(u.text),
+    cancel: () => undefined,
+    getVoices: () => [],
+  }) as unknown as SpeechSynthesis;
 
 describe('OverlayCommentary', () => {
   it('enables and disables commentary cleanly', () => {
@@ -30,12 +69,162 @@ describe('OverlayCommentary', () => {
     expect(spokenUtterances).toContain('Babar Azam strikes FOUR!');
   });
 
+  it('reads each line with a voice that speaks its script', () => {
+    const chosen: { voice?: unknown; lang?: string }[] = [];
+    const voices = [
+      { lang: 'en-US', name: 'Zira', default: true },
+      { lang: 'hi-IN', name: 'Kalpana', default: false },
+      { lang: 'ur-PK', name: 'Asif', default: false },
+    ] as unknown as SpeechSynthesisVoice[];
+    const synth = {
+      speak: (u: { voice?: unknown; lang?: string; onend?: () => void }) => {
+        chosen.push({ voice: u.voice, lang: u.lang });
+        u.onend?.(); // finish the utterance so the next queued line is spoken
+      },
+      cancel: () => undefined,
+      getVoices: () => voices,
+    } as unknown as SpeechSynthesis;
+    const oc = new OverlayCommentary({
+      getSpeechSynthesis: () => synth,
+      createUtterance: (text: string) => ({ text, rate: 1, pitch: 1, volume: 1 }),
+    });
+
+    oc.handle({ text: 'छक्का! बाबर का शानदार शॉट।', lang: 'hi' });
+    expect((chosen[0]!.voice as { lang: string }).lang).toBe('hi-IN');
+    oc.handle({ text: 'چھکا! بابراعظم کا شاندار شاٹ۔', lang: 'ur' });
+    expect((chosen[1]!.voice as { lang: string }).lang).toBe('ur-PK');
+    oc.handle({ text: 'A lovely drive for four.', lang: 'en' });
+    expect((chosen[2]!.voice as { lang: string }).lang).toBe('en-US');
+  });
+
   it('sets rate, pitch, and volume within bounds', () => {
     const oc = new OverlayCommentary();
     oc.setRate(1.5);
     oc.setPitch(1.2);
     oc.setVolume(0.7);
     expect(true).toBe(true);
+  });
+
+  describe('server-rendered voice', () => {
+    it('asks the server for the line audio and never touches the browser speech engine', () => {
+      const spoken: string[] = [];
+      const asked: string[] = [];
+      const players: FakePlayer[] = [];
+      const oc = new OverlayCommentary({
+        audioBase: 'http://localhost:4321',
+        createAudio: (url) => {
+          asked.push(url);
+          return fakePlayer(url, players);
+        },
+        getSpeechSynthesis: () => browserEngine(spoken),
+      });
+
+      oc.handle({ id: 'c1', text: 'چھکا!', lang: 'ur' });
+      expect(asked).toEqual(['http://localhost:4321/api/commentary/audio/c1']);
+      expect(players[0]!.plays).toBe(1);
+      expect(spoken).toEqual([]); // OBS has no speech engine of its own; the audio carries the line
+    });
+
+    it('falls back to the browser when the server has no voice for the line', async () => {
+      const spoken: string[] = [];
+      const players: FakePlayer[] = [];
+      const oc = new OverlayCommentary({
+        audioBase: 'http://localhost:4321',
+        createAudio: (url) => fakePlayer(url, players),
+        getSpeechSynthesis: () => browserEngine(spoken),
+      });
+
+      oc.handle({ id: 'c1', text: 'چھکا!', lang: 'ur' });
+      await Promise.resolve();
+      players[0]!.onerror?.();
+      await Promise.resolve();
+      expect(spoken).toEqual(['چھکا!']);
+    });
+
+    it('gives up on a silent server and lets the browser speak', async () => {
+      const spoken: string[] = [];
+      const players: FakePlayer[] = [];
+      const timers: { fn: () => void }[] = [];
+      const oc = new OverlayCommentary({
+        audioBase: 'http://localhost:4321',
+        createAudio: (url) => fakePlayer(url, players, false),
+        getSpeechSynthesis: () => browserEngine(spoken),
+        setTimer: (fn) => {
+          timers.push({ fn });
+          return timers.length;
+        },
+        clearTimer: () => undefined,
+      });
+
+      oc.handle({ id: 'c1', text: 'Hello', lang: 'en' });
+      await Promise.resolve();
+      expect(players[0]!.plays).toBe(1);
+      timers[0]!.fn(); // the server never answered
+      await Promise.resolve();
+      expect(players[0]!.pauses).toBe(1);
+      expect(spoken).toEqual(['Hello']);
+    });
+
+    it('does not cut a rendered line short once it has started playing', async () => {
+      const players: FakePlayer[] = [];
+      const timers: { fn: () => void }[] = [];
+      const oc = new OverlayCommentary({
+        audioBase: 'http://localhost:4321',
+        createAudio: (url) => fakePlayer(url, players),
+        setTimer: (fn) => {
+          timers.push({ fn });
+          return timers.length;
+        },
+        clearTimer: () => timers.splice(0, timers.length),
+      });
+
+      oc.handle({ id: 'c1', text: 'A long line', lang: 'en' });
+      await Promise.resolve();
+      expect(timers).toHaveLength(0); // play() resolved, so the deadline was stood down
+      expect(players[0]!.pauses).toBe(0);
+    });
+
+    it('silences the rendered line when commentary is switched off mid-playback', () => {
+      const players: FakePlayer[] = [];
+      const oc = new OverlayCommentary({
+        audioBase: 'http://localhost:4321',
+        createAudio: (url) => fakePlayer(url, players),
+      });
+
+      oc.handle({ id: 'c1', text: 'Hello', lang: 'en' });
+      oc.stop();
+      expect(players[0]!.pauses).toBe(1);
+    });
+
+    it('applies the operator volume and speed to the server audio', () => {
+      const players: FakePlayer[] = [];
+      const oc = new OverlayCommentary({
+        audioBase: 'http://localhost:4321',
+        createAudio: (url) => fakePlayer(url, players),
+      });
+      oc.setVolume(0.4);
+      oc.setRate(1.3);
+      oc.handle({ id: 'c1', text: 'Hello', lang: 'en' });
+      expect(players[0]!.volume).toBeCloseTo(0.4);
+      expect(players[0]!.playbackRate).toBeCloseTo(1.3);
+    });
+
+    it('does not ask for audio for a line the server never tagged', () => {
+      const asked: string[] = [];
+      const players: FakePlayer[] = [];
+      const spoken: string[] = [];
+      const oc = new OverlayCommentary({
+        audioBase: 'http://localhost:4321',
+        createAudio: (url) => {
+          asked.push(url);
+          return fakePlayer(url, players);
+        },
+        getSpeechSynthesis: () => browserEngine(spoken),
+      });
+      oc.handle({ text: 'no id here', lang: 'en' });
+      expect(asked).toEqual([]);
+      expect(spoken).toEqual(['no id here']);
+    });
   });
 
   describe('queue hygiene', () => {

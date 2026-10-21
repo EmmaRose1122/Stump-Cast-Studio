@@ -44,6 +44,31 @@ export const BowlerSchema = z.object({
 });
 export type Bowler = z.infer<typeof BowlerSchema>;
 
+/** Best batting figures seen anywhere in a match, accumulated from the snapshots. */
+export const BattingFigureSchema = z.object({
+  playerId: z.string().min(1),
+  name: z.string().min(1),
+  runs: z.number().int().min(0),
+  balls: z.number().int().min(0),
+  fours: z.number().int().min(0),
+  sixes: z.number().int().min(0),
+  innings: z.number().int().min(1),
+});
+export type BattingFigure = z.infer<typeof BattingFigureSchema>;
+
+/** Best bowling figures seen anywhere in a match, accumulated from the snapshots. */
+export const BowlingFigureSchema = z.object({
+  playerId: z.string().min(1),
+  name: z.string().min(1),
+  overs: z.number().int().min(0),
+  balls: z.number().int().min(0).max(5),
+  maidens: z.number().int().min(0),
+  runs: z.number().int().min(0),
+  wkts: z.number().int().min(0).max(10),
+  innings: z.number().int().min(1),
+});
+export type BowlingFigure = z.infer<typeof BowlingFigureSchema>;
+
 export const TossSchema = z.object({
   winnerTeamId: z.string().min(1),
   decision: z.enum(['bat', 'bowl']),
@@ -97,6 +122,12 @@ export const MatchStateSchema = z.object({
     .object({ fours: z.number().int().min(0), sixes: z.number().int().min(0) })
     .optional(),
   ballsObserved: z.number().int().min(0).optional(),
+  /**
+   * The feed only publishes the pair at the crease and the bowler running in, so these are the
+   * best figures seen anywhere in the match. Absent when the snapshots carried no player rows.
+   */
+  topBatters: z.array(BattingFigureSchema).optional(),
+  topBowlers: z.array(BowlingFigureSchema).optional(),
   /** Overs per innings when it differs from the format default (e.g. a 10-over match). */
   oversLimit: z.number().int().positive().optional(),
   day: z.number().int().min(1).max(5).optional(),

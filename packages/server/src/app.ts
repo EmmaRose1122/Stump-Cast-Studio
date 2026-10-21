@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import child_process from 'node:child_process';
 import fastifyStatic from '@fastify/static';
 import fastifyWebsocket from '@fastify/websocket';
 import { desc, eq } from 'drizzle-orm';
@@ -16,6 +17,7 @@ import { z } from 'zod';
 import {
   SettingsSchema,
   createSettings,
+  CommentaryLanguageSchema,
   type CommentaryItem,
   type Settings,
   type EngineEvent,
@@ -28,6 +30,8 @@ import { AssetService } from './assets/AssetService';
 import { registerSoundRoutes } from './sound/routes';
 import { SoundService } from './sound/SoundService';
 import { CommentaryService } from './sound/CommentaryService';
+import { CommentaryTts } from './sound/tts';
+import { GeminiCommentator } from './ai/gemini';
 import { registerAssetRoutes } from './assets/routes';
 import { DelayBuffer } from './engine/DelayBuffer';
 import { Director } from './engine/Director';
@@ -47,11 +51,13 @@ import { registerExtRoutes, SAMPLE_MATCH_UPDATE } from './ext/routes';
 import { SelectorService } from './ext/selectors';
 import { OBSLink } from './obs/OBSLink';
 import { registerObsRoutes } from './obs/routes';
-import { WsHub } from './ws/hub';
+import { WsHub, type Audience } from './ws/hub';
 import { signLicenceToken, verifyLicenceToken, type LicencePayload } from './licence/licence';
 
 const SETTINGS_KEY = 'app';
-export const APP_VERSION = '1.0.3';
+/** SecretStore name for the Gemini key used by AI commentary (and, later, image generation). */
+const GEMINI_KEY = 'gemini_api_key';
+export const APP_VERSION = '1.0.4';
 
 /** One engine tick waiting on the broadcast delay, with the commentary already written for it. */
 interface PendingRelease {
@@ -173,7 +179,27 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
     let updateAvailable = false;
     let downloadUrl = '';
 
-    // Check local release/latest.yml first
+    // Helper: returns true if candidate version is strictly newer than current
+    const isNewerThan = (current: string, candidate: string) => {
+      const [cMaj = 0, cMin = 0, cPat = 0] = current.split('.').map(Number);
+      const [nMaj = 0, nMin = 0, nPat = 0] = candidate.split('.').map(Number);
+      return nMaj > cMaj || (nMaj === cMaj && nMin > cMin) || (nMaj === cMaj && nMin === cMin && nPat > cPat);
+    };
+
+    // Simulate block runs FIRST so it always wins
+    if (query?.simulate === '1' || simulatedUpdate || process.env.STUMPCAST_UPDATE_SIMULATE === '1') {
+      return {
+        currentVersion: APP_VERSION,
+        latestVersion: '1.0.4',
+        updateAvailable: true,
+        releaseNotes:
+          '• Direct In-App Desktop Updater with live transfer progress bar\n• Ultra-fast Cricbuzz & Crex match state scrapers\n• White, Royal Blue & Cricket Orange studio broadcast look\n• Responsive operator control room layout\n• Automatic background installer updates',
+        downloadUrl: '/api/app/update-download-file',
+        fileSize: 140364848,
+      };
+    }
+
+    // Step 1: Check local release/latest.yml — only apply if strictly newer than APP_VERSION
     const latestYmlCandidates = [
       path.resolve(process.cwd(), 'release', 'latest.yml'),
       path.resolve(import.meta.dirname, '..', '..', '..', 'release', 'latest.yml'),
@@ -188,18 +214,12 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
         const verMatch = content.match(/version:\s*([0-9.]+)/i);
         if (verMatch && verMatch[1]) {
           const fileVer = verMatch[1].trim();
-          latestVersion = fileVer;
-          downloadUrl = '/api/app/update-download-file';
-          releaseNotes =
-            '• Complete White, Royal Blue & Cricket Orange broadcast design\n• Ultra-fast Cricbuzz & Crex match state scrapers\n• Fixed button contrast & responsive broadcast layout\n• Direct in-app update installer to version ' + fileVer;
-          const [curMajor = 0, curMinor = 0, curPatch = 0] = APP_VERSION.split('.').map(Number);
-          const [latMajor = 0, latMinor = 0, latPatch = 0] = fileVer.split('.').map(Number);
-          if (
-            latMajor > curMajor ||
-            (latMajor === curMajor && latMinor > curMinor) ||
-            (latMajor === curMajor && latMinor === curMinor && latPatch > curPatch)
-          ) {
+          if (isNewerThan(APP_VERSION, fileVer)) {
+            latestVersion = fileVer;
             updateAvailable = true;
+            downloadUrl = '/api/app/update-download-file';
+            releaseNotes =
+              '• Complete White, Royal Blue & Cricket Orange broadcast design\n• Ultra-fast Cricbuzz & Crex match state scrapers\n• Fixed button contrast & responsive broadcast layout\n• Direct in-app update installer to version ' + fileVer;
           }
         }
       } catch {
@@ -207,17 +227,7 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
       }
     }
 
-    if (query?.simulate === '1' || simulatedUpdate || process.env.STUMPCAST_UPDATE_SIMULATE === '1') {
-      return {
-        currentVersion: APP_VERSION,
-        latestVersion: '1.0.3',
-        updateAvailable: true,
-        releaseNotes:
-          '• Direct In-App Desktop Updater with live transfer progress bar\n• Ultra-fast Cricbuzz & Crex match state scrapers\n• White, Royal Blue & Cricket Orange studio broadcast look\n• Responsive operator control room layout\n• Automatic background installer updates',
-        downloadUrl: '/api/app/update-download-file',
-        fileSize: 140364848,
-      };
-    }
+    // Step 2: Check GitHub — only override if GitHub has something NEWER than what we already found
 
     try {
       const checkUrl =
@@ -234,28 +244,34 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
           tag_name?: string;
           body?: string;
           html_url?: string;
-          assets?: Array<{ browser_download_url?: string }>;
+          assets?: Array<{ name?: string; browser_download_url?: string }>;
           latestVersion?: string;
           updateAvailable?: boolean;
           releaseNotes?: string;
         };
+        const findExeAsset = (assets?: Array<{ name?: string; browser_download_url?: string }>) =>
+          assets?.find(
+            (a) =>
+              a.browser_download_url?.toLowerCase().endsWith('.exe') ||
+              a.name?.toLowerCase().endsWith('.exe'),
+          )?.browser_download_url;
+
         if (data.latestVersion) {
-          latestVersion = data.latestVersion;
-          releaseNotes = data.releaseNotes ?? '';
-          updateAvailable = Boolean(data.updateAvailable);
-          downloadUrl = data.assets?.[0]?.browser_download_url ?? '/api/app/update-download-file';
+          // Custom update server: only apply if newer than our current best
+          if (isNewerThan(latestVersion, data.latestVersion)) {
+            latestVersion = data.latestVersion;
+            releaseNotes = data.releaseNotes ?? '';
+            updateAvailable = Boolean(data.updateAvailable);
+            downloadUrl = findExeAsset(data.assets) ?? '/api/app/update-download-file';
+          }
         } else if (data.tag_name) {
-          latestVersion = data.tag_name.replace(/^v/, '');
-          releaseNotes = data.body ?? '';
-          downloadUrl = data.assets?.[0]?.browser_download_url ?? data.html_url ?? '/api/app/update-download-file';
-          const [curMajor = 0, curMinor = 0, curPatch = 0] = APP_VERSION.split('.').map(Number);
-          const [latMajor = 0, latMinor = 0, latPatch = 0] = latestVersion.split('.').map(Number);
-          if (
-            latMajor > curMajor ||
-            (latMajor === curMajor && latMinor > curMinor) ||
-            (latMajor === curMajor && latMinor === curMinor && latPatch > curPatch)
-          ) {
-            updateAvailable = true;
+          const ghVer = data.tag_name.replace(/^v/, '');
+          // Only apply GitHub version if it is strictly newer than our current best candidate
+          if (isNewerThan(latestVersion, ghVer)) {
+            latestVersion = ghVer;
+            releaseNotes = data.body ?? '';
+            downloadUrl = findExeAsset(data.assets) ?? '/api/app/update-download-file';
+            updateAvailable = isNewerThan(APP_VERSION, ghVer);
           }
         }
       }
@@ -274,6 +290,10 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
 
   fastify.get('/api/app/update-download-file', async (_req, reply) => {
     const candidates = [
+      path.resolve(process.cwd(), 'release', 'StumpCast-Studio-Setup-1.0.4.exe'),
+      path.resolve(import.meta.dirname, '..', '..', '..', 'release', 'StumpCast-Studio-Setup-1.0.4.exe'),
+      'C:\\Users\\IK\\Downloads\\StumpCast Studio\\stumpcast\\release\\StumpCast-Studio-Setup-1.0.4.exe',
+      path.join(process.env.USERPROFILE || '', 'Downloads', 'StumpCast Studio', 'stumpcast', 'release', 'StumpCast-Studio-Setup-1.0.4.exe'),
       path.resolve(process.cwd(), 'release', 'StumpCast-Studio-Setup-1.0.3.exe'),
       path.resolve(import.meta.dirname, '..', '..', '..', 'release', 'StumpCast-Studio-Setup-1.0.3.exe'),
       'C:\\Users\\IK\\Downloads\\StumpCast Studio\\stumpcast\\release\\StumpCast-Studio-Setup-1.0.3.exe',
@@ -317,7 +337,7 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
     return {
       simulated: simulatedUpdate,
       currentVersion: APP_VERSION,
-      latestVersion: simulatedUpdate ? '1.0.3' : APP_VERSION,
+      latestVersion: simulatedUpdate ? '1.0.4' : APP_VERSION,
     };
   });
 
@@ -356,6 +376,27 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
   });
 
   fastify.post('/api/app/update-install', async () => {
+    const candidates = [
+      'C:\\Users\\IK\\AppData\\Roaming\\StumpCast Studio\\updates\\StumpCast-Studio-Setup-1.0.4.exe',
+      path.resolve(process.cwd(), 'release', 'StumpCast-Studio-Setup-1.0.4.exe'),
+      path.resolve(import.meta.dirname, '..', '..', '..', 'release', 'StumpCast-Studio-Setup-1.0.4.exe'),
+      'C:\\Users\\IK\\Downloads\\StumpCast Studio\\stumpcast\\release\\StumpCast-Studio-Setup-1.0.4.exe',
+      path.join(process.env.USERPROFILE || '', 'Downloads', 'StumpCast Studio', 'stumpcast', 'release', 'StumpCast-Studio-Setup-1.0.4.exe'),
+      'C:\\Users\\IK\\AppData\\Roaming\\StumpCast Studio\\updates\\StumpCast-Studio-Setup-1.0.3.exe',
+      path.resolve(process.cwd(), 'release', 'StumpCast-Studio-Setup-1.0.3.exe'),
+      path.resolve(import.meta.dirname, '..', '..', '..', 'release', 'StumpCast-Studio-Setup-1.0.3.exe'),
+      'C:\\Users\\IK\\Downloads\\StumpCast Studio\\stumpcast\\release\\StumpCast-Studio-Setup-1.0.3.exe',
+      path.join(process.env.USERPROFILE || '', 'Downloads', 'StumpCast Studio', 'stumpcast', 'release', 'StumpCast-Studio-Setup-1.0.3.exe'),
+    ];
+    const target = candidates.find((f) => fs.existsSync(f) && fs.statSync(f).size > 10_000_000);
+    if (target) {
+      try {
+        const child = child_process.spawn(target, [], { detached: true, stdio: 'ignore' });
+        child.unref();
+      } catch (err) {
+        console.error('Failed to launch installer from server:', err);
+      }
+    }
     return {
       status: 'installing',
       message: 'Installer launched. Application restarting...',
@@ -429,6 +470,23 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
   } = {};
 
   const commentary = new CommentaryService();
+  /** Updates are narrated one at a time, in arrival order. */
+  let commentaryQueue: Promise<void> = Promise.resolve();
+
+  const secrets = new SecretStore({ dataDir: path.join(config.dataDir, 'secrets') });
+  // The audio is made here rather than in the overlay: an OBS browser source has no speech
+  // engine, so captions were all it could ever show.
+  const tts = new CommentaryTts({
+    getApiKey: () => secrets.getSecret(GEMINI_KEY) ?? process.env.GEMINI_API_KEY ?? null,
+    cacheDir: config.dataDir,
+    voice: () => commentary.getConfig().voice,
+  });
+  /** Every line that goes out is remembered, so the overlay can ask for its audio by id. */
+  const say = (item: CommentaryItem, scope: Audience = 'preview'): CommentaryItem => {
+    tts.register(item.id, item.text, item.lang ?? commentary.getConfig().language);
+    hub.broadcast('commentary', 'speak', item, scope);
+    return item;
+  };
 
   const delay = new DelayBuffer<PendingRelease>(({ state: s, events, spoken, ball }) => {
     published.set(s.id, s);
@@ -440,9 +498,9 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
       director.onEvent(e);
       sound.auto?.autoFor(e.type, loadSettings().sounds.auto);
       const comm = spoken[i];
-      if (comm) hub.broadcast('commentary', 'speak', comm, 'live');
+      if (comm) say(comm, 'live');
     });
-    if (ball) hub.broadcast('commentary', 'speak', ball, 'live');
+    if (ball) say(ball, 'live');
   }, loadSettings().syncDelaySec);
 
   const engine = new MatchEngine({
@@ -451,20 +509,35 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
       const events = detector.observe(s);
       // The admin preview socket sees everything immediately; overlays get the delayed feed.
       hub.broadcast('state', 'match-state', s, 'preview');
-      // Written once per event and carried through the delay, so preview and the on-stream
-      // feed speak the same line instead of the operator hearing everything twice.
-      const spoken = events.map((e) => {
-        hub.broadcast('events', 'engine-event', e, 'preview');
-        const item = commentary.onEvent(e, s);
-        if (item) hub.broadcast('commentary', 'speak', item, 'preview');
-        return item;
-      });
-      // Between the big moments the voice keeps describing deliveries instead of falling silent.
-      const ball = spoken.some((i) => i !== null) ? null : commentary.onBall(s);
-      if (ball) hub.broadcast('commentary', 'speak', ball, 'preview');
-      delay.push({ state: s, events, spoken, ball });
+      for (const e of events) hub.broadcast('events', 'engine-event', e, 'preview');
+      // Commentary is written one update at a time, in order, so a slow model can never reorder
+      // the narration. Each call carries its own timeout and the service drops the model when it
+      // falls behind, so the broadcast never waits on a network round trip.
+      commentaryQueue = commentaryQueue
+        .then(async () => {
+          // The operator may delete the match while its line is still being written. Anything
+          // pushed after that would put the deleted match back on air at release.
+          const alive = () => Boolean(engine.getState(s.id));
+          const spoken: (CommentaryItem | null)[] = [];
+          for (const e of events) {
+            const item = await commentary.onEventAsync(e, s);
+            if (item && alive()) say(item);
+            spoken.push(item);
+          }
+          // Between the big moments the voice keeps describing deliveries instead of falling silent.
+          const ball = spoken.some((i) => i !== null) ? null : await commentary.onBallAsync(s);
+          if (ball && alive()) say(ball);
+          if (!alive()) return;
+          delay.push({ state: s, events, spoken, ball });
+        })
+        .catch((err: unknown) => console.error('commentary pipeline failed', err));
     },
   });
+
+  // A restart must not blank the stream: every match's last score comes back from the stored
+  // snapshots, with the stats those snapshots accumulated, and is what /api/state serves until the
+  // feed delivers something newer.
+  for (const s of engine.restore(db)) published.set(s.id, s);
 
   extension.onUpdate((u) => {
     engine.process(u);
@@ -484,14 +557,21 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
   // Optional backup source: operator-scored matches share the same engine and overlay pipeline.
   const manual = new ManualProvider(sqlite, Date.now, {
     // An undone ball must not still be sitting in the broadcast-delay queue.
-    onRewind: (matchId) => delay.discard(({ state }) => state.id === matchId),
+    onRewind: (matchId) => {
+      delay.discard(({ state }) => state.id === matchId);
+      // The same ball can be scored again, and an event id already remembered would silence it.
+      detector.forget(matchId);
+    },
   });
   manual.onUpdate((u) => engine.process(u));
   registerManualRoutes(fastify, manual, (id) => purgeMatch(id));
   manual.republishAll();
 
   // API provider (backup official data API source)
-  const secrets = new SecretStore({ dataDir: path.join(config.dataDir, 'secrets') });
+  const gemini = new GeminiCommentator({
+    getApiKey: () => secrets.getSecret(GEMINI_KEY) ?? process.env.GEMINI_API_KEY ?? null,
+  });
+  commentary.setGenerator((req) => gemini.line(req), () => Boolean(secrets.getSecret(GEMINI_KEY)));
   const apiVendor = new CricketDataApiVendor();
   const api = new ApiProvider({
     vendorAdapter: apiVendor,
@@ -504,7 +584,9 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
   });
 
   fastify.get<{ Querystring: { matchId?: string; limit?: string } }>('/api/events', async (req) => {
-    const limit = Math.min(Number(req.query.limit ?? 50) || 50, 500);
+    // A negative LIMIT means "no limit" to SQLite, so an operator typo dumped the whole table.
+    const asked = Math.floor(Number(req.query.limit ?? 50));
+    const limit = Math.min(Number.isFinite(asked) && asked > 0 ? asked : 50, 500);
     const rows = db.select().from(schema.events).orderBy(desc(schema.events.at)).limit(limit).all();
     return req.query.matchId ? rows.filter((r) => r.matchId === req.query.matchId) : rows;
   });
@@ -544,6 +626,7 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
    */
   function purgeMatch(id: string): void {
     delay.discard(({ state }) => state.id === id);
+    detector.forget(id);
     engine.deleteMatch(id);
     extension.deleteMatch(id);
     manual.delete(id);
@@ -967,6 +1050,8 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
   fastify.get('/api/commentary/status', async () => ({
     config: commentary.getConfig(),
     history: commentary.getHistory(),
+    ai: { enabled: commentary.getConfig().ai, active: commentary.aiActive, hasKey: Boolean(secrets.getSecret(GEMINI_KEY)) },
+    tts: { engine: await tts.engine(commentary.getConfig().language) },
   }));
   fastify.post('/api/commentary/config', async (req, reply) => {
     const body = z
@@ -974,6 +1059,8 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
         enabled: z.boolean().optional(),
         autoEvents: z.boolean().optional(),
         voice: z.string().optional(),
+        language: CommentaryLanguageSchema.optional(),
+        ai: z.boolean().optional(),
         rate: z.number().min(0.5).max(2).optional(),
         pitch: z.number().min(0.5).max(2).optional(),
         volume: z.number().min(0).max(1).optional(),
@@ -981,6 +1068,17 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
       .safeParse(req.body);
     if (!body.success) return reply.code(400).send({ error: 'Invalid commentary config' });
     return commentary.updateConfig(body.data);
+  });
+  // The Gemini key lives in the encrypted SecretStore, never in the settings row.
+  fastify.post('/api/commentary/key', async (req, reply) => {
+    const body = z.object({ key: z.string().min(8).max(256) }).safeParse(req.body);
+    if (!body.success) return reply.code(400).send({ error: 'A Gemini API key is required' });
+    secrets.setSecret(GEMINI_KEY, body.data.key.trim());
+    return { ok: true, hasKey: true };
+  });
+  fastify.delete('/api/commentary/key', async () => {
+    secrets.deleteSecret(GEMINI_KEY);
+    return { ok: true, hasKey: false };
   });
   fastify.post('/api/commentary/speak', async (req, reply) => {
     const body = z
@@ -990,9 +1088,20 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
       })
       .safeParse(req.body);
     if (!body.success) return reply.code(400).send({ error: 'Text is required (max 500 chars)' });
-    const item = commentary.speak(body.data.text, body.data.eventType);
-    hub.broadcast('commentary', 'speak', item);
-    return item;
+    // The operator asked for this line out loud, so it goes to every audience at once — it is not
+    // part of the delayed match feed and must not wait for it.
+    return say(commentary.speak(body.data.text, body.data.eventType), 'all');
+  });
+  // The overlay asks for a line's audio by id. First ask pays for the synthesis, the rest are
+  // served from the cache; a 404 means this machine has no voice and the overlay stays silent
+  // rather than pretending to speak.
+  fastify.get<{ Params: { id: string } }>('/api/commentary/audio/:id', async (req, reply) => {
+    const wav = await tts.wav(req.params.id);
+    if (!wav) return reply.code(404).send({ error: 'No voice for this line' });
+    return reply
+      .header('content-type', 'audio/wav')
+      .header('cache-control', 'public, max-age=86400')
+      .send(wav);
   });
 
   const selectors = new SelectorService({ dataDir: config.dataDir });

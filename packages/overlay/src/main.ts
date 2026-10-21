@@ -384,7 +384,8 @@ if (params.fixture) {
 }
 
 const proto = location.protocol === 'https:' ? 'wss' : 'ws';
-const commentary = new OverlayCommentary();
+// Same origin as the overlay page, which is what the API proxy and the packaged app both serve.
+const commentary = new OverlayCommentary({ audioBase: location.origin });
 
 const client = new OverlayWsClient({
   url: `${proto}://${location.host}/ws${params.preview ? '?preview=1' : ''}`,

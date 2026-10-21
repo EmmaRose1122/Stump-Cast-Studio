@@ -178,6 +178,38 @@ describe('rawToBaseState', () => {
       rawToBaseState(raw({ status: 'Match starts at 7pm' }), '2026-01-01T00:00:00.000Z').status,
     ).toBe('pre');
   });
+
+  it('keeps an adapter-invented 0-0 out of the live column', () => {
+    const s = rawToBaseState(
+      raw({
+        status: 'Match starts at 1:30 PM',
+        innings: [inn('Pakistan', 0, 0, 0)],
+        preMatch: true,
+      }),
+      '2026-01-01T00:00:00.000Z',
+    );
+    expect(s.status).toBe('pre');
+    expect(s.score.runs).toBe(0);
+  });
+
+  it('matches an innings to its team by identity, not by the order the names arrived in', () => {
+    // The header lists the fixture order ("England" first), the innings rows use short codes and
+    // start with whoever batted first — positional pairing silently mislabels the scores.
+    const s = rawToBaseState(
+      raw({
+        title: 'England vs Pakistan, 2nd Match',
+        teams: [{ name: 'England' }, { name: 'Pakistan' }],
+        innings: [inn('PAK', 302, 9, 50), inn('ENG', 197, 6, 35, 0)],
+      }),
+      '2026-01-01T00:00:00.000Z',
+    );
+    expect(s.innings.map((i) => [i.battingTeamId, i.score.runs])).toEqual([
+      ['team-pak', 302],
+      ['team-eng', 197],
+    ]);
+    expect(s.battingTeamId).toBe('team-eng');
+    expect(s.target).toBeUndefined();
+  });
 });
 
 describe('MatchEngine', () => {
@@ -292,6 +324,27 @@ describe('MatchEngine', () => {
     ]);
   });
 
+  it('caps runs a token implies, so a fat no-ball cannot throw the schema', () => {
+    // A manual no-ball of 6 bat runs plus 10 extras is a legal command but a "16nb" token, and
+    // 15 runs off the bat is not representable: the ball part is capped and the rest stays extra
+    // so the delivery still totals what the operator scored.
+    expect(tokensToBalls(['16nb', '99w1'], 3, 'a-1', 'b-1')).toMatchObject([
+      { runs: 7, extras: { type: 'noball', runs: 9 } },
+      { runs: 7, wicket: { playerOutId: 'a-1' } },
+    ]);
+    expect(() => tokensToBalls(['16nb'], 3, 'a-1', 'b-1')).not.toThrow();
+  });
+
+  it('keeps both facts of a wicket glued to the runs scored off it', () => {
+    // Cricbuzz writes the ball that dismissed Atkinson as "W1" — out, single completed. Reading it
+    // as a number lost the wicket and showed a dot ball on air.
+    expect(tokensToBalls(['W', 'W1', '4W'], 8, 'a-1', 'b-1')).toMatchObject([
+      { runs: 0, wicket: { playerOutId: 'a-1' } },
+      { runs: 1, wicket: { playerOutId: 'a-1' } },
+      { runs: 4, wicket: { playerOutId: 'a-1' } },
+    ]);
+  });
+
   it('does not double count a finished over that the feed keeps displaying', () => {
     const e = new MatchEngine();
     const six = ['1', '.', '1', '.', '4', '1'];
@@ -322,6 +375,31 @@ describe('MatchEngine', () => {
     e.process(raw({ ...f, innings: [inn('India', 14, 0, 1, 1)] }));
     expect(db.select().from(schema.matches).all()).toHaveLength(1);
     expect(db.select().from(schema.snapshots).all()).toHaveLength(2);
+    sqlite.close();
+  });
+
+  it('keeps the snapshot table bounded instead of growing for every delivery', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'stumpcast-engine-'));
+    tmp.push(dir);
+    const { db, sqlite } = openDatabase(dir);
+    // A long-running install: several hundred deliveries already stored for two matches.
+    const seed = ['m1', 'm2'].flatMap((matchId) =>
+      Array.from({ length: 650 }, (_, i) => ({
+        matchId,
+        state: { id: matchId },
+        createdAt: i,
+      })),
+    );
+    db.insert(schema.snapshots).values(seed).run();
+
+    const e = new MatchEngine({ db });
+    for (let i = 1; i <= 100; i++) e.process(raw({ innings: [inn('India', i + 1, 0, 1)] }));
+
+    const count = (id: string) =>
+      db.select().from(schema.snapshots).all().filter((r) => r.matchId === id).length;
+    // The window holds the recent history the trackers replay, not the whole season.
+    expect(count('m1')).toBe(600);
+    expect(count('m2')).toBe(650); // another match's history is untouched
     sqlite.close();
   });
 

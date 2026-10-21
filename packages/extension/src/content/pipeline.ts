@@ -4,6 +4,7 @@ import type { ContentMessage } from '../messages';
 import { MIN_CONFIDENCE } from '../adapters/engine';
 
 export interface PipelineOptions {
+  /** Only used to fill the adapter input; adapters read their own config's site. */
   site: SourceSite;
   adapter: Adapter;
   getDocument: () => Document;
@@ -108,7 +109,9 @@ export const createPipeline = (opts: PipelineOptions) => {
         degraded = true; // report once per degraded episode, not on every mutation
         sendQuiet({
           type: 'adapter-degraded',
-          site: opts.site,
+          // The site the adapter actually ran as, not the one this document first matched:
+          // navigating from one supported site to another keeps the same pipeline.
+          site: update.source,
           url: update.url,
           confidence: update.confidence,
           missing: update.missing,

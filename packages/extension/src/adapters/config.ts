@@ -47,6 +47,7 @@ export const FIELD_KEYS = [
   'rrr',
   'day',
   'session',
+  'format',
 ] as const;
 export type FieldKey = (typeof FIELD_KEYS)[number];
 
@@ -82,7 +83,13 @@ export type DomRule = z.infer<typeof DomRuleSchema>;
 export const JsonTapSchema = z.object({
   /** Matched against the URL of responses the page itself fetched. */
   urlRegex: regexString,
-  /** field -> path such as `$.score.runs` or `data.innings[0].overs`. */
+  /**
+   * field -> path such as `$.score.runs` or `data.innings[0].overs`.
+   *
+   * A value containing `${…}` is a template instead of a single path: sites split what the engine
+   * parses as one value across several keys (`teamScore` + `teamWkts` -> "197/6"), so a template
+   * composes them. It resolves only when every placeholder resolves to a non-empty value.
+   */
   map: z.record(FieldKeySchema, z.string().min(1)),
 });
 

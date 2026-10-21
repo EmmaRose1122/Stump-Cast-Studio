@@ -88,6 +88,9 @@ export const parseToss = (
   return { winnerTeamId: team.id, decision: m[2]!.toLowerCase() === 'bat' ? 'bat' : 'bowl' };
 };
 
+/** BallEventSchema caps runs at 7; tokens are untrusted text, so nothing derived may exceed it. */
+const MAX_BALL_RUNS = 7;
+
 /** Convert result-token strings ("1", "4", "W", ".", "wd") into BallEvents. */
 export const tokensToBalls = (
   tokens: string[],
@@ -112,8 +115,10 @@ export const tokensToBalls = (
       ];
       const total = Number(extra[1] || 1);
       // A no-ball's total is bat runs + the one penalty run, and only the bat part counts as a
-      // boundary; wides/byes never are.
-      const batRuns = type === 'noball' ? Math.max(0, total - 1) : 0;
+      // boundary; wides/byes never are. The bat part is capped because a ball cannot carry more
+      // than 7 (the schema's ceiling): whatever does not fit stays in the extras, so the delivery
+      // still adds up to the total the feed reported.
+      const batRuns = type === 'noball' ? Math.min(MAX_BALL_RUNS, Math.max(0, total - 1)) : 0;
       return createBall({
         ...base,
         runs: batRuns,
@@ -121,6 +126,17 @@ export const tokensToBalls = (
       });
     }
     const n = t === '.' ? 0 : Number(t);
+    // A wicket on a scored delivery arrives glued into one token ("W1": out, and a single was
+    // completed). Read it as the one ball it is, with both facts, instead of a plain dot.
+    const glued = /^(\d*)w(\d*)$/.exec(t);
+    if (glued && (glued[1] || glued[2])) {
+      const runs = Math.min(MAX_BALL_RUNS, Number(glued[1] || glued[2] || 0));
+      return createBall({
+        ...base,
+        runs: runs > 0 && runs <= 7 ? runs : 0,
+        wicket: { kind: 'other', playerOutId: batterId },
+      });
+    }
     return createBall({ ...base, runs: Number.isInteger(n) && n >= 0 && n <= 7 ? n : 0 });
   });
 
@@ -149,8 +165,15 @@ export const rawToBaseState = (raw: RawUpdate, updatedAt: string): MatchState =>
     teamFor(names[1] ?? 'Team B', 1, f.teams[1]?.short),
   ];
 
+  // Scraped sides are named in two registers at once ("Pakistan" in the header, "PAK" in the
+  // innings rows), so innings are matched to teams through the registry rather than by position —
+  // the fixture order of the names has no relation to who batted first.
+  const identityOf = (name: string): string =>
+    resolveTeam(name)?.code ?? name.trim().toLowerCase();
   const innings = f.innings.map((inn, i) => {
-    const t = teams.find((x) => x.name === inn.team) ?? teams[Math.min(i % 2, 1)]!;
+    const t =
+      teams.find((x) => identityOf(x.name) === identityOf(inn.team)) ??
+      teams[Math.min(i % 2, 1)]!;
     return {
       number: i + 1,
       battingTeamId: t.id,
@@ -212,12 +235,15 @@ export const rawToBaseState = (raw: RawUpdate, updatedAt: string): MatchState =>
   const lastBalls = tokensToBalls(f.lastBalls, score.overs, strikerId, bowler.playerId).slice(-6);
 
   const format = inferFormat(raw);
+  // An adapter that had to invent the 0-0 of a match that has not started must not be allowed to
+  // present it as a live innings.
+  const started = innings.length > 0 && !f.preMatch;
   return {
     id: raw.matchId,
     title: f.title ?? `${teams[0].name} v ${teams[1].name}`,
     format,
     oversLimit: f.oversLimit,
-    status: inferStatus(raw, innings.length > 0),
+    status: inferStatus(raw, started),
     venue: f.venue,
     toss: parseToss(f.toss, teams),
     teams,

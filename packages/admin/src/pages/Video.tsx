@@ -670,8 +670,22 @@ export const VideoPage = () => {
           <div className="flex items-center gap-2">
             <button
               onClick={() => {
-                navigator.clipboard.writeText(`${window.location.protocol}//${window.location.hostname}:4000/overlay/`);
-                toast({ title: 'OBS Browser Source URL copied to clipboard', kind: 'success' });
+                // clipboard.writeText rejects in a non-secure context or without permission;
+                // the toast must say what actually happened.
+                const copied = navigator.clipboard?.writeText(
+                  `${window.location.protocol}//${window.location.hostname}:4000/overlay/`,
+                );
+                if (!copied) {
+                  toast({ title: 'Clipboard unavailable — copy the URL from the address bar', kind: 'error' });
+                  return;
+                }
+                copied
+                  .then(() =>
+                    toast({ title: 'OBS Browser Source URL copied to clipboard', kind: 'success' }),
+                  )
+                  .catch(() =>
+                    toast({ title: 'Could not copy — copy the URL from the address bar', kind: 'error' }),
+                  );
               }}
               className="rounded-lg border border-blue-200 bg-white px-3 py-1 text-xs font-semibold text-blue-900 hover:bg-blue-50 transition flex items-center gap-1.5 shadow-xs"
             >

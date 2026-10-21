@@ -205,11 +205,24 @@ describe('MatchCentre / ThisBall', () => {
 
     const ball = new ThisBall();
     const ballStage = mount(ball);
-    ball.update(state);
+    ball.update({ ...state, thisOver: [], lastBalls: [createBall({ ball: 1, runs: 4 })] });
     expect(ballStage.querySelector('.tb-value')?.textContent).toBe('4');
     expect(ballStage.querySelector('.tb-detail')?.textContent).toBe('FOUR');
-    ball.update({ ...state, lastBalls: [createBall({ ball: 1, runs: 0, wicket: { kind: 'bowled', playerOutId: 'p1' } })] });
+    ball.update({ ...state, thisOver: [], lastBalls: [createBall({ ball: 1, runs: 0, wicket: { kind: 'bowled', playerOutId: 'p1' } })] });
     expect(ballStage.querySelector('.tb-detail')?.textContent).toBe('WICKET');
+  });
+
+  it('reads the current delivery from the over in progress, which is never behind', () => {
+    const ball = new ThisBall();
+    const stage = mount(ball);
+    // The scraped "recent balls" strip lagged a delivery behind, so a wicket went out as a dot.
+    ball.update({
+      ...t20,
+      lastBalls: [createBall({ ball: 5, runs: 0 })],
+      thisOver: [createBall({ ball: 6, runs: 0, wicket: { kind: 'bowled', playerOutId: 'p1' } })],
+    });
+    expect(stage.querySelector('.tb-value')?.textContent).toBe('W');
+    expect(stage.querySelector('.tb-detail')?.textContent).toBe('WICKET');
   });
 });
 

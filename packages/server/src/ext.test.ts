@@ -7,6 +7,7 @@ import { RawUpdateSchema, type RawUpdate } from '@stumpcast/shared';
 import { buildApp, type StumpCastApp } from './app';
 import { loadConfig } from './config';
 import { ExtensionProvider, HEARTBEAT_TIMEOUT_MS, STALE_AFTER_MS } from './ext/provider';
+import { onAirHeroUpdateToRaw } from './ext/routes';
 
 let dir: string;
 const apps: StumpCastApp[] = [];
@@ -208,6 +209,42 @@ describe('extension websocket', () => {
 });
 
 describe('OnAirHero /ingest protocol', () => {
+  it('keeps the ball history whatever the scraper calls the list', () => {
+    const base = {
+      matchId: '4242',
+      innings: [{ team: 'PAK', runs: 120, wickets: 2, overs: '12.3' }],
+      batters: [{ name: 'Ali Raza', runs: 40, balls: 30, fours: 4, isStriker: true }],
+      bowler: { name: 'Zain Q', overs: '4.2', runs: 30, wickets: 1 },
+    };
+    const mixed = ['0', '0', '1', '4', '0'];
+    // 12.3 means three balls into the over, so the current over is the tail of a mixed list.
+    const expected = ['1', '4', '0'];
+
+    for (const key of ['recentBalls', 'lastBalls']) {
+      const raw = onAirHeroUpdateToRaw({ ...base, [key]: mixed });
+      expect(raw, key).not.toBeNull();
+      expect(raw!.fields.lastBalls, key).toEqual(mixed);
+      expect(raw!.fields.thisOver, key).toEqual(expected);
+    }
+
+    // A list a scraper names as the current over is taken at its word, never re-sliced.
+    const named = onAirHeroUpdateToRaw({ ...base, thisOver: mixed });
+    expect(named!.fields.thisOver).toEqual(mixed);
+  });
+
+  it('reads a payload that names the current over and the last six separately', () => {
+    const raw = onAirHeroUpdateToRaw({
+      matchId: '4343',
+      innings: [{ team: 'IND', runs: 40, wickets: 1, overs: '4.2' }],
+      batters: [{ name: 'Surya', runs: 20, balls: 15, fours: 3, isStriker: true }],
+      thisOver: ['4', '1'],
+      lastBalls: ['0', '0', '1', '4', '1', '2'],
+    });
+    expect(raw).not.toBeNull();
+    expect(raw!.fields.thisOver).toEqual(['4', '1']);
+    expect(raw!.fields.lastBalls).toEqual(['0', '0', '1', '4', '1', '2']);
+  });
+
   it('connects to /ingest and handles hello, match_meta and match_update', async () => {
     const { app, port } = await boot();
     const ws = new WebSocket(`ws://127.0.0.1:${port}/ingest`);

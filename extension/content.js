@@ -20,21 +20,61 @@
     matchIdRegex: "/(?:live-cricket-scores|cricket-scores|live-cricket-scorecard|cricket-match-highlights|live-cricket-score|cricket-commentary|cricket-scorecard|cricket-match-facts|cricket-match-squads)/(\\d+)",
     jsonTaps: [
       {
-        urlRegex: "/api/mcenter/v1/\\d+/hscard",
+        urlRegex: "/api/mcenter/livescore/\\d+",
         map: {
-          score: "score",
-          overs: "overs",
-          status: "status",
-          title: "matchDescription"
+          format: "miniscore.matchScoreDetails.matchFormat",
+          status: "miniscore.status",
+          battingTeam: "miniscore.batTeamScoreObj.teamName",
+          score: "${miniscore.batTeam.teamScore}/${miniscore.batTeam.teamWkts}",
+          overs: "miniscore.overs",
+          "inn1.team": "miniscore.matchScoreDetails.inningsScoreList[0].batTeamName",
+          "inn1.score": "${miniscore.matchScoreDetails.inningsScoreList[0].score}/${miniscore.matchScoreDetails.inningsScoreList[0].wickets}",
+          "inn1.overs": "miniscore.matchScoreDetails.inningsScoreList[0].overs",
+          "inn2.team": "miniscore.matchScoreDetails.inningsScoreList[1].batTeamName",
+          "inn2.score": "${miniscore.matchScoreDetails.inningsScoreList[1].score}/${miniscore.matchScoreDetails.inningsScoreList[1].wickets}",
+          "inn2.overs": "miniscore.matchScoreDetails.inningsScoreList[1].overs",
+          "inn3.team": "miniscore.matchScoreDetails.inningsScoreList[2].batTeamName",
+          "inn3.score": "${miniscore.matchScoreDetails.inningsScoreList[2].score}/${miniscore.matchScoreDetails.inningsScoreList[2].wickets}",
+          "inn3.overs": "miniscore.matchScoreDetails.inningsScoreList[2].overs",
+          "inn4.team": "miniscore.matchScoreDetails.inningsScoreList[3].batTeamName",
+          "inn4.score": "${miniscore.matchScoreDetails.inningsScoreList[3].score}/${miniscore.matchScoreDetails.inningsScoreList[3].wickets}",
+          "inn4.overs": "miniscore.matchScoreDetails.inningsScoreList[3].overs",
+          "batter1.name": "${miniscore.batsmanStriker.name} *",
+          "batter1.runs": "miniscore.batsmanStriker.runs",
+          "batter1.balls": "miniscore.batsmanStriker.balls",
+          "batter1.fours": "miniscore.batsmanStriker.fours",
+          "batter1.sixes": "miniscore.batsmanStriker.sixes",
+          "batter2.name": "miniscore.batsmanNonStriker.name",
+          "batter2.runs": "miniscore.batsmanNonStriker.runs",
+          "batter2.balls": "miniscore.batsmanNonStriker.balls",
+          "batter2.fours": "miniscore.batsmanNonStriker.fours",
+          "batter2.sixes": "miniscore.batsmanNonStriker.sixes",
+          "bowler.name": "miniscore.bowlerStriker.name",
+          "bowler.overs": "miniscore.bowlerStriker.overs",
+          "bowler.maidens": "miniscore.bowlerStriker.maidens",
+          "bowler.runs": "miniscore.bowlerStriker.runs",
+          "bowler.wkts": "miniscore.bowlerStriker.wickets",
+          partnership: "${miniscore.partnerShip.runs} (${miniscore.partnerShip.balls})",
+          target: "miniscore.target",
+          crr: "miniscore.currentRunRate",
+          rrr: "miniscore.requiredRunRate",
+          thisOver: "miniscore.recentOvsStats"
         }
       },
       {
         urlRegex: "/api/mcenter/comm/\\d+",
         map: {
-          score: "miniscore.batTeamDetails.score",
-          overs: "miniscore.batTeamDetails.overs",
-          status: "status",
-          title: "matchHeader.matchDescription"
+          title: "${matchHeader.team1.name} vs ${matchHeader.team2.name}, ${matchHeader.matchDescription}, ${matchHeader.seriesDesc}",
+          team1: "matchHeader.team1.name",
+          team2: "matchHeader.team2.name",
+          format: "matchHeader.matchFormat",
+          toss: "${matchHeader.tossResults.tossWinnerName} won the toss and chose to ${matchHeader.tossResults.decision}",
+          "inn1.team": "miniscore.matchScoreDetails.inningsScoreList[0].batTeamName",
+          "inn1.score": "${miniscore.matchScoreDetails.inningsScoreList[0].score}/${miniscore.matchScoreDetails.inningsScoreList[0].wickets}",
+          "inn1.overs": "miniscore.matchScoreDetails.inningsScoreList[0].overs",
+          "inn2.team": "miniscore.matchScoreDetails.inningsScoreList[1].batTeamName",
+          "inn2.score": "${miniscore.matchScoreDetails.inningsScoreList[1].score}/${miniscore.matchScoreDetails.inningsScoreList[1].wickets}",
+          "inn2.overs": "miniscore.matchScoreDetails.inningsScoreList[1].overs"
         }
       }
     ],
@@ -4578,6 +4618,25 @@
     runs: external_exports.number().int().min(0),
     wkts: external_exports.number().int().min(0).max(10)
   });
+  var BattingFigureSchema = external_exports.object({
+    playerId: external_exports.string().min(1),
+    name: external_exports.string().min(1),
+    runs: external_exports.number().int().min(0),
+    balls: external_exports.number().int().min(0),
+    fours: external_exports.number().int().min(0),
+    sixes: external_exports.number().int().min(0),
+    innings: external_exports.number().int().min(1)
+  });
+  var BowlingFigureSchema = external_exports.object({
+    playerId: external_exports.string().min(1),
+    name: external_exports.string().min(1),
+    overs: external_exports.number().int().min(0),
+    balls: external_exports.number().int().min(0).max(5),
+    maidens: external_exports.number().int().min(0),
+    runs: external_exports.number().int().min(0),
+    wkts: external_exports.number().int().min(0).max(10),
+    innings: external_exports.number().int().min(1)
+  });
   var TossSchema = external_exports.object({
     winnerTeamId: external_exports.string().min(1),
     decision: external_exports.enum(["bat", "bowl"])
@@ -4623,6 +4682,12 @@
     dotBallPct: external_exports.number().min(0).max(100).optional(),
     boundaries: external_exports.object({ fours: external_exports.number().int().min(0), sixes: external_exports.number().int().min(0) }).optional(),
     ballsObserved: external_exports.number().int().min(0).optional(),
+    /**
+     * The feed only publishes the pair at the crease and the bowler running in, so these are the
+     * best figures seen anywhere in the match. Absent when the snapshots carried no player rows.
+     */
+    topBatters: external_exports.array(BattingFigureSchema).optional(),
+    topBowlers: external_exports.array(BowlingFigureSchema).optional(),
     /** Overs per innings when it differs from the format default (e.g. a 10-over match). */
     oversLimit: external_exports.number().int().positive().optional(),
     day: external_exports.number().int().min(1).max(5).optional(),
@@ -6545,6 +6610,8 @@
       }).optional(),
       thisOver: external_exports.array(external_exports.string()).default([]),
       lastBalls: external_exports.array(external_exports.string()).default([]),
+      /** The page says the match has not started: the 0-0 innings below is a placeholder, not a score. */
+      preMatch: external_exports.boolean().optional(),
       partnership: external_exports.object({ runs: external_exports.number().int().min(0), balls: external_exports.number().int().min(0) }).optional(),
       target: external_exports.number().int().positive().optional(),
       crr: external_exports.number().min(0).optional(),
@@ -7140,7 +7207,8 @@
     "crr",
     "rrr",
     "day",
-    "session"
+    "session",
+    "format"
   ];
   var FieldKeySchema = external_exports.enum(FIELD_KEYS);
   var TRANSFORMS = ["trim", "lower", "upper", "number", "digits"];
@@ -7170,7 +7238,13 @@
   var JsonTapSchema = external_exports.object({
     /** Matched against the URL of responses the page itself fetched. */
     urlRegex: regexString,
-    /** field -> path such as `$.score.runs` or `data.innings[0].overs`. */
+    /**
+     * field -> path such as `$.score.runs` or `data.innings[0].overs`.
+     *
+     * A value containing `${…}` is a template instead of a single path: sites split what the engine
+     * parses as one value across several keys (`teamScore` + `teamWkts` -> "197/6"), so a template
+     * composes them. It resolves only when every placeholder resolves to a non-empty value.
+     */
     map: external_exports.record(FieldKeySchema, external_exports.string().min(1))
   });
   var SelectorConfigSchema = external_exports.object({
@@ -7323,6 +7397,22 @@
         return value;
     }
   };
+  var readTapValue = (json, spec) => {
+    if (!spec.includes("${")) {
+      const v = readPath(json, spec);
+      return (typeof v === "string" || typeof v === "number") && String(v).trim() !== "" ? String(v).trim() : void 0;
+    }
+    let missing = false;
+    const out = spec.replace(/\$\{([^{}]*)\}/g, (_match, path) => {
+      const v = readTapValue(json, path.trim());
+      if (v === void 0) {
+        missing = true;
+        return "";
+      }
+      return v;
+    });
+    return missing || out.trim() === "" ? void 0 : out.trim();
+  };
   var extractJson = (config, taps) => {
     const out = {};
     for (const tap of config.jsonTaps) {
@@ -7331,10 +7421,8 @@
         if (!re.test(response.url)) continue;
         for (const [field, path] of Object.entries(tap.map)) {
           if (!path) continue;
-          const v = readPath(response.json, path);
-          if ((typeof v === "string" || typeof v === "number") && String(v).trim() !== "") {
-            out[field] ??= String(v).trim();
-          }
+          const v = readTapValue(response.json, path);
+          if (v !== void 0) out[field] ??= v;
         }
       }
     }
@@ -7412,6 +7500,7 @@
     }
     return out;
   };
+  var FORMATS = ["T20", "ODI", "TEST", "OTHER"];
   var normalise = (raw, prev, site = "cricbuzz", url = "") => {
     const passed = /* @__PURE__ */ new Set();
     const pass = (k, ok) => {
@@ -7522,8 +7611,8 @@
     }
     const rawStatus = text("status") ?? "";
     const isPreMatch = /(?:opt|toss|preview|starts|delayed|yet to start)/i.test(rawStatus) || Boolean(tossText);
-    const nothingPlayed = !text("score") && !text("overs") && !text("batter1.name") && !text("bowler.name") && !text("thisOver");
-    if (innings2.length === 0 && (isPreMatch || nothingPlayed) && (rawTitle || team1Name)) {
+    let synthetic = false;
+    if (innings2.length === 0 && isPreMatch && (rawTitle || team1Name)) {
       const tossWinner = tossText ? team1Name && tossText.toLowerCase().includes(team1Name.toLowerCase()) ? team1Name : team2Name && tossText.toLowerCase().includes(team2Name.toLowerCase()) ? team2Name : void 0 : void 0;
       const statusWinner = rawStatus ? team1Name && new RegExp(`\\b${team1Name}\\b`, "i").test(rawStatus) ? team1Name : team2Name && new RegExp(`\\b${team2Name}\\b`, "i").test(rawStatus) ? team2Name : void 0 : void 0;
       const rawBattingTeam = text("battingTeam");
@@ -7538,6 +7627,7 @@
       });
       pass("score", true);
       pass("overs", true);
+      synthetic = true;
     }
     const batters = [];
     for (const n of [1, 2]) {
@@ -7595,6 +7685,8 @@
     pass("resultText", Boolean(text("resultText") ?? dayStatus?.resultText));
     pass("commentaryLast", Boolean(text("commentaryLast")));
     const teams = (site === "crex" ? [cleanTeam(text("team1")), cleanTeam(text("team2"))] : [team1Name, team2Name]).filter((t) => Boolean(t)).map((name) => ({ name }));
+    const scrapedFormat = FORMATS.find((x) => x === text("format")?.trim().toUpperCase());
+    pass("format", scrapedFormat !== void 0);
     const fields = {
       title: text("title"),
       status: text("status"),
@@ -7613,9 +7705,11 @@
       ...day !== void 0 ? { day } : {},
       ...text("session") || dayStatus?.session ? { session: text("session") ?? dayStatus?.session } : {},
       ...text("resultText") || dayStatus?.resultText ? { resultText: text("resultText") ?? dayStatus?.resultText } : {},
-      ...text("commentaryLast") ? { commentaryLast: text("commentaryLast") } : {}
+      ...text("commentaryLast") ? { commentaryLast: text("commentaryLast") } : {},
+      ...scrapedFormat ? { format: scrapedFormat } : {},
+      ...synthetic ? { preMatch: true } : {}
     };
-    return { fields, passed };
+    return { fields, passed, synthetic };
   };
   var confidenceOf = (config, passed) => {
     const required = config.minConfidenceFields;
@@ -7652,20 +7746,28 @@
       try {
         const prev = previous.get(matchId);
         const rawJson = extractJson(config, input.taps);
+        const domRaw = extractDom(config, input.document);
         const json = normalise(rawJson, prev, config.site);
-        const dom = normalise(extractDom(config, input.document), prev, config.site, input.url);
+        const dom = normalise(domRaw, prev, config.site, input.url);
         const jsonConf = Object.keys(rawJson).length > 0 ? confidenceOf(config, json.passed) : 0;
         const domConf = confidenceOf(config, dom.passed);
-        const useJson = jsonConf > 0 && jsonConf >= domConf;
+        const useJson = jsonConf > 0 && (jsonConf > domConf || jsonConf === domConf && !(json.synthetic && !dom.synthetic));
         const chosen = useJson ? json : dom;
         const confidence = useJson ? jsonConf : domConf;
         const strategy = confidence === 0 ? "none" : useJson ? "json" : "dom";
         const missing = config.minConfidenceFields.filter((k) => !chosen.passed.has(k));
         last = { strategy, jsonConfidence: jsonConf, domConfidence: domConf, missing };
-        const inn = chosen.fields.innings.at(-1);
+        const merged = normalise(
+          { ...useJson ? domRaw : rawJson, ...useJson ? rawJson : domRaw },
+          prev,
+          config.site,
+          input.url
+        );
+        const fields = merged.fields;
+        const inn = fields.innings.at(-1);
         if (confidence >= MIN_CONFIDENCE && inn) {
           previous.set(matchId, {
-            inningsCount: chosen.fields.innings.length,
+            inningsCount: fields.innings.length,
             runs: inn.runs
           });
         }
@@ -7675,7 +7777,7 @@
           url: input.url,
           capturedAt: input.now,
           confidence,
-          fields: chosen.fields,
+          fields,
           missing
         };
       } catch (err) {
@@ -7831,7 +7933,9 @@
           degraded = true;
           sendQuiet({
             type: "adapter-degraded",
-            site: opts.site,
+            // The site the adapter actually ran as, not the one this document first matched:
+            // navigating from one supported site to another keeps the same pipeline.
+            site: update.source,
             url: update.url,
             confidence: update.confidence,
             missing: update.missing,

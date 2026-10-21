@@ -122,6 +122,26 @@ describe('DelayBuffer', () => {
     expect(out).toEqual([1, 2]);
     expect(b.size).toBe(0);
   });
+  it('keeps releasing after an entry the consumer cannot handle', () => {
+    const c = fakeClock();
+    const out: number[] = [];
+    const b = new DelayBuffer<number>(
+      (v) => {
+        if (v === 2) throw new Error('bad entry');
+        out.push(v);
+      },
+      5,
+      c.sched,
+    );
+    b.push(1);
+    b.push(2);
+    b.push(3);
+    c.advance(5000);
+    // The failed entry is dropped and the rest still go out; without the guard the queue stops
+    // for the rest of the session.
+    expect(out).toEqual([1, 3]);
+    expect(b.size).toBe(0);
+  });
 });
 
 describe('Watchdog', () => {

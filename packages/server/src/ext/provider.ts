@@ -28,16 +28,40 @@ export class ExtensionProvider implements MatchProvider {
   private sender: { owner: object; fn: (cmd: ExtCommand) => boolean } | null = null;
   /** Newest "adapter could not read the page" report; explains why no match appears. */
   private degraded: { site: string; url: string; confidence: number; missing: string[]; at: number } | null = null;
+  /** Newest "this scrape is not a match" rejection, so an empty match list has an explanation. */
+  private rejected: { matchId: string; at: number; reason: string } | null = null;
 
   constructor(private readonly now: () => number = Date.now) {}
 
   // ---- inbound ----------------------------------------------------------------------------
 
   ingest(update: RawUpdate): void {
+    if (ExtensionProvider.isBlankScrape(update)) {
+      this.rejected = {
+        matchId: update.matchId,
+        at: this.now(),
+        reason: 'named no team and reported no ball',
+      };
+      return;
+    }
     this.latest.set(update.matchId, update);
     this.receivedAt.set(update.matchId, this.now());
     for (const cb of this.subs.get(update.matchId) ?? []) cb(update);
     for (const cb of this.updateListeners) cb(update);
+  }
+
+  /**
+   * A scrape that named nobody and had nothing to show is the adapter guessing around a page it
+   * could not read, not a match. Publishing one used to wipe whatever was on air and fill
+   * "Pick the match" with rows like `Batting vs Team B · 0-0`.
+   */
+  static isBlankScrape(u: RawUpdate): boolean {
+    if (u.source === 'manual') return false;
+    const named = u.fields.teams.some((t) => t.name.trim().length > 0);
+    const played = u.fields.innings.some(
+      (i) => i.runs > 0 || i.wkts > 0 || i.overs > 0 || i.balls > 0,
+    );
+    return !named && !played;
   }
 
   deleteMatch(matchId: string): void {
@@ -160,6 +184,7 @@ export class ExtensionProvider implements MatchProvider {
       extensionVersion: this.heartbeat?.extensionVersion ?? null,
       selectorsVersion: this.heartbeat?.selectorsVersion ?? null,
       lastDegraded: this.degraded,
+      lastRejected: this.rejected,
       openTabs: this.heartbeat?.tabs.length ?? 0,
       matches: [...this.latest.keys()].map((matchId) => ({
         matchId,

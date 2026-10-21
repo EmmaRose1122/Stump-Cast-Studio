@@ -229,6 +229,9 @@ const YourMatchesSection = () => {
                 try {
                   await api.clearMatches();
                   await qc.invalidateQueries({ queryKey: ['matches'] });
+                  // The manual panel keeps its own list; without this it still offers the
+                  // deleted match and every scoring button answers "Unknown match".
+                  await qc.invalidateQueries({ queryKey: ['manual-list'] });
                   await qc.invalidateQueries({ queryKey: ['settings'] });
                   toast({ title: 'All matches cleared', kind: 'success' });
                 } catch (e) {
@@ -306,6 +309,9 @@ const YourMatchesSection = () => {
                           try {
                             await api.deleteMatch(m.id);
                             await qc.invalidateQueries({ queryKey: ['matches'] });
+                            // The manual panel has its own list and would keep offering the
+                            // deleted match, with every scoring button answering "Unknown match".
+                            await qc.invalidateQueries({ queryKey: ['manual-list'] });
                             await qc.invalidateQueries({ queryKey: ['settings'] });
                             toast({ title: `Deleted ${m.title}`, kind: 'success' });
                           } catch (err) {
@@ -1098,7 +1104,13 @@ const ManualCard = () => {
   const matches = list.data ?? [];
 
   useEffect(() => {
-    if (!active && matches[0]) setActive(matches[0].id);
+    if (active && !matches.some((m) => m.id === active)) {
+      // The selected match is gone (deleted here or cleared from another tab). Keeping it would
+      // leave a scoring panel wired to a match the server no longer knows.
+      setActive(matches[0]?.id ?? null);
+    } else if (!active && matches[0]) {
+      setActive(matches[0].id);
+    }
   }, [active, matches]);
 
   return (

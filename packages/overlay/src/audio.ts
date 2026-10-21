@@ -33,6 +33,8 @@ export const createBrowserEngine = (): AudioEngine =>
  */
 export class OverlayAudio {
   private loopIds: string[] | null = null;
+  /** Bumped by every sync and by any command that overrides the loop state. */
+  private generation = 0;
 
   constructor(
     private readonly engine: AudioEngine,
@@ -49,12 +51,16 @@ export class OverlayAudio {
 
   /** (Re)load the library and restore the loop if one is running. */
   async sync(): Promise<void> {
+    const generation = ++this.generation;
     const o = await this.fetchOverview();
-    if (!o) return;
+    // A newer sync, or a loop command, may have arrived while the overview was loading. Applying
+    // this answer now would restart a loop the operator has already stopped.
+    if (!o || generation !== this.generation) return;
     this.engine.setMaster(o.master);
     await this.engine.preload(
       o.slots.map((s) => ({ id: s.id, url: `${this.origin}/assets/${s.file}`, volume: s.volume })),
     );
+    if (generation !== this.generation) return;
     if (o.loopRunning) {
       const ids = o.slots.filter((s) => s.includeInLoop).map((s) => s.id);
       this.loopIds = ids;
@@ -74,8 +80,14 @@ export class OverlayAudio {
       await this.sync();
       return;
     }
-    if (c.action === 'loop-start') this.loopIds = c.ids;
-    if (c.action === 'loop-stop' || c.action === 'stop-all') this.loopIds = null;
+    if (c.action === 'loop-start') {
+      this.generation++; // stop an in-flight sync from applying an older loop state
+      this.loopIds = c.ids;
+    }
+    if (c.action === 'loop-stop' || c.action === 'stop-all') {
+      this.generation++;
+      this.loopIds = null;
+    }
     this.engine.handle(c);
   }
 

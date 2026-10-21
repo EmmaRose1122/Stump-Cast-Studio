@@ -1171,8 +1171,14 @@ export const PlayersPage = () => {
 
               <button
                 onClick={() => {
-                  void navigator.clipboard?.writeText(asset.id);
-                  toast({ title: 'ID copied', description: asset.id, kind: 'success' });
+                  const copied = navigator.clipboard?.writeText(asset.id);
+                  if (!copied) {
+                    toast({ title: 'Clipboard unavailable', description: asset.id, kind: 'error' });
+                    return;
+                  }
+                  copied
+                    .then(() => toast({ title: 'ID copied', description: asset.id, kind: 'success' }))
+                    .catch(() => toast({ title: 'Could not copy the ID', description: asset.id, kind: 'error' }));
                 }}
                 className="mt-2 flex w-full items-center justify-center gap-1 rounded border border-border bg-surface-2 py-1 text-[10px] font-semibold text-muted hover:text-white"
               >

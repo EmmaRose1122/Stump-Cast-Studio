@@ -206,6 +206,17 @@ describe('createPipeline', () => {
     expect(h.sent[0]).toMatchObject({ type: 'adapter-degraded', missing: ['score'] });
   });
 
+  it('reports the site the adapter actually ran as, not the one the tab first matched', () => {
+    // Navigating from one supported site to another keeps the same pipeline, so the option is
+    // stale; the update carries the truth.
+    const h = harness(() => {
+      const u = update(0, 0.2);
+      return { ...u, source: 'crex' as const };
+    });
+    h.pipeline.trigger();
+    expect(h.sent[0]).toMatchObject({ type: 'adapter-degraded', site: 'crex' });
+  });
+
   it('pausing stops all updates immediately', () => {
     const h = harness(() => update(5));
     h.pipeline.setPaused(true);

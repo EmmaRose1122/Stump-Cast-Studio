@@ -15,6 +15,8 @@ type CommPatch = Partial<{
   rate: number;
   pitch: number;
   volume: number;
+  language: 'hi' | 'ur' | 'en';
+  ai: boolean;
 }>;
 
 /** Play audio locally in the operator's headphones using Web Audio API synthesis or HTML5 Audio */
@@ -136,16 +138,58 @@ export const SoundsPage = () => {
   const fileInput = useRef<HTMLInputElement>(null);
 
   const [customCommentary, setCustomCommentary] = useState('');
+  const [geminiKey, setGeminiKey] = useState('');
   const commQuery = useQuery({
     queryKey: ['commentary'],
     queryFn: async () => {
       const res = await fetch('/api/commentary/status');
       return (await res.json()) as {
-        config: { enabled: boolean; autoEvents: boolean; rate: number; pitch: number; volume: number };
-        history: Array<{ id: string; text: string; eventType?: string; timestamp: number }>;
+        config: {
+          enabled: boolean;
+          autoEvents: boolean;
+          rate: number;
+          pitch: number;
+          volume: number;
+          language?: 'hi' | 'ur' | 'en';
+          ai?: boolean;
+        };
+        history: Array<{
+          id: string;
+          text: string;
+          eventType?: string;
+          timestamp: number;
+          lang?: 'hi' | 'ur' | 'en';
+        }>;
+        ai?: { enabled: boolean; active: boolean; hasKey: boolean };
+        tts?: { engine: 'gemini' | 'system' | 'none' };
       };
     },
     refetchInterval: 3000,
+  });
+
+  const saveGeminiKey = useMutation({
+    mutationFn: async (key: string | null) => {
+      const res = await fetch('/api/commentary/key', {
+        method: key === null ? 'DELETE' : 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: key === null ? undefined : JSON.stringify({ key }),
+      });
+      const body = (await res.json().catch(() => ({}))) as { error?: string };
+      if (!res.ok) throw new ApiError(res.status, body.error ?? `Server replied ${res.status}`);
+      return body;
+    },
+    onSuccess: (_, vars) => {
+      void qc.invalidateQueries({ queryKey: ['commentary'] });
+      toast({
+        title: vars === null ? 'Gemini key removed' : 'Gemini key saved',
+        description:
+          vars === null
+            ? 'Commentary falls back to the built-in phrasebook.'
+            : 'AI narration is live. The key is stored encrypted on this machine only.',
+        kind: 'success',
+      });
+    },
+    onError,
   });
 
   const updateCommConfig = useMutation({
@@ -281,15 +325,19 @@ export const SoundsPage = () => {
   const [outputs, setOutputs] = useState<{ id: string; label: string }[]>([]);
   const [outputId, setOutputId] = useState<string | null>(null);
   const switchMonitor = async (on: boolean) => {
-    setHeadphoneMonitor(on);
+    if (!on) {
+      monitor.disable();
+      setHeadphoneMonitor(false);
+      return;
+    }
     try {
-      if (on) {
-        if (!outputs.length) setOutputs(await listOutputDevices());
-        await monitor.enable(outputId);
-      } else {
-        monitor.disable();
-      }
+      if (!outputs.length) setOutputs(await listOutputDevices());
+      await monitor.enable(outputId);
+      // Only now is the monitor actually running. Setting this first left the switch showing
+      // "on" after enable() rejected, so the operator heard nothing and was not told why.
+      setHeadphoneMonitor(true);
     } catch (e) {
+      setHeadphoneMonitor(false);
       toast({ title: 'Headphone monitor unavailable', description: errText(e), kind: 'error' });
     }
   };
@@ -644,6 +692,110 @@ export const SoundsPage = () => {
               />
               Auto-Speak Match Events (4s, 6s, Wkts)
             </label>
+          </div>
+        </div>
+
+        {/* Language & AI narration */}
+        <div className="mt-4 grid grid-cols-1 md:grid-cols-4 gap-4 border-b border-border/40 pb-4">
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-muted">Commentary language</label>
+            <select
+              value={commConfig?.language ?? 'hi'}
+              onChange={(e) =>
+                updateCommConfig.mutate({ language: e.target.value as 'hi' | 'ur' | 'en' })
+              }
+              className="w-full rounded-lg border border-border bg-white px-2 py-1.5 text-xs font-semibold"
+            >
+              <option value="hi">हिन्दी (Hindi — Devanagari)</option>
+              <option value="ur">اردو (Urdu — Nastaliq)</option>
+              <option value="en">English</option>
+            </select>
+            <p className="text-[10px] text-muted">
+              The broadcast voice follows this script; a mismatched voice mangles the words.
+            </p>
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-muted">Voice (audio out)</label>
+            <p
+              className={`rounded-lg px-2 py-1.5 text-xs font-semibold ${
+                commQuery.data?.tts?.engine === 'none'
+                  ? 'bg-red-50 text-red-700'
+                  : 'bg-emerald-50 text-emerald-700'
+              }`}
+            >
+              {commQuery.data?.tts?.engine === 'gemini'
+                ? 'Gemini voice — Urdu, Hindi, English'
+                : commQuery.data?.tts?.engine === 'system'
+                  ? 'This PC\'s voice — English only'
+                  : 'No voice installed — captions only'}
+            </p>
+            <p className="text-[10px] text-muted">
+              {commQuery.data?.tts?.engine === 'none'
+                ? 'OBS has no speech engine of its own and this PC has no voice for this script. Add a Gemini key below to get a real voice in Urdu.'
+                : 'Audio is rendered on this machine and played by the overlay.'}
+            </p>
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-muted">AI narration (Gemini)</label>
+            <label className="flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={commConfig?.ai ?? true}
+                onChange={(e) => updateCommConfig.mutate({ ai: e.target.checked })}
+                className="size-4 rounded accent-orange-500"
+              />
+              Write lines with the model
+            </label>
+            <p className="text-[10px] text-muted">
+              {commQuery.data?.ai?.active
+                ? 'Live — the model narrates each moment.'
+                : commQuery.data?.ai?.hasKey
+                  ? 'Key saved, but the model is not answering. Built-in lines are used.'
+                  : 'No key set — using the built-in phrasebook.'}
+            </p>
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-muted">Gemini API key</label>
+            <div className="flex gap-2">
+              <input
+                type="password"
+                value={geminiKey}
+                onChange={(e) => setGeminiKey(e.target.value)}
+                placeholder={commQuery.data?.ai?.hasKey ? '•••••••• (stored)' : 'AIza...'}
+                className="min-w-0 flex-1 rounded-lg border border-border bg-white px-2 py-1.5 text-xs"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  if (geminiKey.trim().length < 8) {
+                    toast({ title: 'Enter a Gemini key (at least 8 characters)', kind: 'error' });
+                    return;
+                  }
+                  saveGeminiKey.mutate(geminiKey.trim());
+                  setGeminiKey('');
+                }}
+                disabled={saveGeminiKey.isPending}
+                className="rounded-lg bg-orange-500 px-3 py-1.5 text-xs font-bold text-white disabled:opacity-50"
+              >
+                Save
+              </button>
+              {commQuery.data?.ai?.hasKey && (
+                <button
+                  type="button"
+                  onClick={() => saveGeminiKey.mutate(null)}
+                  disabled={saveGeminiKey.isPending}
+                  className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold disabled:opacity-50"
+                >
+                  Remove
+                </button>
+              )}
+            </div>
+            <p className="text-[10px] text-muted">
+              Stored encrypted in this app&apos;s data folder and sent only to Google.
+            </p>
           </div>
         </div>
 

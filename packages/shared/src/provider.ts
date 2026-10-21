@@ -69,6 +69,8 @@ export const RawUpdateSchema = z.object({
       .optional(),
     thisOver: z.array(z.string()).default([]),
     lastBalls: z.array(z.string()).default([]),
+    /** The page says the match has not started: the 0-0 innings below is a placeholder, not a score. */
+    preMatch: z.boolean().optional(),
     partnership: z
       .object({ runs: z.number().int().min(0), balls: z.number().int().min(0) })
       .optional(),

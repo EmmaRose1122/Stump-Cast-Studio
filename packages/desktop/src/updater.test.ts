@@ -66,13 +66,16 @@ describe('auto update', () => {
   });
 
   it('launches installer and exits correctly', async () => {
+    vi.useFakeTimers();
     const { launchInstallerAndExit } = await import('./updater');
     const spawnMock = vi.fn(() => ({ unref: vi.fn() }));
     const exitMock = vi.fn();
     const result = launchInstallerAndExit('test-setup.exe', spawnMock, exitMock);
     expect(result).toBe(true);
     expect(spawnMock).toHaveBeenCalledWith('test-setup.exe', [], { detached: true, stdio: 'ignore' });
+    vi.advanceTimersByTime(700);
     expect(exitMock).toHaveBeenCalled();
+    vi.useRealTimers();
   });
 });
 

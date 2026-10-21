@@ -6,7 +6,7 @@
   top: 0;
   bottom: 150px;
   width: 960px;
-  transform: translateX(-50%) scale(var(--card-scale));
+  transform: translateX(-50%) scale(calc(var(--card-scale, 1) * var(--layout-card-scale, 1)));
   transform-origin: 50% 100%;
   pointer-events: none;
   z-index: 30;
@@ -29,46 +29,58 @@ html[data-score-position='bottom'] .zone-card .c-card {
 
 .c-card {
   box-sizing: border-box;
-  padding: 18px 28px 22px;
-  background: var(--color-surface);
-  border-top: 5px solid var(--color-accent);
-  border-radius: var(--radius-card, 12px);
-  box-shadow: var(--shadow-card, none);
+  padding: 24px 36px 28px;
+  background: linear-gradient(135deg, var(--color-surface) 0%, rgba(0, 0, 0, 0.4) 100%);
+  border-top: 6px solid var(--color-accent);
+  border-radius: var(--radius-card, 16px);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8), 0 0 40px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1);
   color: var(--color-text);
   overflow: hidden;
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 .cd-head {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 10px;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.08);
 }
 .cd-title {
   font-family: var(--font-heading, sans-serif);
-  font-size: 18px;
-  letter-spacing: 0.16em;
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--color-accent);
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
 }
 .cd-body {
   display: grid;
-  gap: 12px;
+  gap: 16px;
 }
 .cd-name,
 .cd-big-name {
   margin: 0;
   font-family: var(--font-heading, sans-serif);
-  font-weight: 700;
-  font-size: 40px;
+  font-weight: 800;
+  font-size: 44px;
   line-height: 1.1;
   overflow-wrap: anywhere;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.6);
 }
 .cd-big-name {
-  font-size: 56px;
+  font-size: 64px;
+  background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent2) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 .cd-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px 32px;
+  gap: 16px 40px;
   align-items: flex-end;
 }
 .cd-side {
@@ -76,79 +88,99 @@ html[data-score-position='bottom'] .zone-card .c-card {
   min-width: 0;
 }
 .cd-vs {
-  font-size: 28px;
-  opacity: 0.6;
+  font-size: 32px;
+  font-weight: 800;
+  opacity: 0.5;
+  padding: 0 20px;
 }
 .cd-stat {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  padding: 8px 16px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
 }
 .cd-stat-value {
   font-family: var(--font-numbers, sans-serif);
-  font-size: 52px;
-  font-weight: 700;
+  font-size: 56px;
+  font-weight: 800;
   line-height: 1;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
 }
 .cd-big .cd-stat-value {
-  font-size: 84px;
+  font-size: 96px;
 }
 .cd-stat-label {
-  margin-top: 4px;
-  font-size: 15px;
-  letter-spacing: 0.1em;
-  opacity: 0.7;
+  margin-top: 6px;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  opacity: 0.75;
   overflow-wrap: anywhere;
 }
 .cd-note {
   margin: 0;
-  font-size: 20px;
-  opacity: 0.75;
+  font-size: 22px;
+  opacity: 0.8;
   overflow-wrap: anywhere;
+  font-style: italic;
 }
 .cd-bar {
-  height: 20px;
-  border-radius: 10px;
-  background: var(--color-accent2, #ff6b57);
+  height: 24px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.1);
   overflow: hidden;
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 .cd-bar-fill {
   height: 100%;
-  background: var(--color-accent, #19d3c5);
+  background: linear-gradient(90deg, var(--color-accent) 0%, var(--color-accent2) 100%);
+  box-shadow: 0 0 20px var(--color-accent);
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .cd-pressure {
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.08);
 }
 .cd-pressure .cd-bar-fill {
-  background: linear-gradient(90deg, var(--color-accent), var(--color-warn));
+  background: linear-gradient(90deg, var(--color-accent) 0%, var(--color-warn) 50%, var(--color-accent2) 100%);
 }
 
 /* charts */
 .cd-chart {
   width: 100%;
   height: auto;
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.4));
 }
 .cd-rect {
   fill: var(--color-accent);
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
 }
 .cd-axis,
 .cd-value {
   font-family: var(--font-numbers, sans-serif);
-  font-size: 15px;
+  font-size: 16px;
+  font-weight: 700;
   fill: var(--color-text);
-  opacity: 0.8;
+  opacity: 0.85;
 }
 .cd-wicket {
   fill: #ff4d57;
+  filter: drop-shadow(0 2px 6px rgba(255, 77, 87, 0.6));
 }
 .cd-axisline {
   stroke: var(--color-text);
-  opacity: 0.3;
+  opacity: 0.25;
+  stroke-width: 2;
 }
 .cd-line {
-  stroke-width: 4;
+  stroke-width: 5;
   stroke-linecap: round;
   stroke-linejoin: round;
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.5));
 }
 .cd-line-0 {
   stroke: var(--color-accent);
@@ -158,7 +190,8 @@ html[data-score-position='bottom'] .zone-card .c-card {
 }
 .cd-legend {
   font-family: var(--font-numbers, sans-serif);
-  font-size: 26px;
+  font-size: 28px;
+  font-weight: 800;
 }
 .cd-legend-0 {
   color: var(--color-accent);
@@ -167,45 +200,60 @@ html[data-score-position='bottom'] .zone-card .c-card {
   color: var(--color-accent2);
 }
 .cd-wheel {
-  width: 260px;
-  height: 260px;
+  width: 280px;
+  height: 280px;
   justify-self: center;
+  filter: drop-shadow(0 8px 24px rgba(0, 0, 0, 0.5));
 }
 .cd-sector {
-  fill: rgba(255, 255, 255, 0.08);
+  fill: rgba(255, 255, 255, 0.06);
   stroke: var(--color-surface);
   stroke-width: 3;
+  transition: fill 0.3s ease;
+}
+.cd-sector:hover {
+  fill: rgba(255, 255, 255, 0.12);
 }
 .cd-fow {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px 24px;
+  gap: 12px 32px;
   margin: 0;
   padding-left: 0;
   list-style: none;
   font-family: var(--font-numbers, sans-serif);
-  font-size: 32px;
+  font-size: 36px;
+  font-weight: 800;
 }
 .cd-fow-sub {
   display: block;
   font-family: var(--font-body, sans-serif);
-  font-size: 15px;
+  font-size: 16px;
   opacity: 0.7;
+  font-weight: 600;
 }
 .cd-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 26px;
+  font-size: 28px;
+  font-weight: 700;
 }
 .cd-table th {
   text-align: left;
   font-size: 14px;
-  letter-spacing: 0.1em;
-  opacity: 0.6;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  opacity: 0.7;
+  padding-bottom: 8px;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.1);
 }
 .cd-table td,
 .cd-table th {
-  padding: 4px 8px 4px 0;
+  padding: 8px 12px 8px 0;
+}
+.cd-table tr {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 /* gallery (?gallery=1) */
@@ -233,4 +281,53 @@ html[data-score-position='bottom'] .zone-card .c-card {
 }
 [data-card-width='wide'] .zone-card {
   width: 1200px;
+}
+
+/* Arena mode: cards overlay the video center, side rails dim when a card is on air -----
+   A card on air is an explicit operator/director action, so it also shows above the
+   full-screen scenes (pre-match, result) — stats stay reachable after stumps. */
+#stage[data-layout='arena'] .zone-card {
+  top: 180px;
+  bottom: 220px;
+  width: 1100px;
+  transform: translateX(-50%) scale(calc(var(--card-scale, 1) * var(--layout-card-scale, 1)));
+  transform-origin: 50% 50%;
+  z-index: 35;
+}
+
+#stage[data-layout='arena'] .zone-card[data-on-air] {
+  z-index: 55;
+}
+
+#stage[data-layout='arena']:has(.zone-card[data-on-air]) .zone-left,
+#stage[data-layout='arena']:has(.zone-card[data-on-air]) .zone-right {
+  opacity: 0.12;
+}
+
+#stage[data-layout='arena'] .zone-left,
+#stage[data-layout='arena'] .zone-right {
+  transition: opacity 0.35s ease;
+}
+
+/* Fullscreen mode: cards take the full canvas with generous padding */
+#stage[data-layout='fullscreen'] .zone-card {
+  top: 60px;
+  bottom: 60px;
+  width: 1600px;
+  transform: translateX(-50%) scale(calc(var(--card-scale, 1) * var(--layout-card-scale, 1)));
+  transform-origin: 50% 50%;
+  z-index: 35;
+}
+
+#stage[data-layout='fullscreen'] .zone-card[data-on-air] {
+  z-index: 55;
+}
+
+/* Ticker mode: cards stay at bottom, narrow */
+#stage[data-layout='ticker'] .zone-card {
+  top: auto;
+  bottom: 80px;
+  width: 960px;
+  transform: translateX(-50%) scale(calc(var(--card-scale, 1) * var(--layout-card-scale, 1)));
+  transform-origin: 50% 100%;
 }

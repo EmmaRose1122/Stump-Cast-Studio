@@ -200,8 +200,16 @@ export class ManualProvider implements MatchProvider {
   }
 
   /** Re-publish every match, e.g. after a restart, so the engine has state straight away. */
-  republishAll(): void {
-    for (const m of this.matches.values()) this.publish(m);
+  republishAll(onError?: (matchId: string, err: unknown) => void): void {
+    for (const m of this.matches.values()) {
+      // One stored command the engine cannot replay must not stop the studio from starting at all.
+      try {
+        this.publish(m);
+      } catch (err) {
+        if (onError) onError(m.id, err);
+        else console.error(`manual match ${m.id} could not be replayed`, err);
+      }
+    }
   }
 }
 

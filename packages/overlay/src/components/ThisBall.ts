@@ -24,7 +24,9 @@ export class ThisBall extends OverlayComponent {
   }
 
   update(state: MatchState): void {
-    const last = state.lastBalls.at(-1);
+    // The over in progress is the fresher source: the site's "recent balls" strip can lag a
+    // delivery behind, and a wicket then goes out live labelled a dot ball.
+    const last = state.thisOver.at(-1) ?? state.lastBalls.at(-1);
     if (!last) {
       this.value.textContent = '—';
       this.detail.textContent = 'Waiting for delivery';

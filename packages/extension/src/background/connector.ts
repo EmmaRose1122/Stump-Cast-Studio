@@ -523,7 +523,11 @@ export class Connector {
       this.startTimers();
       this.sendHeartbeat();
     } else if (msg.data.type === 'command') {
-      void this.handleCommand(msg.data as unknown as ExtCommand);
+      // A tab that is already gone makes close/focus reject; that must not surface as an
+      // unhandled rejection inside the service worker.
+      void this.handleCommand(msg.data as unknown as ExtCommand).catch((err: unknown) =>
+        console.warn('[StumpCast] command failed', err),
+      );
     }
   }
 
@@ -643,8 +647,14 @@ export class Connector {
       }
       case 'closeMatch': {
         const t = this.tracked.get(cmd.matchId);
-        if (t?.tabId != null) await this.deps.tabs.close(t.tabId);
-        this.tracked.delete(cmd.matchId);
+        try {
+          if (t?.tabId != null) await this.deps.tabs.close(t.tabId);
+        } finally {
+          // Even if the tab was already closed, stop tracking it — and write that down, or a
+          // service-worker restart brings the ghost tab back into the admin's match list.
+          this.tracked.delete(cmd.matchId);
+          this.persistTracked();
+        }
         return;
       }
       case 'reloadSelectors':

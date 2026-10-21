@@ -30,6 +30,21 @@ export class EventDetector {
     this.resyncing.add(matchId);
   }
 
+  /**
+   * Drop everything remembered about a match. Called when the operator undoes a ball or the match
+   * is deleted: without it, re-scoring the same ball finds its event id already in `seen` and
+   * fires nothing at all — the score moves on air while the moment stays silent.
+   */
+  forget(matchId: string): void {
+    const prefix = `${matchId}:`;
+    for (const id of [...this.seen]) if (id.startsWith(prefix)) this.seen.delete(id);
+    for (const key of [...this.extrasInSlot.keys()]) {
+      if (key.startsWith(prefix)) this.extrasInSlot.delete(key);
+    }
+    this.last.delete(matchId);
+    this.resyncing.delete(matchId);
+  }
+
   /** External providers may flag a DRS review; this turns that into a DRS event. */
   drs(state: MatchState, payload: Record<string, unknown> = {}): EngineEvent | null {
     const key = `${state.id}:${state.currentInnings}:DRS:${legalBalls(state)}:${state.score.runs}`;

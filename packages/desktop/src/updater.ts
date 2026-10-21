@@ -103,7 +103,9 @@ export const launchInstallerAndExit = (
   try {
     const child = spawnFn(installerPath, [], { detached: true, stdio: 'ignore' });
     child.unref();
-    exitFn();
+    setTimeout(() => {
+      exitFn();
+    }, 600);
     return true;
   } catch {
     return false;

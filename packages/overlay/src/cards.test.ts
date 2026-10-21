@@ -208,6 +208,35 @@ describe('CardManager', () => {
     expect(m.activeId).toBeNull();
   });
 
+  it('marks the zone while a card is on air so the arena CSS can clear the rails', () => {
+    const { m, zone } = setup();
+    m.updateMatch(t20);
+    m.apply({ cardId: 'partnership', durationSec: 8, source: 'operator' });
+    expect(zone.dataset.onAir).toBe('partnership');
+    m.apply(null);
+    expect(zone.hasAttribute('data-on-air')).toBe(false);
+  });
+
+  it('rescales itself when the stage layout changes', async () => {
+    const stage = document.createElement('div');
+    stage.id = 'stage';
+    const zone = document.createElement('div');
+    stage.append(zone);
+    const m = new CardManager(zone, graphiteTeal, CARD_DEFS);
+    const settle = () => new Promise((r) => setTimeout(r, 0));
+    expect(zone.style.getPropertyValue('--layout-card-scale')).toBe('1');
+    stage.dataset.layout = 'fullscreen';
+    await settle();
+    expect(zone.style.getPropertyValue('--layout-card-scale')).toBe('1.15');
+    stage.dataset.layout = 'ticker';
+    await settle();
+    expect(zone.style.getPropertyValue('--layout-card-scale')).toBe('0.85');
+    stage.dataset.layout = 'arena';
+    await settle();
+    expect(zone.style.getPropertyValue('--layout-card-scale')).toBe('1');
+    m.destroy();
+  });
+
   it('swallows a history fetch that rejects', async () => {
     const { m } = setup(async () => {
       throw new Error('boom');

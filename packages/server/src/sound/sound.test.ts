@@ -1,11 +1,13 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import WebSocket from 'ws';
+import { fixtures, type EngineEvent } from '@stumpcast/shared';
 import { buildApp, type StumpCastApp } from '../app';
 import { loadConfig } from '../config';
 import { sniffAudio } from './SoundService';
+import { CommentaryService } from './CommentaryService';
 import { SAMPLE_RATE, SAMPLE_SOUNDS, encodeWav } from './wav';
 
 const tone = (seconds = 0.2) => {
@@ -222,5 +224,69 @@ describe('sound HTTP API', () => {
     );
     void base;
     ws.close();
+  });
+});
+
+describe('CommentaryService language & AI narration', () => {
+  const ev = (type: string): EngineEvent =>
+    ({ id: 'e1', matchId: 'm1', type, at: '2026-01-01T00:00:00.000Z', payload: {} }) as EngineEvent;
+
+  it('writes Hindi by default and Urdu when configured', () => {
+    const c = new CommentaryService();
+    const hi = c.onEvent(ev('FOUR'), fixtures.t20);
+    expect(hi?.text).toMatch(/[ऀ-ॿ]/);
+    expect(hi?.lang).toBe('hi');
+
+    c.updateConfig({ language: 'ur' });
+    const ur = c.onEvent(ev('FOUR'), fixtures.t20);
+    expect(ur?.text).toMatch(/[؀-ۿ]/);
+    expect(ur?.lang).toBe('ur');
+  });
+
+  it('uses the model line when it answers', async () => {
+    const c = new CommentaryService();
+    c.setGenerator(async () => 'मॉडल की लाइन — यह असली टिप्पणी है।');
+    const item = await c.onEventAsync(ev('SIX'), fixtures.t20);
+    expect(item?.text).toBe('मॉडल की लाइन — यह असली टिप्पणी है।');
+  });
+
+  it('keeps the phrasebook line when the model fails, so the voice is never silent', async () => {
+    const c = new CommentaryService();
+    c.setGenerator(async () => {
+      throw new Error('offline');
+    });
+    const item = await c.onEventAsync(ev('SIX'), fixtures.t20);
+    expect(item?.text).toMatch(/[ऀ-ॿ]/);
+    expect(item?.text.length).toBeGreaterThan(8);
+  });
+
+  it('does not claim AI narration without a key', () => {
+    const c = new CommentaryService();
+    c.setGenerator(async () => 'x');
+    expect(c.aiActive).toBe(true);
+    c.setGenerator(async () => 'x', () => false);
+    expect(c.aiActive).toBe(false);
+    c.updateConfig({ ai: false });
+    expect(c.aiActive).toBe(false);
+  });
+
+  it('ignores the model when AI is switched off', async () => {
+    const c = new CommentaryService({ ai: false });
+    const gen = vi.fn(async () => 'should not be used');
+    c.setGenerator(gen);
+    const item = await c.onEventAsync(ev('FOUR'), fixtures.t20);
+    expect(gen).not.toHaveBeenCalled();
+    expect(item?.text).not.toBe('should not be used');
+  });
+
+  it('fills the gaps between events with a ball line, and never repeats one', async () => {
+    let t = 10_000; // past the minimum gap from the service's zeroed clock
+    const c = new CommentaryService({}, () => t);
+    const first = await c.onBallAsync(fixtures.t20);
+    expect(first?.text).toMatch(/[ऀ-ॿ]/);
+    expect(await c.onBallAsync(fixtures.t20)).toBeNull(); // same delivery, no repeat
+    t += 10_000;
+    const moved = { ...fixtures.t20, score: { runs: 105, wkts: 2, overs: 12, balls: 1 } };
+    expect((await c.onBallAsync(moved))?.text).toBeTruthy();
   });
 });

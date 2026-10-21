@@ -109,7 +109,8 @@ describe('createAdapter (JSON strategy)', () => {
     const u = run(h, html(), [tap]);
     expect(h.diagnostics()?.strategy).toBe('json');
     expect(u.fields.innings[0]).toMatchObject({ runs: 110, wkts: 3, overs: 13 });
-    expect(u.fields.batters).toEqual([]); // runs/balls were not in the tap
+    // The tap names the batter but has no figures; the page has them, and the merge fills the gap.
+    expect(u.fields.batters).toEqual([{ name: 'Babar Azam', runs: 41, balls: 28 }]);
   });
 
   it('uses the DOM when the JSON tap is partial and the DOM is better', () => {
@@ -266,5 +267,91 @@ describe('fields that used to be invented from adjacent text', () => {
     expect(u.fields.toss).toBeUndefined();
     expect(u.fields.innings[0]).toMatchObject({ runs: 145, wkts: 3, overs: 16 });
     expect(u.confidence).toBe(1);
+  });
+});
+
+describe('jsonTap templates', () => {
+  const cfg = () =>
+    makeConfig({
+      jsonTaps: [
+        {
+          urlRegex: 'api/live',
+          map: {
+            score: '${s.runs}/${s.wkts}',
+            overs: 's.ov',
+            status: 'live.status',
+            format: 's.format',
+          },
+        },
+        {
+          urlRegex: 'api/meta',
+          map: {
+            title: '${t1.name} vs ${t2.name}, ${desc}',
+            team1: 't1.name',
+            team2: 't2.name',
+          },
+        },
+      ],
+      minConfidenceFields: ['score', 'overs'],
+    });
+  const meta = { url: 'https://example.invalid/api/meta', json: { t1: { name: 'Pakistan' }, t2: { name: 'England' }, desc: '2nd Match' } };
+
+  it('composes one field out of several JSON keys', () => {
+    const u = run(createAdapter(cfg()), '<h1 class="t">A v B</h1>', [
+      { url: 'https://example.invalid/api/live', json: { s: { runs: 197, wkts: 6, ov: '34.5', format: 'ODI' } } },
+    ]);
+    expect(u.confidence).toBe(1);
+    expect(u.fields.innings[0]).toEqual({ team: '', runs: 197, wkts: 6, overs: 34, balls: 5 });
+    expect(u.fields.format).toBe('ODI');
+  });
+
+  it('drops a composed value when any part is missing', () => {
+    const u = run(createAdapter(cfg()), '<h1 class="t">A v B</h1>', [
+      { url: 'https://example.invalid/api/live', json: { s: { runs: 197, ov: '34.5' } } },
+    ]);
+    expect(u.fields.innings).toEqual([]);
+    expect(u.missing).toEqual(['score', 'overs']);
+    expect(isDegraded(u)).toBe(true);
+  });
+
+  it('will not turn a title-only read into a confident 0-0 match', () => {
+    const h = createAdapter(cfg());
+    const u = run(h, '<h1 class="t">2nd Match</h1>', [meta]);
+    expect(u.confidence).toBe(0);
+    expect(u.fields.innings).toEqual([]);
+    expect(u.fields.preMatch).toBeUndefined();
+    expect(h.diagnostics()?.strategy).toBe('none');
+  });
+
+  it('keeps a real preview page and marks the 0-0 as not yet played', () => {
+    const u = run(createAdapter(cfg()), '<div class="st">nothing</div>', [
+      meta,
+      { url: 'https://example.invalid/api/live', json: { live: { status: 'Match starts at 1:30 PM' } } },
+    ]);
+    expect(u.fields.innings).toEqual([{ team: 'Pakistan', runs: 0, wkts: 0, overs: 0, balls: 0 }]);
+    expect(u.fields.preMatch).toBe(true);
+  });
+
+  it('never lets the invented 0-0 outrank a page the DOM can really read', () => {
+    const h = createAdapter(cfg());
+    const u = run(h, html(), [
+      meta,
+      { url: 'https://example.invalid/api/live', json: { live: { status: 'Match starts at 1:30 PM' } } },
+    ]);
+    expect(h.diagnostics()).toMatchObject({ jsonConfidence: 1, domConfidence: 1, strategy: 'dom' });
+    expect(u.fields.innings[0]).toMatchObject({ runs: 98, wkts: 2 });
+    expect(u.fields.preMatch).toBeUndefined();
+  });
+
+  it('fills the fields only the page shows from the DOM, while the response still wins', () => {
+    const withVenue = cfg();
+    withVenue.dom.venue = { selectors: ['.v'] };
+    const h = createAdapter(withVenue);
+    const u = run(h, '<div class="v">Rawalpindi Cricket Stadium</div>', [
+      { url: 'https://example.invalid/api/live', json: { s: { runs: 197, wkts: 6, ov: '34.5' } } },
+    ]);
+    expect(h.diagnostics()?.strategy).toBe('json');
+    expect(u.fields.innings[0]).toMatchObject({ runs: 197, wkts: 6 });
+    expect(u.fields.venue).toBe('Rawalpindi Cricket Stadium');
   });
 });

@@ -1,11 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import {
-  buildBallCommentary,
-  buildEventCommentary,
-  type CommentaryLanguage,
-  type EngineEvent,
-  type MatchState,
-} from './commentary';
+import { buildBallCommentary, buildEventCommentary, type CommentaryLanguage } from './commentary';
+import type { EngineEvent } from './event';
+import type { MatchState } from './match';
 import { createMatchState } from './factories';
 import { fixtures } from './fixtures';
 
@@ -31,10 +27,28 @@ describe('buildEventCommentary', () => {
   });
 
   it('writes Urdu in Nastaliq when the language is ur', () => {
-    const line = buildEventCommentary(ev('SIX', { batter: 'Babar Azam' }), state, 'ur');
-    expect(line).toContain('Babar Azam');
-    expect(line).toMatch(NASTALIQ);
-    expect(line).not.toMatch(DEVANAGARI);
+    for (let i = 0; i < 200; i++) {
+      const line = buildEventCommentary(ev('SIX', { batter: 'Babar Azam' }), state, 'ur');
+      expect(line).toContain('Babar Azam');
+      expect(line).toMatch(NASTALIQ);
+      expect(line).not.toMatch(DEVANAGARI);
+    }
+  });
+
+  it('never mixes scripts inside one language', () => {
+    const types: EngineEvent['type'][] = ['FOUR','SIX','WICKET','FIFTY','HUNDRED','OVER_END','DRS','INNINGS_END'];
+    for (const type of types) {
+      for (let i = 0; i < 60; i++) {
+        const hi = buildEventCommentary(ev(type), state, 'hi');
+        expect(hi, `hi/${type}`).not.toMatch(NASTALIQ);
+        const ur = buildEventCommentary(ev(type), state, 'ur');
+        expect(ur, `ur/${type}`).not.toMatch(DEVANAGARI);
+        const ballHi = buildBallCommentary(state, 'hi') ?? '';
+        expect(ballHi).not.toMatch(NASTALIQ);
+        const ballUr = buildBallCommentary(state, 'ur') ?? '';
+        expect(ballUr).not.toMatch(DEVANAGARI);
+      }
+    }
   });
 
   it('writes English when asked', () => {

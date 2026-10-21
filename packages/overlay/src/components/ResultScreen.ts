@@ -179,14 +179,27 @@ export class ResultScreen extends OverlayComponent {
       this.e.inningsRows.appendChild(row);
     }
 
-    // Top Batters
+    // Top Batters. The state only carries the pair at the crease, so after the innings is over that
+    // is the last pair of the match — the accumulated best figures are what a result screen wants.
     this.e.topBatters.replaceChildren();
-    const liveBatters = s.batters.filter((b) => b.name && b.name !== '—');
+    const liveBatters = s.topBatters?.length
+      ? s.topBatters
+      : s.batters.filter((b) => b.name && b.name !== '—').map((b) => ({
+          playerId: b.playerId,
+          name: b.name,
+          runs: b.runs,
+          balls: b.balls,
+          fours: b.fours,
+          sixes: b.sixes,
+          innings: s.currentInnings,
+        }));
     if (liveBatters.length > 0) {
       for (const b of liveBatters) {
         const el = document.createElement('div');
         el.className = 'rs-performer-row';
         const sr = b.balls > 0 ? ((b.runs / b.balls) * 100).toFixed(1) : '0.0';
+        const boundary =
+          b.fours > 0 || b.sixes > 0 ? `<span class="rs-p-bound">${b.fours}×4 ${b.sixes}×6</span>` : '';
         el.innerHTML = `
           <div class="rs-p-identity">
             <span class="rs-p-bullet"></span>
@@ -195,6 +208,7 @@ export class ResultScreen extends OverlayComponent {
           <div class="rs-p-figures">
             <strong class="rs-p-primary">${b.runs}</strong>
             <span class="rs-p-secondary">(${b.balls})</span>
+            ${boundary}
             <span class="rs-p-extra">SR ${sr}</span>
           </div>
         `;
@@ -206,23 +220,29 @@ export class ResultScreen extends OverlayComponent {
 
     // Top Bowlers
     this.e.topBowlers.replaceChildren();
-    if (s.bowler && s.bowler.name && s.bowler.name !== '—') {
-      const b = s.bowler;
-      const el = document.createElement('div');
-      el.className = 'rs-performer-row';
-      const econ = b.overs > 0 ? (b.runs / (b.overs + b.balls / 6)).toFixed(2) : '0.00';
-      el.innerHTML = `
-        <div class="rs-p-identity">
-          <span class="rs-p-bullet"></span>
-          <span class="rs-p-name">${b.name.toUpperCase()}</span>
-        </div>
-        <div class="rs-p-figures">
-          <strong class="rs-p-primary">${b.wkts}-${b.runs}</strong>
-          <span class="rs-p-secondary">(${b.overs}.${b.balls})</span>
-          <span class="rs-p-extra">ECON ${econ}</span>
-        </div>
-      `;
-      this.e.topBowlers.appendChild(el);
+    const liveBowlers = s.topBowlers?.length
+      ? s.topBowlers
+      : s.bowler && s.bowler.name && s.bowler.name !== '—'
+        ? [{ ...s.bowler, innings: s.currentInnings }]
+        : [];
+    if (liveBowlers.length > 0) {
+      for (const b of liveBowlers) {
+        const el = document.createElement('div');
+        el.className = 'rs-performer-row';
+        const econ = b.overs > 0 ? (b.runs / (b.overs + b.balls / 6)).toFixed(2) : '0.00';
+        el.innerHTML = `
+          <div class="rs-p-identity">
+            <span class="rs-p-bullet"></span>
+            <span class="rs-p-name">${b.name.toUpperCase()}</span>
+          </div>
+          <div class="rs-p-figures">
+            <strong class="rs-p-primary">${b.wkts}-${b.runs}</strong>
+            <span class="rs-p-secondary">(${b.overs}.${b.balls})</span>
+            <span class="rs-p-extra">ECON ${econ}</span>
+          </div>
+        `;
+        this.e.topBowlers.appendChild(el);
+      }
     } else {
       this.e.topBowlers.appendChild(emptyRow('BOWLING NOT PROVIDED'));
     }

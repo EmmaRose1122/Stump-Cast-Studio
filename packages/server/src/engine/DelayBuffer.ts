@@ -52,7 +52,7 @@ export class DelayBuffer<T> {
   push(value: T): void {
     // Pass straight through only when nothing is waiting, otherwise order would break.
     if (this.delayMs === 0 && this.queue.length === 0) {
-      this.release(value);
+      this.releaseOne(value);
       return;
     }
     this.queue.push({ value, enqueuedAt: this.sched.now() });
@@ -93,7 +93,16 @@ export class DelayBuffer<T> {
         return;
       }
       this.queue.shift();
-      this.release(head.value);
+      this.releaseOne(head.value);
+    }
+  }
+
+  /** One entry the consumer cannot handle must not strand every entry behind it. */
+  private releaseOne(value: T): void {
+    try {
+      this.release(value);
+    } catch (err) {
+      console.error('delay buffer release failed', err);
     }
   }
 

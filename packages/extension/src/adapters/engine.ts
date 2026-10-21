@@ -62,6 +62,30 @@ const applyTransform = (value: string, t: DomRule['transform']): string => {
   }
 };
 
+/**
+ * Read one `jsonTaps` value. A plain path returns the value at that path; a `${path}` template
+ * returns the composed text, but only when every placeholder resolved — half a score is worse
+ * than no score, because "197/" would parse as a bare total.
+ */
+const readTapValue = (json: unknown, spec: string): string | undefined => {
+  if (!spec.includes('${')) {
+    const v = readPath(json, spec);
+    return (typeof v === 'string' || typeof v === 'number') && String(v).trim() !== ''
+      ? String(v).trim()
+      : undefined;
+  }
+  let missing = false;
+  const out = spec.replace(/\$\{([^{}]*)\}/g, (_match, path: string) => {
+    const v = readTapValue(json, path.trim());
+    if (v === undefined) {
+      missing = true;
+      return '';
+    }
+    return v;
+  });
+  return missing || out.trim() === '' ? undefined : out.trim();
+};
+
 export const extractJson = (config: SelectorConfig, taps: TapResponse[]): Raw => {
   const out: Raw = {};
   for (const tap of config.jsonTaps) {
@@ -70,10 +94,8 @@ export const extractJson = (config: SelectorConfig, taps: TapResponse[]): Raw =>
       if (!re.test(response.url)) continue;
       for (const [field, path] of Object.entries(tap.map)) {
         if (!path) continue;
-        const v = readPath(response.json, path);
-        if ((typeof v === 'string' || typeof v === 'number') && String(v).trim() !== '') {
-          out[field as FieldKey] ??= String(v).trim();
-        }
+        const v = readTapValue(response.json, path);
+        if (v !== undefined) out[field as FieldKey] ??= v;
       }
     }
   }
@@ -182,12 +204,16 @@ export const extractDom = (config: SelectorConfig, doc: Document): Raw => {
 interface Normalised {
   fields: Fields;
   passed: Set<FieldKey>;
+  /** True when the only innings is the invented 0-0 of a match that has not started. */
+  synthetic: boolean;
 }
 
 interface Prev {
   inningsCount: number;
   runs: number;
 }
+
+const FORMATS = ['T20', 'ODI', 'TEST', 'OTHER'] as const;
 
 const normalise = (raw: Raw, prev: Prev | undefined, site = 'cricbuzz', url = ''): Normalised => {
   const passed = new Set<FieldKey>();
@@ -328,19 +354,14 @@ const normalise = (raw: Raw, prev: Prev | undefined, site = 'cricbuzz', url = ''
 
   // Pre-match / toss support: when match hasn't started yet, generate a 0/0 (0 ov) initial innings
   const rawStatus = text('status') ?? '';
+  // Only the page's own words may claim a match has not started. A blank read looks identical to
+  // a preview once every selector misses, and inventing a confident 0-0 match is how placeholder
+  // rows ("Batting vs Team B") reached the studio.
   const isPreMatch =
-    /(?:opt|toss|preview|starts|delayed|yet to start)/i.test(rawStatus) ||
-    Boolean(tossText);
+    /(?:opt|toss|preview|starts|delayed|yet to start)/i.test(rawStatus) || Boolean(tossText);
+  let synthetic = false;
 
-  // Nothing on the page even suggests a ball has been bowled — not just a failed score selector.
-  const nothingPlayed =
-    !text('score') &&
-    !text('overs') &&
-    !text('batter1.name') &&
-    !text('bowler.name') &&
-    !text('thisOver');
-
-  if (innings.length === 0 && (isPreMatch || nothingPlayed) && (rawTitle || team1Name)) {
+  if (innings.length === 0 && isPreMatch && (rawTitle || team1Name)) {
     const tossWinner = tossText
       ? team1Name && tossText.toLowerCase().includes(team1Name.toLowerCase())
         ? team1Name
@@ -371,6 +392,7 @@ const normalise = (raw: Raw, prev: Prev | undefined, site = 'cricbuzz', url = ''
     });
     pass('score', true);
     pass('overs', true);
+    synthetic = true;
   }
 
   // Batters and bowler.
@@ -438,6 +460,11 @@ const normalise = (raw: Raw, prev: Prev | undefined, site = 'cricbuzz', url = ''
     .filter((t): t is string => Boolean(t))
     .map((name) => ({ name }));
 
+  // A source that states the format is better than guessing from the page title, and the format
+  // is what fixes the overs limit for every chase calculation downstream.
+  const scrapedFormat = FORMATS.find((x) => x === text('format')?.trim().toUpperCase());
+  pass('format', scrapedFormat !== undefined);
+
   const fields: Fields = {
     title: text('title'),
     status: text('status'),
@@ -457,8 +484,10 @@ const normalise = (raw: Raw, prev: Prev | undefined, site = 'cricbuzz', url = ''
     ...(text('session') || dayStatus?.session ? { session: text('session') ?? dayStatus?.session } : {}),
     ...(text('resultText') || dayStatus?.resultText ? { resultText: text('resultText') ?? dayStatus?.resultText } : {}),
     ...(text('commentaryLast') ? { commentaryLast: text('commentaryLast') } : {}),
+    ...(scrapedFormat ? { format: scrapedFormat } : {}),
+    ...(synthetic ? { preMatch: true } : {}),
   };
-  return { fields, passed };
+  return { fields, passed, synthetic };
 };
 
 const confidenceOf = (config: SelectorConfig, passed: Set<FieldKey>): number => {
@@ -518,23 +547,40 @@ export const createAdapter = (config: SelectorConfig): AdapterHandle => {
     try {
       const prev = previous.get(matchId);
       const rawJson = extractJson(config, input.taps);
+      const domRaw = extractDom(config, input.document);
       const json = normalise(rawJson, prev, config.site);
-      const dom = normalise(extractDom(config, input.document), prev, config.site, input.url);
+      const dom = normalise(domRaw, prev, config.site, input.url);
       const jsonConf = Object.keys(rawJson).length > 0 ? confidenceOf(config, json.passed) : 0;
       const domConf = confidenceOf(config, dom.passed);
 
-      // Prefer JSON unless the DOM is strictly better.
-      const useJson = jsonConf > 0 && jsonConf >= domConf;
+      // A real innings outranks an invented pre-match 0-0. Within the same class the higher
+      // confidence wins, and a tie still goes to JSON, whose shapes rot less often than the DOM's.
+      const useJson =
+        jsonConf > 0 &&
+        (jsonConf > domConf ||
+          (jsonConf === domConf && !(json.synthetic && !dom.synthetic)));
       const chosen = useJson ? json : dom;
       const confidence = useJson ? jsonConf : domConf;
       const strategy: Strategy = confidence === 0 ? 'none' : useJson ? 'json' : 'dom';
       const missing = config.minConfidenceFields.filter((k) => !chosen.passed.has(k));
       last = { strategy, jsonConfidence: jsonConf, domConfidence: domConf, missing };
 
-      const inn = chosen.fields.innings.at(-1);
+      // The two sources see different halves of the page: the response the site polls carries the
+      // numbers, the markup carries what that response never sent (the venue, the team names on a
+      // preview). Keep everything the winning source read and fill only its gaps from the other,
+      // then re-normalise so the extras go through the same sanity checks.
+      const merged = normalise(
+        { ...(useJson ? domRaw : rawJson), ...(useJson ? rawJson : domRaw) },
+        prev,
+        config.site,
+        input.url,
+      );
+      const fields = merged.fields;
+
+      const inn = fields.innings.at(-1);
       if (confidence >= MIN_CONFIDENCE && inn) {
         previous.set(matchId, {
-          inningsCount: chosen.fields.innings.length,
+          inningsCount: fields.innings.length,
           runs: inn.runs,
         });
       }
@@ -544,7 +590,7 @@ export const createAdapter = (config: SelectorConfig): AdapterHandle => {
         url: input.url,
         capturedAt: input.now,
         confidence,
-        fields: chosen.fields,
+        fields,
         missing,
       };
     } catch (err) {

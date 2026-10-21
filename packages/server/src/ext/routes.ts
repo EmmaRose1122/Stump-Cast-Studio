@@ -124,9 +124,21 @@ export function onAirHeroUpdateToRaw(payload: any): RawUpdate | null {
     teams = uniqueTeams.slice(0, 2).map((t) => ({ name: t, short: t.slice(0, 4).toUpperCase() }));
   }
 
-  const recentBalls: string[] = Array.isArray(payload.recentBalls)
-    ? payload.recentBalls.map((b: any) => String(b).trim()).filter(Boolean)
-    : [];
+  // Scrapers spell the ball list differently and /ingest is an open door, so a key mismatch must
+  // not silently cost the ball history: the ball-by-ball popup and the last-six rail both die
+  // without it.
+  const ballTokens = (v: unknown): string[] =>
+    Array.isArray(v) ? v.map((b: any) => String(b).trim()).filter(Boolean) : [];
+
+  const recentBalls = ballTokens(
+    payload.recentBalls ?? payload.recentOvers ?? payload.lastBalls ?? payload.thisOver,
+  );
+  const ballsThisOver = innings.at(-1)?.balls ?? 0;
+  // A mixed "recent overs" list ends with the balls of the over in progress; `balls` is 0 right
+  // after an over ends, and then the whole list is that over.
+  const fromMixedList = ballsThisOver > 0 ? recentBalls.slice(-ballsThisOver) : recentBalls;
+  const thisOverTokens = ballTokens(payload.thisOver);
+  const lastBallsTokens = ballTokens(payload.lastBalls);
 
   let partnership: { runs: number; balls: number } | undefined = undefined;
   const pData = payload.stats?.partnership || payload.partnership;
@@ -175,8 +187,8 @@ export function onAirHeroUpdateToRaw(payload: any): RawUpdate | null {
       innings,
       batters,
       bowler,
-      thisOver: recentBalls,
-      lastBalls: recentBalls,
+      thisOver: thisOverTokens.length > 0 ? thisOverTokens : fromMixedList,
+      lastBalls: lastBallsTokens.length > 0 ? lastBallsTokens : recentBalls,
       partnership,
       target: target && !isNaN(target) ? target : undefined,
       crr: crr != null && !isNaN(Number(crr)) ? Number(crr) : undefined,
@@ -272,10 +284,7 @@ export const registerExtRoutes = (
   // ---- Selectors hot-fix pipeline (X5) --------------------------------------------------
   fastify.get('/api/ext/selectors', async () => selectors?.getActiveBundle());
   fastify.get('/api/ext/selectors/status', async () => selectors?.getStatus());
-  fastify.post('/api/ext/selectors/check', async (req) => {
-    const body = req.body as { url?: string } | undefined;
-    return selectors?.checkRemote(body?.url);
-  });
+  fastify.post('/api/ext/selectors/check', async () => selectors?.checkRemote());
   fastify.post('/api/ext/selectors/rollback', async () => selectors?.rollback());
   fastify.post('/api/ext/selectors/install', async (req, reply) => {
     try {

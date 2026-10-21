@@ -4093,6 +4093,13 @@ html[data-score-bar='flat'] .c-scorebar,
   border-radius: 4px;
 }
 
+.rs-p-bound {
+  font-family: var(--font-numbers, sans-serif);
+  font-size: 12px;
+  font-weight: 700;
+  color: #fde68a;
+}
+
 /* PRE-MATCH SCREEN STYLING */
 .c-prematch-screen {
   display: none;
@@ -4695,22 +4702,20 @@ html[data-score-bar='flat'] .c-scorebar,
 .c-score-pop {
   display: none;
 }
-/* Ball-to-ball score, in the band directly under the centre video. Deliberately wider than the
-   980px video so it reads as its own broadcast strip rather than a caption of the frame. */
-#stage[data-layout='arena'] .c-score-pop,
-[data-layout='arena'] .c-score-pop,
-#stage[data-layout='arena'][data-composition] .c-score-pop {
+/* Visible in every layout: it used to be arena-only, so switching layout left the operator with
+   no ball-by-ball figure at all. Anchored bottom-centre by default, above whatever the layout
+   parks along the bottom edge. */
+.c-score-pop:not([hidden]) {
   display: grid;
   grid-template-columns: auto auto minmax(0, 1fr) auto;
   align-items: center;
   gap: 26px;
   position: absolute;
   left: 50%;
-  top: calc(172px + 530px * var(--card-scale) + 10px);
-  width: 1180px;
+  bottom: 56px;
+  width: min(1180px, 76%);
   box-sizing: border-box;
-  transform: translateX(-50%) scale(var(--card-scale));
-  transform-origin: 50% 0;
+  transform: translateX(-50%);
   padding: 14px 26px;
   background: linear-gradient(90deg, rgba(6, 10, 18, 0.97) 0%, rgba(10, 18, 28, 0.93) 55%, rgba(6, 10, 18, 0.86) 100%);
   border: 1px solid var(--color-accent, rgba(245, 158, 11, 0.6));
@@ -4718,8 +4723,31 @@ html[data-score-bar='flat'] .c-scorebar,
   border-radius: 12px;
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.75);
   font-family: var(--font-heading, sans-serif);
-  z-index: 8;
+  z-index: 30;
   pointer-events: none;
+}
+/* ticker parks a full-width strip on the bottom edge; classic parks the scorebar bottom-left;
+   fullscreen can park the scorebar on the bottom edge. The pop clears all of them. */
+[data-layout='ticker'] .c-score-pop:not([hidden]),
+[data-layout='classic'] .c-score-pop:not([hidden]),
+#stage[data-layout='ticker'] .c-score-pop:not([hidden]),
+#stage[data-layout='classic'] .c-score-pop:not([hidden]) {
+  bottom: 190px;
+}
+html[data-score-position='bottom'] [data-layout='fullscreen'] .c-score-pop:not([hidden]),
+html[data-score-position='bottom'] #stage[data-layout='fullscreen'] .c-score-pop:not([hidden]) {
+  bottom: 330px;
+}
+/* Ball-to-ball score, in the band directly under the centre video. Deliberately wider than the
+   980px video so it reads as its own broadcast strip rather than a caption of the frame. */
+#stage[data-layout='arena'] .c-score-pop:not([hidden]),
+[data-layout='arena'] .c-score-pop:not([hidden]),
+#stage[data-layout='arena'][data-composition] .c-score-pop:not([hidden]) {
+  bottom: auto;
+  top: calc(172px + 530px * var(--card-scale) + 10px);
+  width: 1180px;
+  transform: translateX(-50%) scale(var(--card-scale));
+  transform-origin: 50% 0;
 }
 #stage .c-score-pop[hidden] {
   display: none;

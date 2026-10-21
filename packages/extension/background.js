@@ -20,21 +20,61 @@
     matchIdRegex: "/(?:live-cricket-scores|cricket-scores|live-cricket-scorecard|cricket-match-highlights|live-cricket-score|cricket-commentary|cricket-scorecard|cricket-match-facts|cricket-match-squads)/(\\d+)",
     jsonTaps: [
       {
-        urlRegex: "/api/mcenter/v1/\\d+/hscard",
+        urlRegex: "/api/mcenter/livescore/\\d+",
         map: {
-          score: "score",
-          overs: "overs",
-          status: "status",
-          title: "matchDescription"
+          format: "miniscore.matchScoreDetails.matchFormat",
+          status: "miniscore.status",
+          battingTeam: "miniscore.batTeamScoreObj.teamName",
+          score: "${miniscore.batTeam.teamScore}/${miniscore.batTeam.teamWkts}",
+          overs: "miniscore.overs",
+          "inn1.team": "miniscore.matchScoreDetails.inningsScoreList[0].batTeamName",
+          "inn1.score": "${miniscore.matchScoreDetails.inningsScoreList[0].score}/${miniscore.matchScoreDetails.inningsScoreList[0].wickets}",
+          "inn1.overs": "miniscore.matchScoreDetails.inningsScoreList[0].overs",
+          "inn2.team": "miniscore.matchScoreDetails.inningsScoreList[1].batTeamName",
+          "inn2.score": "${miniscore.matchScoreDetails.inningsScoreList[1].score}/${miniscore.matchScoreDetails.inningsScoreList[1].wickets}",
+          "inn2.overs": "miniscore.matchScoreDetails.inningsScoreList[1].overs",
+          "inn3.team": "miniscore.matchScoreDetails.inningsScoreList[2].batTeamName",
+          "inn3.score": "${miniscore.matchScoreDetails.inningsScoreList[2].score}/${miniscore.matchScoreDetails.inningsScoreList[2].wickets}",
+          "inn3.overs": "miniscore.matchScoreDetails.inningsScoreList[2].overs",
+          "inn4.team": "miniscore.matchScoreDetails.inningsScoreList[3].batTeamName",
+          "inn4.score": "${miniscore.matchScoreDetails.inningsScoreList[3].score}/${miniscore.matchScoreDetails.inningsScoreList[3].wickets}",
+          "inn4.overs": "miniscore.matchScoreDetails.inningsScoreList[3].overs",
+          "batter1.name": "${miniscore.batsmanStriker.name} *",
+          "batter1.runs": "miniscore.batsmanStriker.runs",
+          "batter1.balls": "miniscore.batsmanStriker.balls",
+          "batter1.fours": "miniscore.batsmanStriker.fours",
+          "batter1.sixes": "miniscore.batsmanStriker.sixes",
+          "batter2.name": "miniscore.batsmanNonStriker.name",
+          "batter2.runs": "miniscore.batsmanNonStriker.runs",
+          "batter2.balls": "miniscore.batsmanNonStriker.balls",
+          "batter2.fours": "miniscore.batsmanNonStriker.fours",
+          "batter2.sixes": "miniscore.batsmanNonStriker.sixes",
+          "bowler.name": "miniscore.bowlerStriker.name",
+          "bowler.overs": "miniscore.bowlerStriker.overs",
+          "bowler.maidens": "miniscore.bowlerStriker.maidens",
+          "bowler.runs": "miniscore.bowlerStriker.runs",
+          "bowler.wkts": "miniscore.bowlerStriker.wickets",
+          partnership: "${miniscore.partnerShip.runs} (${miniscore.partnerShip.balls})",
+          target: "miniscore.target",
+          crr: "miniscore.currentRunRate",
+          rrr: "miniscore.requiredRunRate",
+          thisOver: "miniscore.recentOvsStats"
         }
       },
       {
         urlRegex: "/api/mcenter/comm/\\d+",
         map: {
-          score: "miniscore.batTeamDetails.score",
-          overs: "miniscore.batTeamDetails.overs",
-          status: "status",
-          title: "matchHeader.matchDescription"
+          title: "${matchHeader.team1.name} vs ${matchHeader.team2.name}, ${matchHeader.matchDescription}, ${matchHeader.seriesDesc}",
+          team1: "matchHeader.team1.name",
+          team2: "matchHeader.team2.name",
+          format: "matchHeader.matchFormat",
+          toss: "${matchHeader.tossResults.tossWinnerName} won the toss and chose to ${matchHeader.tossResults.decision}",
+          "inn1.team": "miniscore.matchScoreDetails.inningsScoreList[0].batTeamName",
+          "inn1.score": "${miniscore.matchScoreDetails.inningsScoreList[0].score}/${miniscore.matchScoreDetails.inningsScoreList[0].wickets}",
+          "inn1.overs": "miniscore.matchScoreDetails.inningsScoreList[0].overs",
+          "inn2.team": "miniscore.matchScoreDetails.inningsScoreList[1].batTeamName",
+          "inn2.score": "${miniscore.matchScoreDetails.inningsScoreList[1].score}/${miniscore.matchScoreDetails.inningsScoreList[1].wickets}",
+          "inn2.overs": "miniscore.matchScoreDetails.inningsScoreList[1].overs"
         }
       }
     ],
@@ -4578,6 +4618,25 @@
     runs: external_exports.number().int().min(0),
     wkts: external_exports.number().int().min(0).max(10)
   });
+  var BattingFigureSchema = external_exports.object({
+    playerId: external_exports.string().min(1),
+    name: external_exports.string().min(1),
+    runs: external_exports.number().int().min(0),
+    balls: external_exports.number().int().min(0),
+    fours: external_exports.number().int().min(0),
+    sixes: external_exports.number().int().min(0),
+    innings: external_exports.number().int().min(1)
+  });
+  var BowlingFigureSchema = external_exports.object({
+    playerId: external_exports.string().min(1),
+    name: external_exports.string().min(1),
+    overs: external_exports.number().int().min(0),
+    balls: external_exports.number().int().min(0).max(5),
+    maidens: external_exports.number().int().min(0),
+    runs: external_exports.number().int().min(0),
+    wkts: external_exports.number().int().min(0).max(10),
+    innings: external_exports.number().int().min(1)
+  });
   var TossSchema = external_exports.object({
     winnerTeamId: external_exports.string().min(1),
     decision: external_exports.enum(["bat", "bowl"])
@@ -4623,6 +4682,12 @@
     dotBallPct: external_exports.number().min(0).max(100).optional(),
     boundaries: external_exports.object({ fours: external_exports.number().int().min(0), sixes: external_exports.number().int().min(0) }).optional(),
     ballsObserved: external_exports.number().int().min(0).optional(),
+    /**
+     * The feed only publishes the pair at the crease and the bowler running in, so these are the
+     * best figures seen anywhere in the match. Absent when the snapshots carried no player rows.
+     */
+    topBatters: external_exports.array(BattingFigureSchema).optional(),
+    topBowlers: external_exports.array(BowlingFigureSchema).optional(),
     /** Overs per innings when it differs from the format default (e.g. a 10-over match). */
     oversLimit: external_exports.number().int().positive().optional(),
     day: external_exports.number().int().min(1).max(5).optional(),
@@ -6545,6 +6610,8 @@
       }).optional(),
       thisOver: external_exports.array(external_exports.string()).default([]),
       lastBalls: external_exports.array(external_exports.string()).default([]),
+      /** The page says the match has not started: the 0-0 innings below is a placeholder, not a score. */
+      preMatch: external_exports.boolean().optional(),
       partnership: external_exports.object({ runs: external_exports.number().int().min(0), balls: external_exports.number().int().min(0) }).optional(),
       target: external_exports.number().int().positive().optional(),
       crr: external_exports.number().min(0).optional(),
@@ -7196,7 +7263,8 @@
     "crr",
     "rrr",
     "day",
-    "session"
+    "session",
+    "format"
   ];
   var FieldKeySchema = external_exports.enum(FIELD_KEYS);
   var TRANSFORMS = ["trim", "lower", "upper", "number", "digits"];
@@ -7226,7 +7294,13 @@
   var JsonTapSchema = external_exports.object({
     /** Matched against the URL of responses the page itself fetched. */
     urlRegex: regexString,
-    /** field -> path such as `$.score.runs` or `data.innings[0].overs`. */
+    /**
+     * field -> path such as `$.score.runs` or `data.innings[0].overs`.
+     *
+     * A value containing `${…}` is a template instead of a single path: sites split what the engine
+     * parses as one value across several keys (`teamScore` + `teamWkts` -> "197/6"), so a template
+     * composes them. It resolves only when every placeholder resolves to a non-empty value.
+     */
     map: external_exports.record(FieldKeySchema, external_exports.string().min(1))
   });
   var SelectorConfigSchema = external_exports.object({
@@ -7658,7 +7732,9 @@
         this.startTimers();
         this.sendHeartbeat();
       } else if (msg.data.type === "command") {
-        void this.handleCommand(msg.data);
+        void this.handleCommand(msg.data).catch(
+          (err) => console.warn("[StumpCast] command failed", err)
+        );
       }
     }
     startTimers() {
@@ -7766,8 +7842,12 @@
         }
         case "closeMatch": {
           const t = this.tracked.get(cmd.matchId);
-          if (t?.tabId != null) await this.deps.tabs.close(t.tabId);
-          this.tracked.delete(cmd.matchId);
+          try {
+            if (t?.tabId != null) await this.deps.tabs.close(t.tabId);
+          } finally {
+            this.tracked.delete(cmd.matchId);
+            this.persistTracked();
+          }
           return;
         }
         case "reloadSelectors":

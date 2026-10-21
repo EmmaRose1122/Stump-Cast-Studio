@@ -2,15 +2,11 @@
 
 export const SAMPLE_RATE = 22_050;
 
-export const encodeWav = (samples: Float32Array, rate = SAMPLE_RATE): Buffer => {
-  const data = Buffer.alloc(samples.length * 2);
-  for (let i = 0; i < samples.length; i++) {
-    const v = Math.max(-1, Math.min(1, samples[i]!));
-    data.writeInt16LE(Math.round(v * 32767), i * 2);
-  }
+/** Wrap 16-bit little-endian PCM (what a cloud TTS model hands back) in a WAV container. */
+export const pcmToWav = (pcm: Buffer, rate: number): Buffer => {
   const header = Buffer.alloc(44);
   header.write('RIFF', 0);
-  header.writeUInt32LE(36 + data.length, 4);
+  header.writeUInt32LE(36 + pcm.length, 4);
   header.write('WAVE', 8);
   header.write('fmt ', 12);
   header.writeUInt32LE(16, 16);
@@ -21,8 +17,17 @@ export const encodeWav = (samples: Float32Array, rate = SAMPLE_RATE): Buffer => 
   header.writeUInt16LE(2, 32);
   header.writeUInt16LE(16, 34);
   header.write('data', 36);
-  header.writeUInt32LE(data.length, 40);
-  return Buffer.concat([header, data]);
+  header.writeUInt32LE(pcm.length, 40);
+  return Buffer.concat([header, pcm]);
+};
+
+export const encodeWav = (samples: Float32Array, rate = SAMPLE_RATE): Buffer => {
+  const data = Buffer.alloc(samples.length * 2);
+  for (let i = 0; i < samples.length; i++) {
+    const v = Math.max(-1, Math.min(1, samples[i]!));
+    data.writeInt16LE(Math.round(v * 32767), i * 2);
+  }
+  return pcmToWav(data, rate);
 };
 
 /** A sine note with a short attack and an exponential decay. */

@@ -553,6 +553,9 @@ ipcMain.handle('stumpcast:download-update', async (_event, downloadUrl?: string)
 
 		// Local / Simulation fallback: copy or simulate transfer
 		const localCandidates = [
+			path.join(workspaceRoot, 'release', 'StumpCast-Studio-Setup-1.0.4.exe'),
+			'C:\\Users\\IK\\Downloads\\StumpCast Studio\\stumpcast\\release\\StumpCast-Studio-Setup-1.0.4.exe',
+			path.join(process.env.USERPROFILE || '', 'Downloads', 'StumpCast Studio', 'stumpcast', 'release', 'StumpCast-Studio-Setup-1.0.4.exe'),
 			path.join(workspaceRoot, 'release', 'StumpCast-Studio-Setup-1.0.3.exe'),
 			'C:\\Users\\IK\\Downloads\\StumpCast Studio\\stumpcast\\release\\StumpCast-Studio-Setup-1.0.3.exe',
 			path.join(process.env.USERPROFILE || '', 'Downloads', 'StumpCast Studio', 'stumpcast', 'release', 'StumpCast-Studio-Setup-1.0.3.exe'),
@@ -603,16 +606,42 @@ ipcMain.handle('stumpcast:download-update', async (_event, downloadUrl?: string)
 });
 
 ipcMain.handle('stumpcast:install-update', () => {
-	if (cachedDownloadedInstaller && fs.existsSync(cachedDownloadedInstaller)) {
+	let installerToRun = cachedDownloadedInstaller;
+	if (!installerToRun || !fs.existsSync(installerToRun)) {
+		const updatesDir = path.join(app.getPath('userData'), 'updates');
+		if (fs.existsSync(updatesDir)) {
+			const files = fs
+				.readdirSync(updatesDir)
+				.filter((f) => f.endsWith('.exe'))
+				.map((f) => path.join(updatesDir, f))
+				.filter((f) => fs.existsSync(f) && fs.statSync(f).size > 10_000_000);
+			if (files.length > 0) {
+				files.sort((a, b) => fs.statSync(b).mtimeMs - fs.statSync(a).mtimeMs);
+				installerToRun = files[0] ?? null;
+			}
+		}
+	}
+	if (!installerToRun || !fs.existsSync(installerToRun)) {
+		const candidates = [
+			path.join(workspaceRoot, 'release', 'StumpCast-Studio-Setup-1.0.4.exe'),
+			'C:\\Users\\IK\\Downloads\\StumpCast Studio\\stumpcast\\release\\StumpCast-Studio-Setup-1.0.4.exe',
+			path.join(workspaceRoot, 'release', 'StumpCast-Studio-Setup-1.0.3.exe'),
+			'C:\\Users\\IK\\Downloads\\StumpCast Studio\\stumpcast\\release\\StumpCast-Studio-Setup-1.0.3.exe',
+		];
+		const found = candidates.find((f) => fs.existsSync(f) && fs.statSync(f).size > 10_000_000);
+		if (found) installerToRun = found;
+	}
+
+	if (installerToRun && fs.existsSync(installerToRun) && fs.statSync(installerToRun).size > 10_000_000) {
 		try {
 			launchInstallerAndExit(
-				cachedDownloadedInstaller,
+				installerToRun,
 				(cmd, args, opts) => child_process.spawn(cmd, args, opts as child_process.SpawnOptions),
 				() => app.quit(),
 			);
 			return true;
 		} catch (e) {
-			console.error('Failed to launch downloaded installer:', e);
+			console.error('Failed to launch installer:', e);
 		}
 	}
 

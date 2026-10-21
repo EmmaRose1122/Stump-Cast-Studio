@@ -188,11 +188,13 @@ export class SelectorService {
     return { ok: true, version: this.activeBundle.version };
   }
 
-  async checkRemote(
-    targetUrl?: string,
-  ): Promise<{ ok: boolean; updated: boolean; version: number; message: string }> {
+  /**
+   * Fetch the configured bundle URL. The URL is deliberately not a parameter: accepting one from
+   * the request turned the local server into a proxy that would fetch any host it was pointed at.
+   */
+  async checkRemote(): Promise<{ ok: boolean; updated: boolean; version: number; message: string }> {
     this.lastCheckedAt = Date.now();
-    const url = targetUrl ?? this.remoteUrl;
+    const url = this.remoteUrl;
     try {
       const res = await this.fetchFn(url);
       if (!res.ok) {
