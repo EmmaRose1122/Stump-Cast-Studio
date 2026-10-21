@@ -56,7 +56,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 4500);
   }
 
-  // 3. Dynamic GitHub Release Check (Fallback to local v1.0.6)
+  // 3. Dynamic GitHub Release Check (Fallback to local v1.0.7)
   const downloadBtn = document.getElementById('main-download-btn');
   const ctaDownloadBtn = document.getElementById('download-cta-btn');
   const versionDisplay = document.getElementById('latest-version-display');
@@ -79,7 +79,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       })
       .catch(() => {
-        // Fallback default remains v1.0.6
+        // Fallback default remains v1.0.7
       });
   }
 });
