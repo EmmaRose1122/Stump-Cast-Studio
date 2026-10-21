@@ -25,6 +25,13 @@ export class WsHub {
     return this.clients.size;
   }
 
+  /** Who is actually on air: an OBS source, not the operator's own preview. */
+  get liveSize(): number {
+    let n = 0;
+    for (const client of this.clients.values()) if (!client.preview) n++;
+    return n;
+  }
+
   add(socket: WebSocket, opts: { preview?: boolean } = {}): void {
     this.clients.set(socket, { channels: new Set(), preview: opts.preview ?? false });
     socket.on('message', (raw) => this.onMessage(socket, raw.toString()));

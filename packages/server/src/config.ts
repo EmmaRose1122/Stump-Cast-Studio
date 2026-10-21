@@ -14,7 +14,7 @@ export interface ServerConfig {
   licenseGeneratorDir: string;
   /** Path to the Ed25519 private key (hex) used to sign licence tokens. */
   licencePrivateKey: string;
-  /** Placeholder until the licence client (B12) exists: treat the app as licensed (Pro looks). */
+  /** Dev-only override that forces the paid tier; a real install is decided by its licence row. */
   licensed: boolean;
 }
 
@@ -43,7 +43,9 @@ export const loadConfig = (
     licenseAdminDir: foundLicenseAdmin,
     licenseGeneratorDir: foundLicenseAdmin,
     licencePrivateKey: path.join(pkgRoot, '.secrets', 'licence-private.key'),
-    licensed: env.STUMPCAST_LICENSED !== '0',
+    // Opt-in, not opt-out: the old `!== '0'` meant every build was paid unless someone remembered
+    // to say otherwise, so the free tier never actually existed outside a packaged installer.
+    licensed: env.STUMPCAST_LICENSED === 'true',
     ...overrides,
   };
 };

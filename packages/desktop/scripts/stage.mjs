@@ -103,8 +103,26 @@ console.log(`Staged at ${stage}`);
 
 if (buildArgs.includes('--pack')) {
   const dirOnly = buildArgs.includes('--dir') ? ' --dir' : '';
+  const finalOut = path.resolve(desktop, '..', '..', 'release');
+  const tempOut = path.join(process.env.TEMP || 'C:\\Windows\\Temp', `stumpcast-rel-${Date.now()}`);
+  mkdirSync(tempOut, { recursive: true });
+  mkdirSync(finalOut, { recursive: true });
+
   execSync(
-    `pnpm exec electron-builder --config electron-builder.yml --win${dirOnly} -c.directories.app="${stage}"`,
+    `pnpm exec electron-builder --config electron-builder.yml --win${dirOnly} -c.directories.app="${stage}" -c.directories.output="${tempOut}"`,
     { cwd: desktop, stdio: 'inherit' },
   );
+
+  for (const item of readdirSync(tempOut)) {
+    try {
+      cpSync(path.join(tempOut, item), path.join(finalOut, item), { recursive: true, force: true });
+    } catch (err) {
+      console.warn(`Could not copy ${item} to release:`, err.message);
+    }
+  }
+  try {
+    rmSync(tempOut, { recursive: true, force: true });
+  } catch {
+    // harmless if temp folder cleans up on reboot
+  }
 }

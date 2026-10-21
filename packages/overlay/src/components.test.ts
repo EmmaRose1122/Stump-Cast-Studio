@@ -2,6 +2,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
   ALL_LOOKS,
+  DEFAULT_LOOK,
   FREE_LOOKS,
   PRO_LOOKS,
   createBall,
@@ -39,11 +40,13 @@ const test = deriveStats(fixtures.test);
 const result = deriveStats(fixtures.result);
 
 describe('Looks', () => {
-  it('has 8 valid looks: 2 free, 6 pro, unique ids', () => {
+  it('has 8 valid looks: 3 free, 5 pro, unique ids', () => {
     expect(ALL_LOOKS).toHaveLength(8);
-    expect(FREE_LOOKS).toHaveLength(2);
-    expect(PRO_LOOKS).toHaveLength(6);
+    expect(FREE_LOOKS).toHaveLength(3);
+    expect(PRO_LOOKS).toHaveLength(5);
     expect(new Set(ALL_LOOKS.map((l) => l.id)).size).toBe(8);
+    // The look a fresh install boots into has to be one a free channel may actually keep.
+    expect(DEFAULT_LOOK.plan).toBe('free');
   });
 
   it('each look differs in shape, entrance and boundary style', () => {

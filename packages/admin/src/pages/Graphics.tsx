@@ -1136,7 +1136,10 @@ const LooksSection = () => {
         await fetch('/api/looks/activate', {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ id, preview: true }),
+          // This is the Apply button, so it must really put the look on air. It used to send
+          // `preview: true`, which the server treated as "do not save" — a paid channel's choice
+          // was then lost on the next reload.
+          body: JSON.stringify({ id, preview: false }),
         }),
       ),
     onSuccess: () => {

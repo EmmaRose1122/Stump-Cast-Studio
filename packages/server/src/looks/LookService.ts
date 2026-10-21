@@ -77,11 +77,14 @@ export class LookService {
     }));
   }
 
-  /** Throws LookError for unknown or licence-locked looks. Default look is always accessible. */
+  /**
+   * The look to put on air. `allowPreview` lets an unlicensed studio *see* a Pro look in its own
+   * preview — the caller must not save it or send it to viewers on that basis.
+   */
   require(id: string, allowPreview = false): Look {
     const look = this.get(id);
     if (!look) throw new LookError('Unknown look', 404);
-    if (look.plan === 'pro' && !this.isLicensed() && !allowPreview && id !== 'ink-gold') {
+    if (look.plan === 'pro' && !this.isLicensed() && !allowPreview) {
       throw new LookError('This look needs a Pro licence', 403);
     }
     return look;

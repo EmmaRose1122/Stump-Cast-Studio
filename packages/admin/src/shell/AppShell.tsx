@@ -184,8 +184,8 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
           if (res?.updateAvailable) {
             return {
               updateAvailable: true,
-              latestVersion: res.latestVersion ?? res.version ?? '1.0.4',
-              currentVersion: res.currentVersion ?? '1.0.4',
+              latestVersion: res.latestVersion ?? res.version ?? '1.0.5',
+              currentVersion: res.currentVersion ?? '1.0.5',
               releaseNotes:
                 res.releaseNotes ||
                 '• Direct In-App Desktop Updater with live transfer progress bar\n• Fast Cricbuzz & Crex match state scrapers\n• Red, White & Blue studio broadcast overlays\n• Center-aligned operator control room layout',
@@ -212,8 +212,8 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
       }
       return {
         updateAvailable: false,
-        latestVersion: '1.0.4',
-        currentVersion: '1.0.4',
+        latestVersion: '1.0.5',
+        currentVersion: '1.0.5',
         releaseNotes: '',
         downloadUrl: '',
       };
@@ -239,7 +239,7 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
           kind: 'success',
         });
       } else {
-        toast({ title: `StumpCast Studio is up to date (v${refreshed.data?.currentVersion ?? '1.0.4'})`, kind: 'info' });
+        toast({ title: `StumpCast Studio is up to date (v${refreshed.data?.currentVersion ?? '1.0.5'})`, kind: 'info' });
       }
     } catch {
       toast({ title: 'Failed to check for updates', kind: 'error' });
@@ -425,7 +425,7 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
                 <div className="flex items-center gap-1.5 mt-0.5 text-[11px] text-slate-500 font-medium">
                   <span className="text-slate-600 font-semibold tracking-wide">Live Broadcast Engine</span>
                   <span className="text-slate-300">·</span>
-                  <span className="font-mono text-orange-600 font-bold">v1.0.4</span>
+                  <span className="font-mono text-orange-600 font-bold">v1.0.5</span>
                 </div>
               </div>
             </div>
@@ -477,7 +477,7 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
                 title="Click to check updates"
               >
                 <span className="size-2 rounded-full bg-blue-500"></span>
-                <span>v1.0.4 · UP TO DATE</span>
+                <span>v1.0.5 · UP TO DATE</span>
               </button>
             )}
 
@@ -767,10 +767,10 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
         title="StumpCast Studio Update"
         description={
           updateReady
-            ? `Update v${updateQuery.data?.latestVersion ?? '1.0.4'} is downloaded and ready to install!`
+            ? `Update v${updateQuery.data?.latestVersion ?? '1.0.5'} is downloaded and ready to install!`
             : updateQuery.data?.updateAvailable
-            ? `New Version v${updateQuery.data.latestVersion} is available! (Current: v${updateQuery.data.currentVersion ?? '1.0.4'})`
-            : `You are running the latest version of StumpCast Studio (v${updateQuery.data?.currentVersion ?? '1.0.4'}).`
+            ? `New Version v${updateQuery.data.latestVersion} is available! (Current: v${updateQuery.data.currentVersion ?? '1.0.5'})`
+            : `You are running the latest version of StumpCast Studio (v${updateQuery.data?.currentVersion ?? '1.0.5'}).`
         }
         actions={
           <div className="flex flex-wrap items-center justify-end gap-2 w-full">

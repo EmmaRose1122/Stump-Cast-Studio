@@ -26,6 +26,27 @@ const SCRIPT_CULTURES: Record<CommentaryLanguage, string[]> = {
 };
 /** A desktop voice that produced this little said nothing at all. */
 const MIN_USEFUL_BYTES = 1_024;
+/** Refused requests are retried once; a wrong key or model is not worth a second call. */
+const RETRY_DELAY_MS = 400;
+
+interface GeminiAttempt {
+  wav: Buffer | null;
+  /** Worth a second call? (rate limit / server error, not a bad key) */
+  retryable: boolean;
+  /** What to show the operator when nothing was spoken. Empty only on success. */
+  reason: string;
+  tookMs: number;
+}
+
+/** The `error.message` Google puts in a failed response body, shortened for a status line. */
+const jsonError = (body: string): string => {
+  try {
+    const parsed = JSON.parse(body) as { error?: { message?: string } };
+    return (parsed.error?.message ?? body).replace(/\s+/g, ' ').trim().slice(0, 180);
+  } catch {
+    return body.replace(/\s+/g, ' ').trim().slice(0, 180);
+  }
+};
 
 export interface TtsOptions {
   getApiKey: () => string | null | Promise<string | null>;
@@ -88,6 +109,7 @@ export class CommentaryTts {
   private readonly pending = new Map<string, Promise<Buffer | null>>();
   /** Asked once: listing desktop voices costs a PowerShell launch. */
   private voices: Promise<string[]> | null = null;
+  private lastFailure: string | null = null;
 
   constructor(private readonly opts: TtsOptions) {
     this.cacheDir = path.join(opts.cacheDir, 'commentary-tts');
@@ -96,12 +118,25 @@ export class CommentaryTts {
   /** Which engine a new line would use right now. `none` means captions only. */
   async engine(lang: CommentaryLanguage = 'hi'): Promise<TtsEngine> {
     if (await this.key()) return 'gemini';
+    return this.systemEngine(lang);
+  }
+
+  /**
+   * Whether the desktop's own voice can read this script, ignoring the stored key: when Gemini
+   * refuses a line the machine still has to say something.
+   */
+  async systemEngine(lang: CommentaryLanguage = 'hi'): Promise<TtsEngine> {
     const voices = await this.installedVoices();
     if (!voices) return 'system';
     const wanted = SCRIPT_CULTURES[lang] ?? [];
     return voices.some((c) => wanted.some((w) => c.toLowerCase().startsWith(w)))
       ? 'system'
       : 'none';
+  }
+
+  /** Why the last synthesis failed, so "captions only" can be explained instead of guessed. */
+  lastError(): string | null {
+    return this.lastFailure;
   }
 
   /** Cultures of the voices this machine has, or null where the platform reads any script. */
@@ -204,12 +239,24 @@ export class CommentaryTts {
 
   private async synthesise(line: TrackedLine, file: string): Promise<Buffer | null> {
     const gemini = await this.gemini(line);
-    if (gemini) return this.remember(gemini, file);
-    // A desktop voice with no Urdu or Hindi pack answers with silence; that must read as "no
-    // voice", not as a line that was spoken.
-    if ((await this.engine(line.lang)) !== 'system') return null;
+    if (gemini) {
+      this.lastFailure = null;
+      return this.remember(gemini, file);
+    }
+    const reason = this.lastFailure;
+    // A stored key used to switch the desktop voice off completely, so one rate-limited request
+    // cost the line and the broadcast went silent mid-over.
+    if ((await this.systemEngine(line.lang)) !== 'system') return null;
     const system = await this.system(line, file);
-    return system && system.length >= MIN_USEFUL_BYTES ? this.remember(system, file) : null;
+    if (system && system.length >= MIN_USEFUL_BYTES) {
+      // Keep the model's complaint on screen: the line was rescued by a voice that cannot read
+      // every script, and a key that is being refused is worth fixing.
+      this.lastFailure = reason ? `${reason} — spoken with this PC's voice instead` : null;
+      return this.remember(system, file);
+    }
+    // The desktop voice answered with silence: it has no pack for this script.
+    this.lastFailure ??= `No desktop voice for ${line.lang.toUpperCase()} on this machine`;
+    return null;
   }
 
   private async remember(wav: Buffer, file: string): Promise<Buffer> {
@@ -243,8 +290,25 @@ export class CommentaryTts {
 
   /** The model that can actually read Urdu; null when there is no key or it fails. */
   private async gemini(line: TrackedLine): Promise<Buffer | null> {
+    const timeoutMs = this.opts.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+    const first = await this.geminiAttempt(line);
+    if (first.wav) return first.wav;
+    this.lastFailure = first.reason;
+    // A refused request (rate limit, transient server error) gets one more try: the overlay waits
+    // about nine seconds for the audio, and a line it never hears is a line the broadcast lost.
+    // An attempt that ran the whole timeout is not retried — by then the overlay has given up.
+    if (!first.retryable || first.tookMs > timeoutMs / 2) return null;
+    await new Promise((r) => setTimeout(r, RETRY_DELAY_MS));
+    const second = await this.geminiAttempt(line);
+    if (second.wav) return second.wav;
+    this.lastFailure = `${first.reason} (retry: ${second.reason})`;
+    return null;
+  }
+
+  private async geminiAttempt(line: TrackedLine): Promise<GeminiAttempt> {
     const key = await this.key();
-    if (!key) return null;
+    if (!key) return { wav: null, retryable: false, reason: 'No Gemini key stored', tookMs: 0 };
+    const started = Date.now();
     const fetchFn = this.opts.fetchFn ?? fetch;
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), this.opts.timeoutMs ?? DEFAULT_TIMEOUT_MS);
@@ -262,22 +326,42 @@ export class CommentaryTts {
       }),
       signal: controller.signal,
     } as unknown as RequestInit;
+    const took = () => Date.now() - started;
     try {
       const res = await fetchFn(
         `${this.opts.endpoint ?? 'https://generativelanguage.googleapis.com'}/v1beta/models/${encodeURIComponent(this.opts.model ?? DEFAULT_TTS_MODEL)}:generateContent`,
         init,
       );
-      if (!res.ok) return null;
+      if (!res.ok) {
+        const detail = await res.text().catch(() => '');
+        const message = jsonError(detail);
+        return {
+          wav: null,
+          // 429 and 5xx mean "ask again"; 400/401/403 mean the key or the model is wrong and a
+          // second call would only burn the quota further.
+          retryable: res.status === 429 || res.status >= 500,
+          reason: `Gemini HTTP ${res.status}${message ? `: ${message}` : ''}`,
+          tookMs: took(),
+        };
+      }
       const body = (await res.json()) as {
         candidates?: { content?: { parts?: { inlineData?: { mimeType?: string; data?: string } }[] } }[];
       };
       const part = body.candidates?.[0]?.content?.parts?.find((p) => p.inlineData?.data);
       const data = part?.inlineData?.data;
-      if (!data) return null;
+      if (!data) return { wav: null, retryable: false, reason: 'Gemini returned no audio', tookMs: took() };
       const rate = Number(/rate=(\d+)/.exec(part?.inlineData?.mimeType ?? '')?.[1] ?? GEMINI_RATE);
-      return pcmToWav(Buffer.from(data, 'base64'), rate || GEMINI_RATE);
-    } catch {
-      return null;
+      return { wav: pcmToWav(Buffer.from(data, 'base64'), rate || GEMINI_RATE), retryable: false, reason: '', tookMs: took() };
+    } catch (err) {
+      const aborted = controller.signal.aborted;
+      return {
+        wav: null,
+        retryable: false,
+        reason: aborted
+          ? `Gemini timed out after ${this.opts.timeoutMs ?? DEFAULT_TIMEOUT_MS} ms`
+          : `Gemini request failed: ${err instanceof Error ? err.name : String(err)}`,
+        tookMs: took(),
+      };
     } finally {
       clearTimeout(timer);
     }

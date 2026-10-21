@@ -42,7 +42,7 @@ interface Listing {
 }
 
 describe('looks API', () => {
-  it('lists 8 built-ins, locking the 6 Pro looks when unlicensed', async () => {
+  it('lists 8 built-ins, locking the 5 Pro looks when unlicensed', async () => {
     const { send } = await boot(false);
     const body = (await (await send('GET', '/api/looks')).json()) as {
       licensed: boolean;
@@ -50,8 +50,17 @@ describe('looks API', () => {
     };
     expect(body.licensed).toBe(false);
     expect(body.looks).toHaveLength(8);
-    expect(body.looks.filter((l) => l.locked)).toHaveLength(6);
+    expect(body.looks.filter((l) => l.locked)).toHaveLength(5);
     expect(body.looks.find((l) => l.active)!.id).toBe('ink-gold');
+  });
+
+  it('a preview activation never reaches the saved settings', async () => {
+    const { send } = await boot(false);
+    const res = await send('POST', '/api/looks/activate', { id: 'midnight-glass', preview: true });
+    expect(res.status).toBe(200);
+    expect(await res.json()).toMatchObject({ id: 'midnight-glass', preview: true });
+    const settings = (await (await send('GET', '/api/settings')).json()) as { theme: string };
+    expect(settings.theme).not.toBe('midnight-glass');
   });
 
   it('activates a free look, persists it and broadcasts to overlays', async () => {

@@ -59,7 +59,7 @@ const SETTINGS_KEY = 'app';
 const GEMINI_KEY = 'gemini_api_key';
 const OPENAI_KEY = 'openai_api_key';
 const CRICKET_KEY = 'cricket_api_key';
-export const APP_VERSION = '1.0.4';
+export const APP_VERSION = '1.0.5';
 
 /** One engine tick waiting on the broadcast delay, with the commentary already written for it. */
 interface PendingRelease {
@@ -292,6 +292,10 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
 
   fastify.get('/api/app/update-download-file', async (_req, reply) => {
     const candidates = [
+      path.resolve(process.cwd(), 'release', 'StumpCast-Studio-Setup-1.0.5.exe'),
+      path.resolve(import.meta.dirname, '..', '..', '..', 'release', 'StumpCast-Studio-Setup-1.0.5.exe'),
+      'C:\\Users\\IK\\Downloads\\StumpCast Studio\\stumpcast\\release\\StumpCast-Studio-Setup-1.0.5.exe',
+      path.join(process.env.USERPROFILE || '', 'Downloads', 'StumpCast Studio', 'stumpcast', 'release', 'StumpCast-Studio-Setup-1.0.5.exe'),
       path.resolve(process.cwd(), 'release', 'StumpCast-Studio-Setup-1.0.4.exe'),
       path.resolve(import.meta.dirname, '..', '..', '..', 'release', 'StumpCast-Studio-Setup-1.0.4.exe'),
       'C:\\Users\\IK\\Downloads\\StumpCast Studio\\stumpcast\\release\\StumpCast-Studio-Setup-1.0.4.exe',
@@ -379,6 +383,11 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
 
   fastify.post('/api/app/update-install', async () => {
     const candidates = [
+      'C:\\Users\\IK\\AppData\\Roaming\\StumpCast Studio\\updates\\StumpCast-Studio-Setup-1.0.5.exe',
+      path.resolve(process.cwd(), 'release', 'StumpCast-Studio-Setup-1.0.5.exe'),
+      path.resolve(import.meta.dirname, '..', '..', '..', 'release', 'StumpCast-Studio-Setup-1.0.5.exe'),
+      'C:\\Users\\IK\\Downloads\\StumpCast Studio\\stumpcast\\release\\StumpCast-Studio-Setup-1.0.5.exe',
+      path.join(process.env.USERPROFILE || '', 'Downloads', 'StumpCast Studio', 'stumpcast', 'release', 'StumpCast-Studio-Setup-1.0.5.exe'),
       'C:\\Users\\IK\\AppData\\Roaming\\StumpCast Studio\\updates\\StumpCast-Studio-Setup-1.0.4.exe',
       path.resolve(process.cwd(), 'release', 'StumpCast-Studio-Setup-1.0.4.exe'),
       path.resolve(import.meta.dirname, '..', '..', '..', 'release', 'StumpCast-Studio-Setup-1.0.4.exe'),
@@ -487,6 +496,11 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
   const say = (item: CommentaryItem, scope: Audience = 'preview'): CommentaryItem => {
     tts.register(item.id, item.text, item.lang ?? commentary.getConfig().language);
     hub.broadcast('commentary', 'speak', item, scope);
+    // Rendering a sentence takes seconds and the overlay asks for it only once the line is on air;
+    // starting that work here — while the line is still inside the broadcast delay — is what stops
+    // a long line from being cut off by the overlay's wait for the audio. Only done when something
+    // is actually on air, so a studio with no OBS source never pays for voices nobody hears.
+    if (hub.liveSize > 0) void tts.wav(item.id).catch(() => undefined);
     return item;
   };
 
@@ -780,8 +794,10 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
   fastify.post('/api/licence', async (req, reply) => {
     const body = z
       .object({
-        key: z.string().min(1).max(200).optional(),
-        token: z.string().min(1).max(200).optional(),
+        // An SC1 token is `SC1.<payload>.<signature>` in base64url — around 300 characters. The
+        // old 200 limit truncated real keys, so the honest answer to a valid key was "rejected".
+        key: z.string().min(1).max(2000).optional(),
+        token: z.string().min(1).max(2000).optional(),
       })
       .safeParse(req.body);
     if (!body.success) return reply.code(400).send({ error: 'A licence key or token is required' });
@@ -829,7 +845,14 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
       .safeParse(req.body);
     if (!body.success) return reply.code(400).send({ error: 'A look id is required' });
     try {
-      const look = looks.require(body.data.id, body.data.preview);
+      const preview = body.data.preview ?? false;
+      const look = looks.require(body.data.id, preview);
+      // A preview is the operator trying a look on for size: it must never reach the broadcast.
+      // Saving it here is what let a free studio run Pro looks on air without a licence.
+      if (preview) {
+        hub.broadcast('layout', 'look', look, 'preview');
+        return { ...look, preview: true };
+      }
       saveSettings({ ...loadSettings(), theme: look.id });
       hub.broadcast('layout', 'look', look);
       return look;
@@ -1053,7 +1076,11 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
     config: commentary.getConfig(),
     history: commentary.getHistory(),
     ai: { enabled: commentary.getConfig().ai, active: commentary.aiActive, hasKey: Boolean(secrets.getSecret(GEMINI_KEY)) },
-    tts: { engine: await tts.engine(commentary.getConfig().language) },
+    tts: {
+      engine: await tts.engine(commentary.getConfig().language),
+      // Why the last line was not spoken: "captions only" without a reason is undiagnosable.
+      lastError: tts.lastError(),
+    },
   }));
   fastify.post('/api/commentary/config', async (req, reply) => {
     const body = z
@@ -1136,7 +1163,9 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
   // rather than pretending to speak.
   fastify.get<{ Params: { id: string } }>('/api/commentary/audio/:id', async (req, reply) => {
     const wav = await tts.wav(req.params.id);
-    if (!wav) return reply.code(404).send({ error: 'No voice for this line' });
+    if (!wav) {
+      return reply.code(404).send({ error: 'No voice for this line', reason: tts.lastError() });
+    }
     return reply
       .header('content-type', 'audio/wav')
       .header('cache-control', 'public, max-age=86400')

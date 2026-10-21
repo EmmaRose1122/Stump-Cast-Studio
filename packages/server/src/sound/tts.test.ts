@@ -124,6 +124,51 @@ describe('CommentaryTts', () => {
     expect(cmd?.env?.STUMCAST_TTS_TEXT).toBe("'; rm -rf C:\\ #");
   });
 
+  it('retries a refused request once and says what the model answered', async () => {
+    const fetchFn = vi.fn(async () => ({
+      ok: false,
+      status: 429,
+      text: async () => '{"error":{"message":"You exceeded your current quota"}}',
+    })) as unknown as typeof fetch;
+    const tts = make({ getApiKey: () => 'k', fetchFn });
+    tts.register('a', 'چھکا!', 'ur');
+
+    expect(await tts.wav('a')).toBeNull();
+    expect(fetchFn).toHaveBeenCalledTimes(2);
+    expect(tts.lastError()).toContain('429');
+    expect(tts.lastError()).toContain('quota');
+  });
+
+  it('still uses the desktop voice when the stored key cannot render the line', async () => {
+    const run = vi.fn(async (_f: string, _a: string[], env?: Record<string, string>) => {
+      if (env?.STUMCAST_TTS_OUT) await fs.writeFile(env.STUMCAST_TTS_OUT, wavOf(pcm(9000), 22_050));
+      return Buffer.alloc(0);
+    });
+    const fetchFn = vi.fn(async () => ({
+      ok: false,
+      status: 401,
+      text: async () => '{"error":{"message":"API key not valid"}}',
+    })) as unknown as typeof fetch;
+    const tts = make({
+      getApiKey: () => 'bad-key',
+      fetchFn,
+      platform: 'win32',
+      run: async (f, a, e) => {
+        if (!e) return Buffer.from('en-US', 'utf8');
+        return run(f, a, e);
+      },
+    });
+    tts.register('e', 'FOUR!', 'en');
+
+    const wav = await tts.wav('e');
+    expect(wav?.readUInt32LE(24)).toBe(22_050);
+    // A rejected key is not worth a second call, but it must still be reported even though the
+    // desktop voice rescued this line.
+    expect(fetchFn).toHaveBeenCalledTimes(1);
+    expect(tts.lastError()).toContain('401');
+    expect(tts.lastError()).toContain("this PC's voice");
+  });
+
   it('answers null for a line nobody registered', async () => {
     expect(await make().wav('nope')).toBeNull();
   });

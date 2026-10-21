@@ -609,8 +609,11 @@ export const ProLooksModal = ({
         toast({
           title: isLicensed
             ? `Look ${badge || lookId.toUpperCase()} activated live on stream!`
-            : `Look ${badge || lookId.toUpperCase()} preview activated on stream!`,
-          kind: 'success',
+            : `Look ${badge || lookId.toUpperCase()} is on your preview only`,
+          description: isLicensed
+            ? undefined
+            : 'Viewers still have the free look. A licence key puts this look on air.',
+          kind: isLicensed ? 'success' : 'info',
         });
       } else {
         const d = await res.json().catch(() => ({}));

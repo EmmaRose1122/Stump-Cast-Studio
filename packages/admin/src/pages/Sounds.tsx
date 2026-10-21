@@ -161,7 +161,7 @@ export const SoundsPage = () => {
           lang?: 'hi' | 'ur' | 'en';
         }>;
         ai?: { enabled: boolean; active: boolean; hasKey: boolean };
-        tts?: { engine: 'gemini' | 'system' | 'none' };
+        tts?: { engine: 'gemini' | 'system' | 'none'; lastError: string | null };
       };
     },
     refetchInterval: 3000,
@@ -736,6 +736,13 @@ export const SoundsPage = () => {
                 ? 'OBS has no speech engine of its own and this PC has no voice for this script. Add a Gemini key below to get a real voice in Urdu.'
                 : 'Audio is rendered on this machine and played by the overlay.'}
             </p>
+            {commQuery.data?.tts?.lastError && (
+              // The engine is configured but a line still came back silent: say why instead of
+              // leaving the operator to guess between a bad key, a quota and no network.
+              <p className="rounded-lg bg-amber-50 px-2 py-1.5 text-[10px] font-semibold text-amber-800">
+                Last line not spoken: {commQuery.data.tts.lastError}
+              </p>
+            )}
           </div>
 
           <div className="space-y-1">

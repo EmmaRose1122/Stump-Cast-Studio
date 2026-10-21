@@ -1995,10 +1995,6 @@ html[data-score-position='bottom'] #stage[data-layout='fullscreen'] .zone-main {
   background: transparent !important;
 }
 
-#stage[data-layout='arena'] .c-watermark {
-  display: none !important;
-}
-
 #stage[data-layout='arena'] .zone-main {
   left: 48px !important;
   right: 48px !important;

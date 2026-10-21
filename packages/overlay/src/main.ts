@@ -193,16 +193,17 @@ const applyLicenceState = (licensed: boolean) => {
   else upgradePopup.start();
 };
 
-if (params.preview) {
-  try {
-    const res = await fetch(`${location.origin}/api/licence`);
-    if (res.ok) {
-      const data = (await res.json()) as { licensed: boolean };
-      store.setLicensed(data.licensed);
-      applyLicenceState(data.licensed);
-    }
-  } catch { /* offline */ }
-}
+// Every audience asks, not just the operator's preview: an OBS browser source that reloads
+// mid-broadcast would otherwise show the free-tier mark to a paid channel until the next licence
+// event happens to arrive.
+try {
+  const res = await fetch(`${location.origin}/api/licence`);
+  if (res.ok) {
+    const data = (await res.json()) as { licensed: boolean };
+    store.setLicensed(data.licensed);
+    applyLicenceState(data.licensed);
+  }
+} catch { /* offline */ }
 
 store.subscribe((s, prev) => {
   if (s.licensed !== prev.licensed) applyLicenceState(s.licensed);
