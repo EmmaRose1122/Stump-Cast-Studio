@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import clsx from 'clsx';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { type LayoutPresetId, type ObsRole } from '@stumpcast/shared';
-import { api } from '../lib/api';
+import { api, useServerOrigin } from '../lib/api';
 import { assetsApi } from '../lib/assetsApi';
 import { ProLooksModal } from '../shell/ProLooksModal';
 import { useAdmin } from '../store';
@@ -201,6 +201,7 @@ const STADIUM_RENDERS = [
 export const VideoPage = () => {
   const qc = useQueryClient();
   const toast = useAdmin((state) => state.toast);
+  const origin = useServerOrigin();
   const settings = useQuery({ queryKey: ['settings'], queryFn: api.settings });
   const video = settings.data?.video;
   const [showProLooks, setShowProLooks] = useState(false);
@@ -672,9 +673,9 @@ export const VideoPage = () => {
               onClick={() => {
                 // clipboard.writeText rejects in a non-secure context or without permission;
                 // the toast must say what actually happened.
-                const copied = navigator.clipboard?.writeText(
-                  `${window.location.protocol}//${window.location.hostname}:4000/overlay/`,
-                );
+                // The app chooses its own port when 4000 is taken, so ask the server where it
+                // lives instead of pasting a URL OBS cannot reach.
+                const copied = navigator.clipboard?.writeText(`${origin}/overlay/`);
                 if (!copied) {
                   toast({ title: 'Clipboard unavailable — copy the URL from the address bar', kind: 'error' });
                   return;

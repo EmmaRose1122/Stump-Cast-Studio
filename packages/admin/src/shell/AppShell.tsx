@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import clsx from 'clsx';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { api } from '../lib/api';
+import { api, useServerOrigin } from '../lib/api';
 import { ROUTES, navigate } from '../lib/router';
 import { deriveChips, type Chip, type ChipState } from '../lib/status';
 import { useAdmin } from '../store';
@@ -377,21 +377,25 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
   const activeMatch =
     matches.data?.find((m) => m.id === settings.data?.onStreamMatchId) ?? matches.data?.[0];
 
-  const overlayHost =
-    typeof window !== 'undefined'
-      ? `${window.location.hostname}:${window.location.port || '4000'}/overlay`
-      : 'localhost:4000/overlay';
+  const origin = useServerOrigin();
+  const overlayFullUrl = `${origin}/overlay/`;
 
   const copyOverlayUrl = () => {
-    const full = `http://${overlayHost}`;
-    navigator.clipboard.writeText(full).then(() => {
-      toast({ title: 'Copied overlay URL to clipboard', kind: 'success' });
-    });
+    const copied = navigator.clipboard?.writeText(overlayFullUrl);
+    if (!copied) {
+      toast({ title: 'Clipboard unavailable', description: overlayFullUrl, kind: 'error' });
+      return;
+    }
+    copied
+      .then(() => toast({ title: 'Copied overlay URL to clipboard', kind: 'success' }))
+      .catch(() =>
+        toast({ title: 'Could not copy — select the URL and copy it', description: overlayFullUrl, kind: 'error' }),
+      );
   };
 
   const openPopout = () => {
     window.open(
-      '/overlay/',
+      overlayFullUrl,
       'StumpCastOverlay',
       'popup=yes,width=1280,height=720,menubar=no,toolbar=no',
     );
@@ -498,7 +502,7 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
                 title="Click to copy overlay URL"
                 className="text-blue-700 hover:text-blue-900 flex items-center gap-1 font-bold transition"
               >
-                <span>{overlayHost}</span>
+                <span>{overlayFullUrl.replace(/^https?:\/\//, '')}</span>
                 <span className="text-slate-400 text-[10px]">📋</span>
               </button>
             </div>

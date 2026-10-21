@@ -3,7 +3,7 @@ import type { Settings } from '@stumpcast/shared';
 import clsx from 'clsx';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { api, selectorsApi } from '../lib/api';
+import { api, keysApi, selectorsApi } from '../lib/api';
 import { ProLooksModal } from '../shell/ProLooksModal';
 import { useAdmin } from '../store';
 import { Button, Card, Dialog } from '../ui';
@@ -36,6 +36,7 @@ export const SettingsPage = () => {
   const qc = useQueryClient();
   const toast = useAdmin((s) => s.toast);
   const settings = useQuery({ queryKey: ['settings'], queryFn: api.settings });
+  const aiKeys = useQuery({ queryKey: ['ai-keys'], queryFn: keysApi.status, refetchInterval: 3000 });
   const [delay, setDelay] = useState(0);
   const [cardScale, setCardScale] = useState(1.45);
   const [sideCardScale, setSideCardScale] = useState(1.0);
@@ -43,7 +44,74 @@ export const SettingsPage = () => {
   const [selectedModel, setSelectedModel] = useState('gemini-2.5-flash');
   const [showProLooks, setShowProLooks] = useState(false);
   const [keyModalOpen, setKeyModalOpen] = useState(false);
-  const [geminiKey, setGeminiKey] = useState('');
+  const [activeKeyTab, setActiveKeyTab] = useState<'gemini' | 'cricket' | 'openai'>('gemini');
+  const [geminiKeyInput, setGeminiKeyInput] = useState('');
+  const [openaiKeyInput, setOpenaiKeyInput] = useState('');
+  const [cricketKeyInput, setCricketKeyInput] = useState('');
+  const [showKeySecret, setShowKeySecret] = useState(false);
+
+  const saveKeyMutation = useMutation({
+    mutationFn: async ({ provider, key }: { provider: 'gemini' | 'openai' | 'cricket'; key: string }) => {
+      if (typeof window !== 'undefined') {
+        const desktop = (window as unknown as { stumpcast?: { setSecret?: (k: string, v?: string) => Promise<boolean> } }).stumpcast;
+        if (desktop?.setSecret) {
+          const deskKey = provider === 'gemini' ? 'geminiKey' : provider === 'cricket' ? 'cricketApiKey' : 'openaiApiKey';
+          await desktop.setSecret(deskKey, key).catch(() => false);
+        }
+      }
+      return keysApi.save(provider, key);
+    },
+    onSuccess: (_, vars) => {
+      void qc.invalidateQueries({ queryKey: ['ai-keys'] });
+      void qc.invalidateQueries({ queryKey: ['commentary'] });
+      void qc.invalidateQueries({ queryKey: ['provider'] });
+      toast({
+        title: `${vars.provider === 'gemini' ? 'Google Gemini' : vars.provider === 'cricket' ? 'Cricket Data' : 'OpenAI'} Key Saved`,
+        description: 'Key encrypted and saved securely. Live features are now enabled.',
+        kind: 'success',
+      });
+      if (vars.provider === 'gemini') setGeminiKeyInput('');
+      if (vars.provider === 'openai') setOpenaiKeyInput('');
+      if (vars.provider === 'cricket') setCricketKeyInput('');
+    },
+    onError: (err: unknown) => {
+      toast({
+        title: 'Failed to save key',
+        description: err instanceof Error ? err.message : 'Please check key and try again',
+        kind: 'error',
+      });
+    },
+  });
+
+  const removeKeyMutation = useMutation({
+    mutationFn: async (provider: 'gemini' | 'openai' | 'cricket') => {
+      if (typeof window !== 'undefined') {
+        const desktop = (window as unknown as { stumpcast?: { setSecret?: (k: string, v?: string) => Promise<boolean> } }).stumpcast;
+        if (desktop?.setSecret) {
+          const deskKey = provider === 'gemini' ? 'geminiKey' : provider === 'cricket' ? 'cricketApiKey' : 'openaiApiKey';
+          await desktop.setSecret(deskKey, undefined).catch(() => false);
+        }
+      }
+      return keysApi.remove(provider);
+    },
+    onSuccess: (_, provider) => {
+      void qc.invalidateQueries({ queryKey: ['ai-keys'] });
+      void qc.invalidateQueries({ queryKey: ['commentary'] });
+      void qc.invalidateQueries({ queryKey: ['provider'] });
+      toast({
+        title: `${provider === 'gemini' ? 'Google Gemini' : provider === 'cricket' ? 'Cricket Data' : 'OpenAI'} Key Removed`,
+        description: 'Key removed. Built-in defaults will be used.',
+        kind: 'info',
+      });
+    },
+    onError: (err: unknown) => {
+      toast({
+        title: 'Failed to remove key',
+        description: err instanceof Error ? err.message : 'Error removing key',
+        kind: 'error',
+      });
+    },
+  });
 
   useEffect(() => {
     if (settings.data) {
@@ -548,7 +616,12 @@ export const SettingsPage = () => {
             onClick={() => setKeyModalOpen(true)}
             className="flex items-center gap-1.5 rounded-lg border border-blue-200 bg-white px-3 py-1.5 text-xs font-bold uppercase text-blue-700 hover:bg-blue-50 transition shadow-xs"
           >
-            <span>⚙️</span> AI API KEYS <span className="text-slate-400">[UNAVAILABLE]</span>
+            <span>⚙️</span> AI API KEYS{' '}
+            {aiKeys.data?.gemini?.hasKey ? (
+              <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-[9px] font-bold text-emerald-700">ACTIVE</span>
+            ) : (
+              <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[9px] font-bold text-amber-700">CONFIGURE</span>
+            )}
           </button>
         </div>
 
@@ -594,10 +667,19 @@ export const SettingsPage = () => {
             <span className="font-bold text-blue-950">Gemini 2.5 Flash:</span> Fast, broadcast-quality portraits &amp; badges via Google AI Studio API key. (Recommended)
           </p>
           <button
-            onClick={() => setKeyModalOpen(true)}
-            className="flex items-center gap-1 rounded-lg bg-orange-500 px-3 py-1 font-bold text-white uppercase hover:bg-orange-600 transition shadow-xs"
+            onClick={() => {
+              setActiveKeyTab('gemini');
+              setKeyModalOpen(true);
+            }}
+            className={clsx(
+              'flex items-center gap-1 rounded-lg px-3 py-1 font-bold text-white uppercase transition shadow-xs',
+              aiKeys.data?.gemini?.hasKey
+                ? 'bg-emerald-600 hover:bg-emerald-700'
+                : 'bg-orange-500 hover:bg-orange-600',
+            )}
           >
-            <span>⚠️</span> Configure Gemini Key
+            <span>{aiKeys.data?.gemini?.hasKey ? '✓' : '⚠️'}</span>{' '}
+            {aiKeys.data?.gemini?.hasKey ? 'Gemini Key Active' : 'Configure Gemini Key'}
           </button>
         </div>
 
@@ -704,24 +786,349 @@ export const SettingsPage = () => {
       <Dialog
         open={keyModalOpen}
         onOpenChange={setKeyModalOpen}
-        title="Configure AI API Keys"
-        description="Image generation is not available in this build, so there is nowhere to store a key yet. Add it here once the feature ships."
+        title="Configure API Keys (Gemini, Cricket & OpenAI)"
+        description="Keys are encrypted locally on disk with AES-256-GCM. They are stored securely and never sent to third parties."
         actions={
           <div className="flex gap-2">
-            <Button onClick={() => setKeyModalOpen(false)}>Close</Button>
+            <Button variant="secondary" onClick={() => setKeyModalOpen(false)}>
+              Close
+            </Button>
           </div>
         }
       >
-        <div className="space-y-3 py-2">
-          <label className="text-xs font-semibold text-slate-600 block">Google Gemini API Key</label>
-          <input
-            type="password"
-            value={geminiKey}
-            onChange={(e) => setGeminiKey(e.target.value)}
-            placeholder="AIzaSy..."
-            disabled
-            className="w-full rounded-lg border border-blue-200 bg-slate-50 px-3 py-2 text-xs text-slate-500 focus:outline-none"
-          />
+        <div className="space-y-4 py-1">
+          {/* Tabs for Providers */}
+          <div className="flex border-b border-blue-100 gap-1 pb-1">
+            <button
+              type="button"
+              onClick={() => setActiveKeyTab('gemini')}
+              className={clsx(
+                'flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition',
+                activeKeyTab === 'gemini'
+                  ? 'bg-orange-50 text-orange-700 border border-orange-200'
+                  : 'text-slate-600 hover:bg-slate-50',
+              )}
+            >
+              <span>Google Gemini</span>
+              <span
+                className={clsx(
+                  'size-2 rounded-full',
+                  aiKeys.data?.gemini?.hasKey ? 'bg-emerald-500' : 'bg-slate-300',
+                )}
+              />
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveKeyTab('cricket')}
+              className={clsx(
+                'flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition',
+                activeKeyTab === 'cricket'
+                  ? 'bg-orange-50 text-orange-700 border border-orange-200'
+                  : 'text-slate-600 hover:bg-slate-50',
+              )}
+            >
+              <span>Cricket Data API</span>
+              <span
+                className={clsx(
+                  'size-2 rounded-full',
+                  aiKeys.data?.cricket?.hasKey ? 'bg-emerald-500' : 'bg-slate-300',
+                )}
+              />
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveKeyTab('openai')}
+              className={clsx(
+                'flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition',
+                activeKeyTab === 'openai'
+                  ? 'bg-orange-50 text-orange-700 border border-orange-200'
+                  : 'text-slate-600 hover:bg-slate-50',
+              )}
+            >
+              <span>OpenAI (Optional)</span>
+              <span
+                className={clsx(
+                  'size-2 rounded-full',
+                  aiKeys.data?.openai?.hasKey ? 'bg-emerald-500' : 'bg-slate-300',
+                )}
+              />
+            </button>
+          </div>
+
+          {/* Active Tab: Google Gemini */}
+          {activeKeyTab === 'gemini' && (
+            <div className="space-y-3">
+              <div
+                className={clsx(
+                  'rounded-lg p-2.5 text-xs flex items-center justify-between',
+                  aiKeys.data?.gemini?.hasKey
+                    ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                    : 'bg-amber-50 text-amber-800 border border-amber-200',
+                )}
+              >
+                <div className="flex items-center gap-1.5">
+                  <span>{aiKeys.data?.gemini?.hasKey ? '✓' : '⚠️'}</span>
+                  <span className="font-semibold">
+                    {aiKeys.data?.gemini?.hasKey
+                      ? 'Gemini Key is Active & Stored Encrypted'
+                      : 'No Gemini Key configured yet'}
+                  </span>
+                </div>
+                {aiKeys.data?.gemini?.hasKey && (
+                  <span className="text-[10px] font-mono bg-emerald-100 text-emerald-900 px-1.5 py-0.5 rounded font-bold">
+                    AES-256
+                  </span>
+                )}
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs font-semibold text-slate-700">Google Gemini API Key</label>
+                  <button
+                    type="button"
+                    onClick={() => setShowKeySecret(!showKeySecret)}
+                    className="text-[11px] text-blue-600 hover:underline font-medium"
+                  >
+                    {showKeySecret ? 'Hide' : 'Show key'}
+                  </button>
+                </div>
+                <input
+                  type={showKeySecret ? 'text' : 'password'}
+                  value={geminiKeyInput}
+                  onChange={(e) => setGeminiKeyInput(e.target.value)}
+                  placeholder={
+                    aiKeys.data?.gemini?.hasKey
+                      ? '•••••••••••••••••••• (Key is active, type here to replace)'
+                      : 'AIzaSy...'
+                  }
+                  autoComplete="off"
+                  className="w-full rounded-lg border border-blue-200 bg-white px-3 py-2 text-xs font-mono text-slate-800 focus:border-orange-500 focus:outline-none"
+                />
+              </div>
+
+              <div className="flex items-center justify-between gap-2 pt-1">
+                <a
+                  href="https://aistudio.google.com/app/apikey"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[11px] text-blue-600 hover:underline flex items-center gap-1"
+                >
+                  <span>🔗</span> Get free key at Google AI Studio
+                </a>
+
+                <div className="flex items-center gap-2">
+                  {aiKeys.data?.gemini?.hasKey && (
+                    <button
+                      type="button"
+                      disabled={removeKeyMutation.isPending}
+                      onClick={() => removeKeyMutation.mutate('gemini')}
+                      className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-bold text-red-600 hover:bg-red-100 transition disabled:opacity-50"
+                    >
+                      {removeKeyMutation.isPending ? 'Removing...' : 'Remove Key'}
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    disabled={saveKeyMutation.isPending || !geminiKeyInput.trim()}
+                    onClick={() => {
+                      const clean = geminiKeyInput.trim();
+                      if (clean.length < 8) {
+                        toast({ title: 'Enter a valid Gemini API key (at least 8 chars)', kind: 'error' });
+                        return;
+                      }
+                      saveKeyMutation.mutate({ provider: 'gemini', key: clean });
+                    }}
+                    className="rounded-lg bg-orange-500 px-4 py-1.5 text-xs font-bold text-white hover:bg-orange-600 transition disabled:opacity-50 shadow-sm"
+                  >
+                    {saveKeyMutation.isPending ? 'Saving...' : 'Save Gemini Key'}
+                  </button>
+                </div>
+              </div>
+
+              <p className="text-[11px] text-slate-500 leading-relaxed border-t border-slate-100 pt-2">
+                Powers real-time ball-by-ball AI commentary (Urdu, Hindi, English), natural TTS speech narration on OBS overlays, and AI player portraits.
+              </p>
+            </div>
+          )}
+
+          {/* Active Tab: Cricket Data API */}
+          {activeKeyTab === 'cricket' && (
+            <div className="space-y-3">
+              <div
+                className={clsx(
+                  'rounded-lg p-2.5 text-xs flex items-center justify-between',
+                  aiKeys.data?.cricket?.hasKey
+                    ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                    : 'bg-slate-50 text-slate-600 border border-slate-200',
+                )}
+              >
+                <div className="flex items-center gap-1.5">
+                  <span>{aiKeys.data?.cricket?.hasKey ? '✓' : 'ℹ️'}</span>
+                  <span className="font-semibold">
+                    {aiKeys.data?.cricket?.hasKey
+                      ? 'Cricket Data Key is Active & Stored'
+                      : 'No Cricket Data Key configured (Optional)'}
+                  </span>
+                </div>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs font-semibold text-slate-700">Cricket Data (cricapi.com) API Key</label>
+                  <button
+                    type="button"
+                    onClick={() => setShowKeySecret(!showKeySecret)}
+                    className="text-[11px] text-blue-600 hover:underline font-medium"
+                  >
+                    {showKeySecret ? 'Hide' : 'Show key'}
+                  </button>
+                </div>
+                <input
+                  type={showKeySecret ? 'text' : 'password'}
+                  value={cricketKeyInput}
+                  onChange={(e) => setCricketKeyInput(e.target.value)}
+                  placeholder={
+                    aiKeys.data?.cricket?.hasKey
+                      ? '•••••••••••••••••••• (Key is active, type here to replace)'
+                      : 'Enter cricapi key...'
+                  }
+                  autoComplete="off"
+                  className="w-full rounded-lg border border-blue-200 bg-white px-3 py-2 text-xs font-mono text-slate-800 focus:border-orange-500 focus:outline-none"
+                />
+              </div>
+
+              <div className="flex items-center justify-between gap-2 pt-1">
+                <a
+                  href="https://cricapi.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[11px] text-blue-600 hover:underline flex items-center gap-1"
+                >
+                  <span>🔗</span> Get key at CricAPI.com
+                </a>
+
+                <div className="flex items-center gap-2">
+                  {aiKeys.data?.cricket?.hasKey && (
+                    <button
+                      type="button"
+                      disabled={removeKeyMutation.isPending}
+                      onClick={() => removeKeyMutation.mutate('cricket')}
+                      className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-bold text-red-600 hover:bg-red-100 transition disabled:opacity-50"
+                    >
+                      {removeKeyMutation.isPending ? 'Removing...' : 'Remove Key'}
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    disabled={saveKeyMutation.isPending || !cricketKeyInput.trim()}
+                    onClick={() => {
+                      const clean = cricketKeyInput.trim();
+                      if (!clean) return;
+                      saveKeyMutation.mutate({ provider: 'cricket', key: clean });
+                    }}
+                    className="rounded-lg bg-orange-500 px-4 py-1.5 text-xs font-bold text-white hover:bg-orange-600 transition disabled:opacity-50 shadow-sm"
+                  >
+                    {saveKeyMutation.isPending ? 'Saving...' : 'Save Cricket Key'}
+                  </button>
+                </div>
+              </div>
+
+              <p className="text-[11px] text-slate-500 leading-relaxed border-t border-slate-100 pt-2">
+                Enables automated live scorecard fetching and match list subscription directly from official cricket data providers as a backup source.
+              </p>
+            </div>
+          )}
+
+          {/* Active Tab: OpenAI */}
+          {activeKeyTab === 'openai' && (
+            <div className="space-y-3">
+              <div
+                className={clsx(
+                  'rounded-lg p-2.5 text-xs flex items-center justify-between',
+                  aiKeys.data?.openai?.hasKey
+                    ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                    : 'bg-slate-50 text-slate-600 border border-slate-200',
+                )}
+              >
+                <div className="flex items-center gap-1.5">
+                  <span>{aiKeys.data?.openai?.hasKey ? '✓' : 'ℹ️'}</span>
+                  <span className="font-semibold">
+                    {aiKeys.data?.openai?.hasKey
+                      ? 'OpenAI Key is Active & Stored'
+                      : 'No OpenAI Key configured (Optional)'}
+                  </span>
+                </div>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs font-semibold text-slate-700">OpenAI API Key</label>
+                  <button
+                    type="button"
+                    onClick={() => setShowKeySecret(!showKeySecret)}
+                    className="text-[11px] text-blue-600 hover:underline font-medium"
+                  >
+                    {showKeySecret ? 'Hide' : 'Show key'}
+                  </button>
+                </div>
+                <input
+                  type={showKeySecret ? 'text' : 'password'}
+                  value={openaiKeyInput}
+                  onChange={(e) => setOpenaiKeyInput(e.target.value)}
+                  placeholder={
+                    aiKeys.data?.openai?.hasKey
+                      ? '•••••••••••••••••••• (Key is active, type here to replace)'
+                      : 'sk-proj-...'
+                  }
+                  autoComplete="off"
+                  className="w-full rounded-lg border border-blue-200 bg-white px-3 py-2 text-xs font-mono text-slate-800 focus:border-orange-500 focus:outline-none"
+                />
+              </div>
+
+              <div className="flex items-center justify-between gap-2 pt-1">
+                <a
+                  href="https://platform.openai.com/api-keys"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[11px] text-blue-600 hover:underline flex items-center gap-1"
+                >
+                  <span>🔗</span> Get key at OpenAI Platform
+                </a>
+
+                <div className="flex items-center gap-2">
+                  {aiKeys.data?.openai?.hasKey && (
+                    <button
+                      type="button"
+                      disabled={removeKeyMutation.isPending}
+                      onClick={() => removeKeyMutation.mutate('openai')}
+                      className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-bold text-red-600 hover:bg-red-100 transition disabled:opacity-50"
+                    >
+                      {removeKeyMutation.isPending ? 'Removing...' : 'Remove Key'}
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    disabled={saveKeyMutation.isPending || !openaiKeyInput.trim()}
+                    onClick={() => {
+                      const clean = openaiKeyInput.trim();
+                      if (clean.length < 8) {
+                        toast({ title: 'Enter a valid OpenAI API key', kind: 'error' });
+                        return;
+                      }
+                      saveKeyMutation.mutate({ provider: 'openai', key: clean });
+                    }}
+                    className="rounded-lg bg-orange-500 px-4 py-1.5 text-xs font-bold text-white hover:bg-orange-600 transition disabled:opacity-50 shadow-sm"
+                  >
+                    {saveKeyMutation.isPending ? 'Saving...' : 'Save OpenAI Key'}
+                  </button>
+                </div>
+              </div>
+
+              <p className="text-[11px] text-slate-500 leading-relaxed border-t border-slate-100 pt-2">
+                Used for DALL-E 3 visual artwork generation and GPT commentary models.
+              </p>
+            </div>
+          )}
         </div>
       </Dialog>
 

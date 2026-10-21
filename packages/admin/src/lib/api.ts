@@ -4,6 +4,7 @@ import {
   type MatchState,
   type Settings,
 } from '@stumpcast/shared';
+import { useQuery } from '@tanstack/react-query';
 
 export class ApiError extends Error {
   constructor(
@@ -51,6 +52,27 @@ export interface ObsStatus {
   connectedAt: number | null;
   error: string | null;
 }
+
+/**
+ * Where the overlay is really served. The admin is proxied in dev and served by the app itself
+ * when packaged, and the packaged server picks its own port (4000 is usually taken by a dev
+ * stack) — so a hard-coded `:4000` hands the operator an OBS source that shows and hears nothing.
+ */
+export const serverOrigin = async (): Promise<string> => {
+  const h = (await fetch('/api/health').then(json)) as { port: number };
+  return `${window.location.protocol}//${window.location.hostname}:${h.port}`;
+};
+
+/** The server's own origin, falling back to this page's until the answer arrives. */
+export const useServerOrigin = (): string => {
+  const fallback = `${window.location.protocol}//${window.location.hostname}:${window.location.port}`;
+  const { data } = useQuery({
+    queryKey: ['server-origin'],
+    queryFn: serverOrigin,
+    staleTime: Infinity,
+  });
+  return data ?? fallback;
+};
 
 export const api = {
   providerStatus: () => fetch('/api/ext/status').then(json) as Promise<ProviderStatus>,
@@ -191,4 +213,18 @@ export const selectorsApi = {
     }>,
   rollback: () =>
     send('POST', '/api/ext/selectors/rollback', {}) as Promise<{ ok: boolean; version: number }>,
+};
+
+export interface AiKeysStatus {
+  gemini: { hasKey: boolean };
+  openai: { hasKey: boolean };
+  cricket: { hasKey: boolean };
+}
+
+export const keysApi = {
+  status: () => fetch('/api/ai/keys').then(json) as Promise<AiKeysStatus>,
+  save: (provider: 'gemini' | 'openai' | 'cricket', key: string) =>
+    send('POST', '/api/ai/keys', { provider, key }) as Promise<{ ok: boolean; provider: string; hasKey: boolean }>,
+  remove: (provider: 'gemini' | 'openai' | 'cricket') =>
+    fetch(`/api/ai/keys/${provider}`, { method: 'DELETE' }).then(json) as Promise<{ ok: boolean; provider: string; hasKey: boolean }>,
 };

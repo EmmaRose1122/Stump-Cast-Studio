@@ -180,6 +180,7 @@ export const SoundsPage = () => {
     },
     onSuccess: (_, vars) => {
       void qc.invalidateQueries({ queryKey: ['commentary'] });
+      void qc.invalidateQueries({ queryKey: ['ai-keys'] });
       toast({
         title: vars === null ? 'Gemini key removed' : 'Gemini key saved',
         description:

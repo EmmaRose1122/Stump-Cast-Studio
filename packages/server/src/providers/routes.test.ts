@@ -89,4 +89,60 @@ describe('ApiProvider HTTP routes', () => {
     });
     expect(unsubs.status).toBe(200);
   });
+
+  it('handles /api/ai/keys GET, POST, and DELETE for gemini, cricket and openai', async () => {
+    const app = await makeApp();
+    const port = await app.start();
+
+    // 1. Initial status has no keys
+    const initRes = await fetch(`http://127.0.0.1:${port}/api/ai/keys`);
+    expect(initRes.status).toBe(200);
+    const initBody = await initRes.json();
+    expect(initBody).toEqual({
+      gemini: { hasKey: false },
+      openai: { hasKey: false },
+      cricket: { hasKey: false },
+    });
+
+    // 2. Save Gemini key
+    const postGemini = await fetch(`http://127.0.0.1:${port}/api/ai/keys`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ provider: 'gemini', key: 'AIzaSyTest123456789' }),
+    });
+    expect(postGemini.status).toBe(200);
+    const postGeminiBody = await postGemini.json();
+    expect(postGeminiBody).toMatchObject({ ok: true, provider: 'gemini', hasKey: true });
+
+    // 3. Status reflects Gemini key
+    const statusRes = await fetch(`http://127.0.0.1:${port}/api/ai/keys`);
+    const statusBody = (await statusRes.json()) as { gemini: { hasKey: boolean } };
+    expect(statusBody.gemini.hasKey).toBe(true);
+
+    // 4. Save Cricket key via /api/ai/keys
+    const postCricket = await fetch(`http://127.0.0.1:${port}/api/ai/keys`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ provider: 'cricket', key: 'cricapi-valid-key-999' }),
+    });
+    expect(postCricket.status).toBe(200);
+
+    // Provider status also reflects hasKey: true
+    const providerRes = await fetch(`http://127.0.0.1:${port}/api/provider/api/status`);
+    const providerBody = (await providerRes.json()) as { hasKey: boolean };
+    expect(providerBody.hasKey).toBe(true);
+
+    // 5. Delete Gemini key
+    const delRes = await fetch(`http://127.0.0.1:${port}/api/ai/keys/gemini`, {
+      method: 'DELETE',
+    });
+    expect(delRes.status).toBe(200);
+    const delBody = await delRes.json();
+    expect(delBody).toMatchObject({ ok: true, provider: 'gemini', hasKey: false });
+
+    // Status reflects deletion
+    const finalRes = await fetch(`http://127.0.0.1:${port}/api/ai/keys`);
+    const finalBody = (await finalRes.json()) as { gemini: { hasKey: boolean } };
+    expect(finalBody.gemini.hasKey).toBe(false);
+  });
 });

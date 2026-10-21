@@ -30,7 +30,16 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const workspaceRoot = path.resolve(__dirname, '..', '..', '..');
 const host = '127.0.0.1';
 const externalHosts = new Set(['stumpcast.app', 'github.com']);
-const secretKeys = new Set(['apiKey', 'licenceToken']);
+const secretKeys = new Set([
+	'apiKey',
+	'licenceToken',
+	'geminiKey',
+	'gemini_api_key',
+	'cricketApiKey',
+	'cricket_api_key',
+	'openaiApiKey',
+	'openai_api_key',
+]);
 
 let server: UtilityProcess | undefined;
 let adminWindow: BrowserWindow | undefined;

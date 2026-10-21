@@ -339,5 +339,20 @@ describe('studio survives faults', () => {
       vi.unstubAllGlobals();
     }
   });
+
+  it('renders AI API KEYS configuration controls and modal in SettingsPage', async () => {
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={qc}>
+        <TooltipProvider>
+          <SettingsPage />
+        </TooltipProvider>
+      </QueryClientProvider>,
+    );
+    const keyBtn = screen.getByRole('button', { name: /AI API KEYS/i });
+    expect(keyBtn).toBeTruthy();
+    const configGeminiBtn = screen.getByRole('button', { name: /Configure Gemini Key|Gemini Key Active/i });
+    expect(configGeminiBtn).toBeTruthy();
+  });
 });
 

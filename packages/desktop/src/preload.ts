@@ -6,9 +6,9 @@ const api = {
     ipcRenderer.invoke('stumpcast:open-external', url),
   selectFile: (filters?: Electron.FileFilter[]): Promise<string | undefined> =>
     ipcRenderer.invoke('stumpcast:select-file', filters),
-  getSecret: (key: 'apiKey' | 'licenceToken'): Promise<string | undefined> =>
+  getSecret: (key: 'apiKey' | 'licenceToken' | 'geminiKey' | string): Promise<string | undefined> =>
     ipcRenderer.invoke('stumpcast:get-secret', key),
-  setSecret: (key: 'apiKey' | 'licenceToken', value?: string): Promise<boolean> =>
+  setSecret: (key: 'apiKey' | 'licenceToken' | 'geminiKey' | string, value?: string): Promise<boolean> =>
     ipcRenderer.invoke('stumpcast:set-secret', key, value),
   checkUpdate: (
     customUrl?: string,

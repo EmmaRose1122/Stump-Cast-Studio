@@ -57,6 +57,8 @@ import { signLicenceToken, verifyLicenceToken, type LicencePayload } from './lic
 const SETTINGS_KEY = 'app';
 /** SecretStore name for the Gemini key used by AI commentary (and, later, image generation). */
 const GEMINI_KEY = 'gemini_api_key';
+const OPENAI_KEY = 'openai_api_key';
+const CRICKET_KEY = 'cricket_api_key';
 export const APP_VERSION = '1.0.4';
 
 /** One engine tick waiting on the broadcast delay, with the commentary already written for it. */
@@ -1071,14 +1073,51 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
   });
   // The Gemini key lives in the encrypted SecretStore, never in the settings row.
   fastify.post('/api/commentary/key', async (req, reply) => {
-    const body = z.object({ key: z.string().min(8).max(256) }).safeParse(req.body);
-    if (!body.success) return reply.code(400).send({ error: 'A Gemini API key is required' });
+    const body = z.object({ key: z.string().trim().min(8).max(1024) }).safeParse(req.body);
+    if (!body.success) return reply.code(400).send({ error: 'A Gemini API key is required (at least 8 characters)' });
     secrets.setSecret(GEMINI_KEY, body.data.key.trim());
     return { ok: true, hasKey: true };
   });
   fastify.delete('/api/commentary/key', async () => {
     secrets.deleteSecret(GEMINI_KEY);
     return { ok: true, hasKey: false };
+  });
+
+  // Unified API keys status and storage for Gemini, OpenAI, Cricket Data API
+  fastify.get('/api/ai/keys', async () => ({
+    gemini: { hasKey: Boolean(secrets.getSecret(GEMINI_KEY)) },
+    openai: { hasKey: Boolean(secrets.getSecret(OPENAI_KEY)) },
+    cricket: { hasKey: Boolean(api.getApiKey()) },
+  }));
+
+  fastify.post('/api/ai/keys', async (req, reply) => {
+    const body = z
+      .object({
+        provider: z.enum(['gemini', 'openai', 'cricket']),
+        key: z.string().trim().min(1).max(1024),
+      })
+      .safeParse(req.body);
+    if (!body.success) return reply.code(400).send({ error: 'Valid provider and key are required' });
+    const cleanKey = body.data.key.trim();
+    if (body.data.provider === 'gemini') {
+      if (cleanKey.length < 8) return reply.code(400).send({ error: 'Gemini API key must be at least 8 characters' });
+      secrets.setSecret(GEMINI_KEY, cleanKey);
+    } else if (body.data.provider === 'openai') {
+      if (cleanKey.length < 8) return reply.code(400).send({ error: 'OpenAI API key must be at least 8 characters' });
+      secrets.setSecret(OPENAI_KEY, cleanKey);
+    } else if (body.data.provider === 'cricket') {
+      api.setApiKey(cleanKey);
+    }
+    return { ok: true, provider: body.data.provider, hasKey: true };
+  });
+
+  fastify.delete<{ Params: { provider: string } }>('/api/ai/keys/:provider', async (req, reply) => {
+    const provider = req.params.provider;
+    if (provider === 'gemini') secrets.deleteSecret(GEMINI_KEY);
+    else if (provider === 'openai') secrets.deleteSecret(OPENAI_KEY);
+    else if (provider === 'cricket') secrets.deleteSecret(CRICKET_KEY);
+    else return reply.code(400).send({ error: 'Unknown provider' });
+    return { ok: true, provider, hasKey: false };
   });
   fastify.post('/api/commentary/speak', async (req, reply) => {
     const body = z

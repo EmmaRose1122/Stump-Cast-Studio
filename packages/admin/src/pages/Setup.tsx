@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import clsx from 'clsx';
 import { useState } from 'react';
-import { api } from '../lib/api';
+import { api, useServerOrigin } from '../lib/api';
 import { navigate } from '../lib/router';
 import {
   OBS_SETTINGS,
@@ -67,8 +67,12 @@ export const SetupPage = () => {
     onError: () => toast({ title: 'Could not save', kind: 'error' }),
   });
 
-  const url = overlayUrl(location.origin);
-  const previewOverlayUrl = location.port === '5175' ? 'http://127.0.0.1:5174/' : `${location.origin}/overlay/`;
+  // OBS must be pointed at the server's own port: the packaged app moves off 4000 when a dev
+  // stack is already running, and this page is often served by vite (5175), which has no overlay.
+  const origin = useServerOrigin();
+  const url = overlayUrl(origin);
+  const previewOverlayUrl =
+    location.port === '5175' ? 'http://127.0.0.1:5174/' : `${origin}/overlay/`;
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(url);
