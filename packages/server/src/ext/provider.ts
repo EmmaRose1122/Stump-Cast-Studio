@@ -30,12 +30,20 @@ export class ExtensionProvider implements MatchProvider {
   private degraded: { site: string; url: string; confidence: number; missing: string[]; at: number } | null = null;
   /** Newest "this scrape is not a match" rejection, so an empty match list has an explanation. */
   private rejected: { matchId: string; at: number; reason: string } | null = null;
+  /** Store multi-page fetch results for merging */
+  private readonly multiPageCache = new Map<string, { pages: unknown[]; baseUrl: string; at: number }>();
 
   constructor(private readonly now: () => number = Date.now) {}
 
   // ---- inbound ----------------------------------------------------------------------------
 
   ingest(update: RawUpdate): void {
+    // Handle multi-page fetch results
+    if (update.source === 'multi-page-fetch' && update.fields.multiPageData) {
+      this.handleMultiPageFetch(update);
+      return;
+    }
+
     if (ExtensionProvider.isBlankScrape(update)) {
       this.rejected = {
         matchId: update.matchId,
@@ -48,6 +56,104 @@ export class ExtensionProvider implements MatchProvider {
     this.receivedAt.set(update.matchId, this.now());
     for (const cb of this.subs.get(update.matchId) ?? []) cb(update);
     for (const cb of this.updateListeners) cb(update);
+  }
+
+  private handleMultiPageFetch(update: RawUpdate): void {
+    const pages = update.fields.multiPageData as unknown[];
+    this.multiPageCache.set(update.matchId, {
+      pages,
+      baseUrl: update.url,
+      at: this.now(),
+    });
+
+    // Merge with existing data if available
+    const existing = this.latest.get(update.matchId);
+    if (existing) {
+      const merged = this.mergeMultiPageData(existing, pages);
+      this.latest.set(update.matchId, merged);
+      this.receivedAt.set(update.matchId, this.now());
+      for (const cb of this.subs.get(update.matchId) ?? []) cb(merged);
+      for (const cb of this.updateListeners) cb(merged);
+    }
+  }
+
+  private mergeMultiPageData(baseUpdate: RawUpdate, pages: unknown[]): RawUpdate {
+    // Collect all teams, players, squads from all pages
+    const allTeams: typeof baseUpdate.fields.teams = [];
+    const allBatters: typeof baseUpdate.fields.batters = [];
+    let mergedBowler: typeof baseUpdate.fields.bowler = undefined;
+    const allInnings: typeof baseUpdate.fields.innings = [];
+
+    const seenTeams = new Set<string>();
+    const seenBatters = new Set<string>();
+    const seenBowlers = new Set<string>();
+
+    for (const page of pages) {
+      if (!page || typeof page !== 'object') continue;
+      const p = page as Record<string, unknown>;
+      
+      // Extract teams
+      if (p.rawUpdate && typeof p.rawUpdate === 'object') {
+        const raw = p.rawUpdate as Record<string, unknown>;
+        if (raw.fields && typeof raw.fields === 'object') {
+          const fields = raw.fields as Record<string, unknown>;
+          
+          // Teams
+          if (Array.isArray(fields.teams)) {
+            for (const team of fields.teams) {
+              if (team && typeof team === 'object' && 'name' in team) {
+                const key = (team as { name: string }).name.toLowerCase();
+                if (!seenTeams.has(key)) {
+                  seenTeams.add(key);
+                  allTeams.push(team as typeof baseUpdate.fields.teams[0]);
+                }
+              }
+            }
+          }
+          
+          // Batters
+          if (Array.isArray(fields.batters)) {
+            for (const batter of fields.batters) {
+              if (batter && typeof batter === 'object' && 'name' in batter) {
+                const key = (batter as { name: string }).name.toLowerCase();
+                if (!seenBatters.has(key)) {
+                  seenBatters.add(key);
+                  allBatters.push(batter as typeof baseUpdate.fields.batters[0]);
+                }
+              }
+            }
+          }
+          
+          // Bowler
+          if (fields.bowler && typeof fields.bowler === 'object' && 'name' in fields.bowler) {
+            const key = (fields.bowler as { name: string }).name.toLowerCase();
+            if (!seenBowlers.has(key)) {
+              seenBowlers.add(key);
+              mergedBowler = fields.bowler as typeof baseUpdate.fields.bowler;
+            }
+          }
+          
+          // Innings
+          if (Array.isArray(fields.innings)) {
+            for (const inn of fields.innings) {
+              allInnings.push(inn as typeof baseUpdate.fields.innings[0]);
+            }
+          }
+        }
+      }
+    }
+
+    // Use base update as primary, supplement with merged data
+    return {
+      ...baseUpdate,
+      fields: {
+        ...baseUpdate.fields,
+        teams: allTeams.length > 0 ? allTeams : baseUpdate.fields.teams,
+        batters: allBatters.length > 0 ? allBatters.slice(0, 2) : baseUpdate.fields.batters,
+        bowler: mergedBowler ?? baseUpdate.fields.bowler,
+        innings: allInnings.length > 0 ? allInnings : baseUpdate.fields.innings,
+      },
+    };
   }
 
   /**

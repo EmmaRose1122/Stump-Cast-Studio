@@ -37,5 +37,11 @@
     "entrance": "zoom",
     "easing": "back.out(1.4)",
     "durationMs": 480
-  }
+  },
+  "tags": [
+    "zoom entrances",
+    "scores at the bottom",
+    "slanted score bar",
+    "cut-out player photos"
+  ]
 }

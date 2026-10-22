@@ -37,5 +37,11 @@
     "entrance": "slide-right",
     "easing": "power2.out",
     "durationMs": 480
-  }
+  },
+  "tags": [
+    "slide-right entrances",
+    "scores on top",
+    "notched score bar",
+    "mirrored player cards"
+  ]
 }

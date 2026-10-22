@@ -1,11 +1,33 @@
 import { z } from 'zod';
 
+/**
+ * One row of an announced line-up, as the source states it.
+ *
+ * `players` above stays a plain list of names because that is all the overlay needs; this carries
+ * the rest of what a squad page shows — the role line, the captain and wicketkeeper markers, and
+ * the photo the page itself displays — so the studio can prep a cutout for every one of them.
+ */
+export const SquadPlayerSchema = z.object({
+  name: z.string().min(1).max(60),
+  /** The source's own words, e.g. "WK-Batter" or "Bowling Allrounder". Never invented. */
+  role: z.string().min(1).max(40).optional(),
+  captain: z.boolean().optional(),
+  keeper: z.boolean().optional(),
+  /** The picture the page shows for this player, same idea as a team crest. */
+  imageUrl: z.string().url().optional(),
+});
+export type SquadPlayer = z.infer<typeof SquadPlayerSchema>;
+
 export const TeamSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1),
   short: z.string().min(1).max(5),
   color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
   logoAssetId: z.string().optional(),
+  /** The announced line-up when the source carries one. */
+  players: z.array(z.string().min(1).max(60)).max(30).optional(),
+  /** The same line-up with what the source says about each player. */
+  squad: z.array(SquadPlayerSchema).max(30).optional(),
 });
 export type Team = z.infer<typeof TeamSchema>;
 

@@ -45,6 +45,7 @@ export const ExtCommandSchema = z.discriminatedUnion('command', [
   z.object({ command: z.literal('closeMatch'), matchId: z.string().min(1) }),
   z.object({ command: z.literal('reloadSelectors') }),
   z.object({ command: z.literal('killSwitch'), enabled: z.boolean().default(true) }),
+  z.object({ command: z.literal('fetchAllPages'), matchId: z.string().min(1), baseUrl: z.string().url() }),
 ]);
 export type ExtCommand = z.infer<typeof ExtCommandSchema>;
 

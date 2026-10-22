@@ -37,5 +37,11 @@
     "entrance": "diamond",
     "easing": "power2.inOut",
     "durationMs": 500
-  }
+  },
+  "tags": [
+    "diamond entrances",
+    "scores on top",
+    "slanted score bar",
+    "round photo badges"
+  ]
 }

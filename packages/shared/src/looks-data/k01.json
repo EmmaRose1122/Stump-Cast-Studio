@@ -37,5 +37,11 @@
     "entrance": "slide",
     "easing": "power2.out",
     "durationMs": 480
-  }
+  },
+  "tags": [
+    "slide entrances",
+    "scores on top",
+    "pill score bar",
+    "cut-out player photos"
+  ]
 }

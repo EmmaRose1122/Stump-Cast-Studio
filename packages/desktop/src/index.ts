@@ -50,6 +50,61 @@ let serverUrl: string | undefined;
 let quitting = false;
 let previewAlwaysOnTop = false;
 
+/**
+ * Splash plumbing. The page ships no version literal at all: it is told the running version,
+ * the boot status, and (when there is one) the newer build over these channels. Messages sent
+ * before the splash finishes loading are queued, so an update that lands early is not lost,
+ * and a splash that is already gone is simply never messaged.
+ */
+let splashLoaded = false;
+const pendingSplash: Array<{ channel: string; payload: unknown }> = [];
+let splashUpdate: { version: string; state: string } | undefined;
+
+/**
+ * The main process used to log nothing, so "the app just closed" left no trace: the server's own
+ * log stayed clean (the server was fine) and Windows had no crash record (nothing crashed), which
+ * meant the only way to find out what happened was to write it down here.
+ */
+const appLogFile = (): string => path.join(app.getPath('userData'), 'logs', 'app.log');
+
+const appLog = (message: string): void => {
+	try {
+		const file = appLogFile();
+		fs.mkdirSync(path.dirname(file), { recursive: true });
+		fs.appendFileSync(file, `${new Date().toISOString()} ${message}\n`);
+	} catch {
+		// A logger that throws would take the app down with it.
+	}
+};
+
+process.on('uncaughtException', (err) => {
+	appLog(`uncaughtException ${err?.stack ?? err}`);
+});
+process.on('unhandledRejection', (reason) => {
+	appLog(`unhandledRejection ${reason instanceof Error ? (reason.stack ?? reason.message) : String(reason)}`);
+});
+
+/**
+ * A dead renderer used to leave an empty frame (or close the window, and with it the app) while
+ * OBS kept pulling a half-drawn overlay. Reload it and say so in the log instead.
+ */
+const watchWindow = (win: BrowserWindow, name: string): void => {
+	win.webContents.on('render-process-gone', (_event, details) => {
+		appLog(`${name} renderer gone: reason=${details.reason} exitCode=${details.exitCode}`);
+		if (details.reason !== 'clean-exit' && !win.isDestroyed()) {
+			setTimeout(() => {
+				if (!win.isDestroyed()) void win.loadURL(win.webContents.getURL()).catch(() => undefined);
+			}, 400);
+		}
+	});
+	win.on('unresponsive', () => appLog(`${name} window unresponsive`));
+	win.on('responsive', () => appLog(`${name} window responsive again`));
+	win.on('closed', () => {
+		if (name === 'admin') adminWindow = undefined;
+		if (name === 'preview') previewWindow = undefined;
+	});
+};
+
 // Resolve the splash HTML and app icon paths (works in dev, staged, and packaged builds)
 const splashHtmlPath = (): string => {
 	const candidates = [
@@ -69,6 +124,64 @@ const appIconPath = (): string | undefined => {
 		path.join(__dirname, 'icon.png'),
 	];
 	return candidates.find((p) => fs.existsSync(p));
+};
+
+const splashUpdateFile = (): string => path.join(app.getPath('userData'), 'splash-update.json');
+
+const sendToSplash = (channel: string, payload: unknown): void => {
+	if (!splashWindow || splashWindow.isDestroyed() || splashWindow.webContents.isDestroyed()) return;
+	if (!splashLoaded) {
+		pendingSplash.push({ channel, payload });
+		return;
+	}
+	splashWindow.webContents.send(channel, payload);
+};
+
+const flushSplashQueue = (): void => {
+	const queued = pendingSplash.splice(0, pendingSplash.length);
+	for (const message of queued) sendToSplash(message.channel, message.payload);
+};
+
+const pushSplashStatus = (percent: number, message: string): void => {
+	sendToSplash('splash:status', { percent, message });
+};
+
+/** The version the splash must print is the one this process is actually running. */
+const pushSplashVersion = (version: string | undefined, source: string): void => {
+	if (!version) return;
+	sendToSplash('splash:version', { version, source });
+};
+
+/**
+ * Hand the newer build to the splash. Ignored when the number is not actually newer, so a stale
+ * feed can never make the splash advertise a downgrade. Remembered on disk too: the update check
+ * usually finishes after the studio window is up, and the next launch's splash is the place where
+ * "Update v1.0.8 available — installing" still means something to the operator.
+ */
+const reportUpdateForSplash = (version: string | undefined, state = 'available'): void => {
+	if (!version || !isVersionNewer(version, app.getVersion())) return;
+	splashUpdate = { version, state };
+	appLog(`splash: update v${version} (${state}) over running v${app.getVersion()}`);
+	try {
+		fs.writeFileSync(splashUpdateFile(), JSON.stringify(splashUpdate), 'utf8');
+	} catch {
+		// A cache the app can live without must never break the boot.
+	}
+	sendToSplash('splash:update-available', splashUpdate);
+};
+
+const rememberedSplashUpdate = (): { version: string; state: string } | undefined => {
+	try {
+		const saved = JSON.parse(fs.readFileSync(splashUpdateFile(), 'utf8')) as {
+			version?: unknown;
+			state?: unknown;
+		};
+		if (typeof saved.version !== 'string') return undefined;
+		if (!isVersionNewer(saved.version, app.getVersion())) return undefined;
+		return { version: saved.version, state: typeof saved.state === 'string' ? saved.state : 'available' };
+	} catch {
+		return undefined;
+	}
 };
 
 const stateFile = () => path.join(app.getPath('userData'), 'window-state.json');
@@ -108,11 +221,25 @@ const stopServer = async (): Promise<void> => {
 	server = undefined;
 };
 
-const waitForHealth = async (url: string): Promise<void> => {
+/**
+ * Poll the engine until it answers, and return the version it says it is running.
+ * `/api/health` reports `{ ok, version, port, ... }` from the live process, so the splash can
+ * print a number that came out of the running app instead of one baked into an HTML file.
+ */
+const waitForHealth = async (url: string): Promise<string | undefined> => {
+	let engineVersion: string | undefined;
 	for (let attempt = 0; attempt < 30; attempt++) {
 		try {
 			const response = await fetch(`${url}/api/health`, { signal: AbortSignal.timeout(1000) });
-			if (response.ok) return;
+			if (response.ok) {
+				try {
+					const body = (await response.json()) as { version?: unknown };
+					if (typeof body.version === 'string') engineVersion = body.version;
+				} catch {
+					// Health said ok; the body shape is a bonus, not a gate.
+				}
+				return engineVersion;
+			}
 		} catch {
 			// The server may have logged its bound port before Fastify finishes registering routes.
 		}
@@ -121,7 +248,7 @@ const waitForHealth = async (url: string): Promise<void> => {
 	throw new Error(`Server did not become healthy at ${url}/api/health`);
 };
 
-const startServer = (): Promise<string> =>
+const startServer = (): Promise<{ url: string; engineVersion?: string }> =>
 	new Promise((resolve, reject) => {
 		const child = utilityProcess.fork(path.join(workspaceRoot, 'packages', 'server', 'dist', 'index.mjs'), [], {
 			cwd: workspaceRoot,
@@ -154,11 +281,11 @@ const startServer = (): Promise<string> =>
 			healthCheckStarted = true;
 			const url = `http://${host}:${match[1]}`;
 			void waitForHealth(url).then(
-				() => {
+				(engineVersion) => {
 					if (settled) return;
 					settled = true;
 					clearTimeout(timer);
-					resolve(url);
+					resolve({ url, engineVersion });
 				},
 				(error: unknown) => {
 					if (settled) return;
@@ -192,38 +319,54 @@ const licenseGeneratorUrl = (): string => `${serverUrl}/license-generator/`;
 
 const createSplashWindow = (): void => {
 	const icon = appIconPath();
+	// The running version, straight from this process. Nothing about it is written in splash.html.
+	const runningVersion = app.getVersion();
+	// An update found on an earlier run is shown again right away, before this run's check lands.
+	splashUpdate = rememberedSplashUpdate();
 	splashWindow = new BrowserWindow({
-		width: 480,
-		height: 300,
+		// Sized to the splash's own layout so nothing has to be cropped to fit.
+		width: 560,
+		height: 360,
 		resizable: false,
 		frame: false,
 		transparent: false,
 		alwaysOnTop: true,
 		center: true,
+		show: false, // revealed once the artwork is painted, never as a blank slab
 		skipTaskbar: true,
 		...(icon ? { icon } : {}),
-		webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true },
-		backgroundColor: '#060c16',
+		webPreferences: {
+			preload: path.join(__dirname, 'preload.cjs'),
+			contextIsolation: true,
+			nodeIntegration: false,
+			sandbox: true,
+		},
+		backgroundColor: '#050a14',
 	});
-	const appVersion = app.getVersion();
+	// ?v= is only a head start for the label; the preload/IPC value below is what it settles on.
 	void splashWindow.loadFile(splashHtmlPath(), {
-		search: `v=${encodeURIComponent(appVersion)}`,
+		search: `v=${encodeURIComponent(runningVersion)}`,
 	});
-	splashWindow.webContents.on('did-finish-load', () => {
-		if (!splashWindow || splashWindow.isDestroyed()) return;
-		const displayVer = `v${appVersion}`;
-		void splashWindow.webContents.executeJavaScript(
-			`(() => {
-				const el = document.getElementById('appVersion') || document.querySelector('.version');
-				if (el) el.textContent = ${JSON.stringify(displayVer)};
-			})()`,
-		).catch(() => {});
+	splashWindow.webContents.once('did-finish-load', () => {
+		splashLoaded = true;
+		pushSplashVersion(runningVersion, 'electron app.getVersion()');
+		if (splashUpdate) sendToSplash('splash:update-available', splashUpdate);
+		flushSplashQueue();
 	});
-	splashWindow.once('closed', () => { splashWindow = undefined; });
+	const reveal = (): void => {
+		if (splashWindow && !splashWindow.isDestroyed()) splashWindow.show();
+	};
+	splashWindow.once('ready-to-show', reveal);
+	splashWindow.webContents.once('did-finish-load', reveal);
+	splashWindow.once('closed', () => {
+		splashWindow = undefined;
+		splashLoaded = false;
+	});
 };
 
 const closeSplash = (): void => {
 	if (!splashWindow || splashWindow.isDestroyed()) return;
+	pushSplashStatus(100, 'Ready');
 	// Short delay so the user sees 100% before it disappears
 	setTimeout(() => {
 		if (splashWindow && !splashWindow.isDestroyed()) splashWindow.close();
@@ -239,6 +382,7 @@ const createAdminWindow = async (route = '/live'): Promise<void> => {
 	}
 
 	const icon = appIconPath();
+	pushSplashStatus(80, 'Opening the studio');
 	adminWindow = new BrowserWindow({
 		...readWindowState(),
 		minWidth: 900,
@@ -256,9 +400,7 @@ const createAdminWindow = async (route = '/live'): Promise<void> => {
 	});
 	adminWindow.on('resize', () => adminWindow && saveWindowState(adminWindow));
 	adminWindow.on('move', () => adminWindow && saveWindowState(adminWindow));
-	adminWindow.on('closed', () => {
-		adminWindow = undefined;
-	});
+	watchWindow(adminWindow, 'admin');
 	await adminWindow.loadURL(adminUrl(route));
 	// Fade in the admin window and close splash
 	adminWindow.once('ready-to-show', () => {
@@ -286,9 +428,7 @@ const createPreviewWindow = async (): Promise<void> => {
 		alwaysOnTop: previewAlwaysOnTop,
 		webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true },
 	});
-	previewWindow.on('closed', () => {
-		previewWindow = undefined;
-	});
+	watchWindow(previewWindow, 'preview');
 	await previewWindow.loadURL(`${overlayUrl()}?preview=1`);
 };
 
@@ -394,7 +534,8 @@ ipcMain.handle('stumpcast:set-secret', (_event, key: string, value?: string) => 
 let cachedDownloadedInstaller: string | null = null;
 let activeDownloadAbort: AbortController | null = null;
 
-ipcMain.handle('stumpcast:check-update', async (_event, customUrl?: string) => {
+/** What is running, what is newest, and whether that counts as an upgrade. */
+const runUpdateCheck = async (customUrl?: string) => {
 	const currentVersion = app.getVersion();
 
 	if (app.isPackaged) {
@@ -478,7 +619,20 @@ ipcMain.handle('stumpcast:check-update', async (_event, customUrl?: string) => {
 		currentVersion,
 		releaseNotes: '',
 	};
-});
+};
+
+/**
+ * The check the admin UI calls, with one addition: a newer build is also pushed to the splash,
+ * which is still on screen while the studio is booting. Queued if the page has not finished
+ * loading yet, dropped if the splash is already gone.
+ */
+const checkForAppUpdate = async (customUrl?: string) => {
+	const result = await runUpdateCheck(customUrl);
+	if (result.updateAvailable) reportUpdateForSplash(result.latestVersion, 'available');
+	return result;
+};
+
+ipcMain.handle('stumpcast:check-update', (_event, customUrl?: string) => checkForAppUpdate(customUrl));
 
 ipcMain.handle('stumpcast:download-update', async (_event, downloadUrl?: string) => {
 	try {
@@ -732,6 +886,14 @@ if (!gotLock) {
 	};
 
 	const startAutoUpdate = (): void => {
+		// electron-updater finds the newer build first (`info.version`); hand it to the splash so
+		// the booting window can say "Update v1.0.8 available" instead of staying silent.
+		electronUpdater.autoUpdater.on('update-available', (info) => {
+			reportUpdateForSplash(info.version, 'available');
+		});
+		electronUpdater.autoUpdater.on('update-downloaded', (info) => {
+			reportUpdateForSplash(info.version, 'downloaded');
+		});
 		setupAutoUpdate(electronUpdater.autoUpdater, {
 			log: (message) => console.log(`[updater] ${message}`),
 			confirmInstall: async (version, notes) => {
@@ -756,10 +918,22 @@ if (!gotLock) {
 		createSplashWindow();
 
 		try {
-			serverUrl = await startServer();
+			const started = await startServer();
+			serverUrl = started.url;
+			if (started.engineVersion && started.engineVersion !== app.getVersion()) {
+				appLog(`version drift: electron=v${app.getVersion()} engine=v${started.engineVersion}`);
+			}
+			// The engine that just answered /api/health reports its own version: show that, live,
+			// rather than anything written into the splash file at build time.
+			pushSplashVersion(
+				started.engineVersion ?? app.getVersion(),
+				started.engineVersion ? 'engine /api/health' : 'electron app.getVersion()',
+			);
+			pushSplashStatus(58, 'Connecting to overlay');
 			createTray();
 			void checkRemoteSelectors(serverUrl);
 			if (app.isPackaged) startAutoUpdate();
+			else void checkForAppUpdate().catch(() => undefined);
 			setInterval(() => {
 				if (serverUrl) void checkRemoteSelectors(serverUrl);
 			}, 6 * 60 * 60 * 1000);
@@ -786,6 +960,11 @@ if (!gotLock) {
 	});
 
 	app.on('window-all-closed', () => {
-		if (process.platform !== 'darwin' && !tray) app.quit();
+		if (process.platform === 'darwin' || quitting) return;
+		// The broadcast IS the product: OBS keeps pulling the overlay and the commentary keeps
+		// running whether or not a window is open. Quitting here used to take a live stream down
+		// the moment the studio window was closed.
+		appLog('all windows closed - staying alive for OBS (tray restores the studio)');
+		if (!tray) createTray();
 	});
 }

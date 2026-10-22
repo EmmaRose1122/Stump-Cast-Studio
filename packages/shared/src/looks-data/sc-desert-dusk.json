@@ -37,5 +37,11 @@
     "entrance": "skew",
     "easing": "power2.out",
     "durationMs": 500
-  }
+  },
+  "tags": [
+    "skew entrances",
+    "scores on top",
+    "slanted score bar",
+    "framed photo badges"
+  ]
 }

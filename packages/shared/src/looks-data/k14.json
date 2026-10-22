@@ -37,5 +37,11 @@
     "entrance": "fade",
     "easing": "power2.out",
     "durationMs": 500
-  }
+  },
+  "tags": [
+    "fade entrances",
+    "scores on top",
+    "pill score bar",
+    "round photo badges"
+  ]
 }

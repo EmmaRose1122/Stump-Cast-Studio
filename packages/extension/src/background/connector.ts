@@ -8,6 +8,8 @@ import {
   type SelectorBundle,
   type TabInfo,
 } from '@stumpcast/shared';
+import { cricbuzzConfig } from '../adapters/cricbuzz';
+import { crexConfig } from '../adapters/crex';
 import { SelectorConfigSchema } from '../adapters/config';
 import type { ContentMessage } from '../messages';
 
@@ -664,7 +666,177 @@ export class Connector {
         this.killed = cmd.enabled;
         await this.deps.storage.set('killed', cmd.enabled);
         return;
+      case 'fetchAllPages':
+        await this.fetchAllPages(cmd.matchId, cmd.baseUrl);
+        return;
     }
+  }
+
+  private async fetchAllPages(matchId: string, baseUrl: string): Promise<void> {
+    const pageTypes = getPageTypesForUrl(baseUrl);
+    if (pageTypes.length === 0) return;
+
+    const startedAt = this.deps.now();
+    const pages: PageResult[] = [];
+
+    for (const { type: pageType, pathSuffix } of pageTypes) {
+      const pageUrl = buildPageUrl(baseUrl, pathSuffix);
+      const tabId = await this.deps.tabs.open(pageUrl);
+      if (tabId == null) {
+        pages.push({ pageType, url: pageUrl, rawUpdate: null, confidence: 0, error: 'Failed to open tab' });
+        continue;
+      }
+
+      await new Promise((r) => setTimeout(r, 2000)); // Wait for page load
+
+      const result = await fetchPageContent(this.deps, tabId, pageType, pageUrl);
+      pages.push(result);
+
+      await this.deps.tabs.close(tabId);
+      await new Promise((r) => setTimeout(r, 500)); // Brief pause between tabs
+    }
+
+    const completedAt = this.deps.now();
+    
+    // Send merged result to server
+    await this.send({
+      type: 'update',
+      update: {
+        source: 'multi-page-fetch',
+        matchId,
+        url: baseUrl,
+        capturedAt: completedAt,
+        confidence: pages.reduce((sum, p) => sum + p.confidence, 0) / pages.length,
+        fields: {
+          teams: [],
+          innings: [],
+          batters: [],
+          thisOver: [],
+          lastBalls: [],
+          multiPageData: pages,
+        },
+        missing: [],
+      },
+    });
+  }
+}
+
+// ---- multi-page fetching --------------------------------------------------------------------
+
+interface PageResult {
+  pageType: string;
+  url: string;
+  rawUpdate: unknown;
+  confidence: number;
+  error?: string;
+}
+
+interface MultiPageFetchResult {
+  matchId: string;
+  baseUrl: string;
+  pages: PageResult[];
+  mergedRawUpdate: unknown;
+  startedAt: number;
+  completedAt: number;
+}
+
+const CRICBUZZ_PAGE_TYPES: { type: string; pathSuffix: string }[] = [
+  { type: 'live', pathSuffix: '' },
+  { type: 'scorecard', pathSuffix: '/scorecard' },
+  { type: 'squads', pathSuffix: '/squads' },
+  { type: 'overs', pathSuffix: '/overs' },
+  { type: 'commentary', pathSuffix: '/commentary' },
+  { type: 'match-facts', pathSuffix: '/match-facts' },
+  { type: 'highlights', pathSuffix: '/highlights' },
+  { type: 'news', pathSuffix: '/news' },
+  { type: 'graphs', pathSuffix: '/graphs' },
+  { type: 'points-table', pathSuffix: '/points-table' },
+];
+
+const CREX_PAGE_TYPES: { type: string; pathSuffix: string }[] = [
+  { type: 'live', pathSuffix: '' },
+  { type: 'scorecard', pathSuffix: '/scorecard' },
+  { type: 'squads', pathSuffix: '/squads' },
+  { type: 'overs', pathSuffix: '/overs' },
+  { type: 'commentary', pathSuffix: '/commentary' },
+  { type: 'match-center', pathSuffix: '/match-center' },
+];
+
+function getPageTypesForUrl(url: string): { type: string; pathSuffix: string }[] {
+  try {
+    const u = new URL(url);
+    if (u.hostname.includes('cricbuzz.com')) return CRICBUZZ_PAGE_TYPES;
+    if (u.hostname.includes('crex.com') || u.hostname.includes('crex.live')) return CREX_PAGE_TYPES;
+  } catch {
+    // ignore
+  }
+  return [];
+}
+
+function buildPageUrl(baseUrl: string, pathSuffix: string): string {
+  try {
+    const u = new URL(baseUrl);
+    const basePath = u.pathname.replace(/\/+$/, '');
+    const matchIdMatch = basePath.match(/\/(\d+)(?:\/|$)/);
+    if (matchIdMatch) {
+      const matchId = matchIdMatch[1];
+      const newPath = basePath.replace(matchIdMatch[0], `/${matchId}${pathSuffix}`);
+      u.pathname = newPath;
+      return u.toString();
+    }
+    return `${u.origin}${basePath}${pathSuffix}`;
+  } catch {
+    return baseUrl;
+  }
+}
+
+async function fetchPageContent(
+  deps: ConnectorDeps,
+  tabId: number,
+  pageType: string,
+  url: string,
+): Promise<PageResult> {
+  try {
+    const script = `
+      (function() {
+        try {
+          const config = ${JSON.stringify(pageType.includes('cricbuzz') ? cricbuzzConfig : crexConfig)};
+          // Run the same extraction logic as content script
+          const result = {
+            pageType: '${pageType}',
+            url: '${url}',
+            html: document.documentElement.outerHTML,
+            title: document.title,
+          };
+          return result;
+        } catch (e) {
+          return { error: e.message };
+        }
+      })();
+    `;
+    
+    const results = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        // This will be replaced by the actual extraction
+        return { html: document.documentElement.outerHTML, title: document.title };
+      },
+    });
+    
+    return {
+      pageType,
+      url,
+      rawUpdate: results[0]?.result ?? { error: 'No result' },
+      confidence: 1,
+    };
+  } catch (err) {
+    return {
+      pageType,
+      url,
+      rawUpdate: null,
+      confidence: 0,
+      error: err instanceof Error ? err.message : String(err),
+    };
   }
 }
 

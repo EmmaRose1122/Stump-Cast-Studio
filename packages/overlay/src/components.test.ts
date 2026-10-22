@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   ALL_LOOKS,
   DEFAULT_LOOK,
@@ -271,6 +271,29 @@ describe('StatsTiles / WinProb / PlayerCards / Watermark', () => {
     expect(pct.reduce((a, b) => a + b, 0)).toBe(100);
   });
 
+  it('keeps the batting side on the left, where the scorebar puts it', () => {
+    const c = new WinProb();
+    const stage = mount(c);
+    // Pakistan batting while listed second: `teamA` belongs to teams[0] (South Africa), so the
+    // left-hand number on the bar has to be Pakistan's 70%, not the 30% sitting in `teamA`.
+    c.update({ ...t20, battingTeamId: 'team-pak', winProb: { teamA: 0.3, teamB: 0.7 } });
+    expect(stage.querySelector('.wp-a')!.textContent).toBe('PAK');
+    expect(stage.querySelector('.wp-b')!.textContent).toBe('RSA');
+    expect(stage.querySelector('.wp-pct-a')!.textContent).toBe('70%');
+    expect(stage.querySelector('.wp-crest-a img')!.getAttribute('src')).toContain('team-pak');
+    expect(stage.querySelector('.wp-crest-b img')!.getAttribute('src')).toContain('team-rsa');
+    expect((stage.querySelector('.wp-fill') as HTMLElement).style.width).toBe('70%');
+    // The fill is the left-hand side's colour, so it has to be Pakistan's, not South Africa's.
+    expect((stage.querySelector('.wp-fill') as HTMLElement).style.background).toContain('17, 87, 6');
+  });
+
+  it('hides the rail when fewer than two teams are known', () => {
+    const c = new WinProb();
+    const stage = mount(c);
+    c.update({ ...t20, teams: t20.teams.slice(0, 1) as unknown as typeof t20.teams });
+    expect(stage.querySelector('.c-winprob')!.hasAttribute('hidden')).toBe(true);
+  });
+
   it('renders batters with the striker marked, and the bowler figures', () => {
     const b = new BatterCards();
     const s1 = mount(b);
@@ -366,6 +389,11 @@ describe('StreamFrame camera panels', () => {
 });
 
 describe('UpgradePopup timers', () => {
+  afterEach(() => {
+    vi.clearAllTimers();
+    vi.useRealTimers();
+  });
+
   it('cancels the intro popup when the licence lands inside its window', () => {
     vi.useFakeTimers();
     const p = new UpgradePopup();
@@ -378,7 +406,7 @@ describe('UpgradePopup timers', () => {
     vi.useRealTimers();
   });
 
-  it('pops on the interval while unlicensed and leaves nothing running after destroy', () => {
+  it('pops on the first cycle while unlicensed and leaves nothing running after destroy', () => {
     vi.useFakeTimers();
     const p = new UpgradePopup();
     const stage = mount(p);
@@ -387,6 +415,148 @@ describe('UpgradePopup timers', () => {
     vi.advanceTimersByTime(3_000);
     expect(popup.classList.contains('visible')).toBe(true);
     p.destroy();
+    expect(popup.classList.contains('visible')).toBe(false);
+    expect(vi.getTimerCount()).toBe(0);
+    vi.useRealTimers();
+  });
+
+  it('rolls the gap inside 10-15 s and never repeats a fixed period', () => {
+    const gaps = [0, 0.25, 0.5, 0.75, 1].map((r) => new UpgradePopup({ random: () => r }).nextGapMs());
+    expect(gaps).toEqual([10_000, 11_250, 12_500, 13_750, 15_000]);
+    // A broken RNG must still land inside the band rather than firing every millisecond.
+    for (const r of [Number.NaN, -1, 2]) {
+      const g = new UpgradePopup({ random: () => r }).nextGapMs();
+      expect(g).toBeGreaterThanOrEqual(10_000);
+      expect(g).toBeLessThanOrEqual(15_000);
+    }
+  });
+
+  it('shows for exactly three seconds, then waits a freshly rolled gap before the next pop', () => {
+    vi.useFakeTimers();
+    const rolls: number[] = [];
+    const seq = [0.5, 0, 1];
+    const p = new UpgradePopup({ random: () => (rolls.push(seq[0]!), seq.shift() ?? 0) });
+    const stage = mount(p);
+    const popup = stage.querySelector('.c-upgrade-popup')!;
+    p.start();
+
+    vi.advanceTimersByTime(3_000); // the intro hop
+    expect(popup.classList.contains('visible')).toBe(true);
+    vi.advanceTimersByTime(2_999);
+    expect(popup.classList.contains('visible')).toBe(true);
+    vi.advanceTimersByTime(1);
+    expect(popup.classList.contains('visible')).toBe(false);
+
+    // roll 0.5 -> 12.5 s
+    vi.advanceTimersByTime(12_499);
+    expect(popup.classList.contains('visible')).toBe(false);
+    vi.advanceTimersByTime(1);
+    expect(popup.classList.contains('visible')).toBe(true);
+    vi.advanceTimersByTime(3_000);
+    expect(popup.classList.contains('visible')).toBe(false);
+
+    // roll 0 -> 10 s (a shorter gap than the last, so it cannot be a fixed interval)
+    vi.advanceTimersByTime(9_999);
+    expect(popup.classList.contains('visible')).toBe(false);
+    vi.advanceTimersByTime(1);
+    expect(popup.classList.contains('visible')).toBe(true);
+    vi.advanceTimersByTime(3_000);
+    expect(popup.classList.contains('visible')).toBe(false);
+
+    // roll 1 -> 15 s
+    vi.advanceTimersByTime(14_999);
+    expect(popup.classList.contains('visible')).toBe(false);
+    vi.advanceTimersByTime(1);
+    expect(popup.classList.contains('visible')).toBe(true);
+
+    expect(rolls).toEqual([0.5, 0, 1]);
+    p.destroy();
+    expect(vi.getTimerCount()).toBe(0);
+    vi.useRealTimers();
+  });
+
+  it('never parks on the score: over a long run no appearance outlives its three seconds', () => {
+    vi.useFakeTimers();
+    const p = new UpgradePopup({ random: () => 0.5 });
+    const stage = mount(p);
+    const popup = stage.querySelector('.c-upgrade-popup')!;
+    p.start();
+    let onFor = 0;
+    let longest = 0;
+    let offFor = 0;
+    let longestOff = 0;
+    for (let i = 0; i < 240; i++) {
+      vi.advanceTimersByTime(500);
+      if (popup.classList.contains('visible')) {
+        onFor += 500;
+        longestOff = Math.max(longestOff, offFor);
+        offFor = 0;
+      } else {
+        longest = Math.max(longest, onFor);
+        onFor = 0;
+        offFor += 500;
+      }
+    }
+    expect(longest).toBeLessThanOrEqual(3_000);
+    expect(longestOff).toBeGreaterThanOrEqual(10_000);
+    p.destroy();
+    expect(vi.getTimerCount()).toBe(0);
+    vi.useRealTimers();
+  });
+
+  it('drops a pending random gap when the licence arrives mid-cycle', () => {
+    vi.useFakeTimers();
+    const p = new UpgradePopup({ random: () => 1 });
+    const stage = mount(p);
+    const popup = stage.querySelector('.c-upgrade-popup')!;
+    p.start();
+    vi.advanceTimersByTime(3_000);
+    expect(popup.classList.contains('visible')).toBe(true);
+    p.stop();
+    expect(popup.classList.contains('visible')).toBe(false);
+    vi.advanceTimersByTime(120_000);
+    expect(popup.classList.contains('visible')).toBe(false);
+    expect(vi.getTimerCount()).toBe(0);
+    vi.useRealTimers();
+  });
+
+  it('clears an appearance whose hide timer was throttled away as soon as the page is looked at', () => {
+    let clock = 1_000;
+    vi.useFakeTimers();
+    const p = new UpgradePopup({ random: () => 0.5, now: () => clock });
+    const stage = mount(p);
+    const popup = stage.querySelector('.c-upgrade-popup')!;
+    p.start();
+    vi.advanceTimersByTime(3_000);
+    expect(popup.classList.contains('visible')).toBe(true);
+    // A frozen/occluded renderer: wall time passes but the 3 s timeout is never given a turn.
+    clock += 30_000;
+    expect(popup.classList.contains('visible')).toBe(true);
+    document.dispatchEvent(new Event('visibilitychange'));
+    expect(popup.classList.contains('visible')).toBe(false);
+    // The backstop re-arms the rolled gap instead of letting the cycle fire twice.
+    vi.advanceTimersByTime(12_499);
+    expect(popup.classList.contains('visible')).toBe(false);
+    vi.advanceTimersByTime(1);
+    expect(popup.classList.contains('visible')).toBe(true);
+    p.destroy();
+    expect(vi.getTimerCount()).toBe(0);
+    vi.useRealTimers();
+  });
+
+  it('stays silent for the session after Dismiss, even if start is called again', () => {    vi.useFakeTimers();
+    const p = new UpgradePopup({ random: () => 0 });
+    const stage = mount(p);
+    const popup = stage.querySelector('.c-upgrade-popup')!;
+    p.start();
+    vi.advanceTimersByTime(3_000);
+    expect(popup.classList.contains('visible')).toBe(true);
+    stage.querySelector<HTMLButtonElement>('.upgrade-popup-btn-close')!.click();
+    expect(popup.classList.contains('visible')).toBe(false);
+    vi.advanceTimersByTime(60_000);
+    expect(popup.classList.contains('visible')).toBe(false);
+    p.start();
+    vi.advanceTimersByTime(60_000);
     expect(popup.classList.contains('visible')).toBe(false);
     expect(vi.getTimerCount()).toBe(0);
     vi.useRealTimers();

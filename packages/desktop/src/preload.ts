@@ -53,7 +53,27 @@ const api = {
       ipcRenderer.removeListener('stumpcast:update-progress', handler);
     };
   },
+  // Splash-only pushes from the main process: the running version, boot status,
+  // and the newer build the updater found. Kept as plain channels so the splash
+  // never has to guess (or ship a literal) for what version it is displaying.
+  onSplashVersion: (
+    callback: (payload: { version?: string; source?: string }) => void,
+  ): (() => void) => onChannel('splash:version', callback),
+  onSplashStatus: (
+    callback: (payload: { percent?: number; message?: string }) => void,
+  ): (() => void) => onChannel('splash:status', callback),
+  onSplashUpdate: (
+    callback: (payload: { version?: string; state?: string }) => void,
+  ): (() => void) => onChannel('splash:update-available', callback),
 };
+
+function onChannel<T>(channel: string, callback: (payload: T) => void): () => void {
+  const handler = (_event: Electron.IpcRendererEvent, payload: T) => callback(payload);
+  ipcRenderer.on(channel, handler);
+  return () => {
+    ipcRenderer.removeListener(channel, handler);
+  };
+}
 
 contextBridge.exposeInMainWorld('stumpcast', api);
 

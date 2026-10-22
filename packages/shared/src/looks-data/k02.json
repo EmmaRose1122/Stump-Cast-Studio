@@ -37,5 +37,11 @@
     "entrance": "rise",
     "easing": "power2.out",
     "durationMs": 480
-  }
+  },
+  "tags": [
+    "rise entrances",
+    "scores at the bottom",
+    "floating score cards",
+    "photo badges on the right"
+  ]
 }

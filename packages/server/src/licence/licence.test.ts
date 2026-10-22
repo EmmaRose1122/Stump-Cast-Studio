@@ -1,6 +1,7 @@
 import { generateKeyPairSync } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import { signLicenceToken, verifyLicenceToken } from './licence';
+import { buildRevocationIndex } from './revoked';
 
 const keys = () => {
   const { publicKey, privateKey } = generateKeyPairSync('ed25519');
@@ -38,6 +39,44 @@ describe('licence tokens', () => {
 
   it('rejects a token signed by another key', () => {
     expect(verifyLicenceToken(token, NOW, keys().pub)).toEqual({ valid: false, reason: 'bad-signature' });
+  });
+
+  it('rejects a key the seller expired by hand, even while it is still in date', () => {
+    const byToken = buildRevocationIndex([{ token }], 'revoked.json');
+    expect(verifyLicenceToken(token, NOW, pub, byToken)).toEqual({ valid: false, reason: 'revoked' });
+
+    const byIdentity = buildRevocationIndex([{ channel: '@mychannel', iat: NOW }], 'revoked.json');
+    expect(verifyLicenceToken(token, NOW, pub, byIdentity).valid).toBe(false);
+
+    const lifetime = signLicenceToken({ v: 1, channel: '@mine', plan: 'lifetime', iat: NOW }, priv);
+    const revokedLifetime = buildRevocationIndex([{ token: lifetime }], 'revoked.json');
+    expect(verifyLicenceToken(lifetime, NOW, pub, revokedLifetime)).toEqual({ valid: false, reason: 'revoked' });
+    // An empty list must not gate anything: only the entry the admin clicked goes dark.
+    expect(verifyLicenceToken(lifetime, NOW, pub, buildRevocationIndex([], null)).valid).toBe(true);
+  });
+
+  it('enforces machine ID locking when token carries mid', () => {
+    const midKey = signLicenceToken(
+      { v: 1, channel: '@locked', plan: 'yearly', iat: NOW, mid: 'SC-E3AB-A4F4-48BB-8A55' },
+      priv,
+    );
+
+    // Matching machine ID (even with different casing, whitespace or formatting)
+    expect(verifyLicenceToken(midKey, NOW, pub, undefined, 'e3aba4f448bb8a55').valid).toBe(true);
+    expect(verifyLicenceToken(midKey, NOW, pub, undefined, 'SC-E3AB-A4F4-48BB-8A55').valid).toBe(true);
+    expect(verifyLicenceToken(midKey, NOW, pub, undefined, '  e3ab-a4f4-48bb-8a55  ').valid).toBe(true);
+
+    // Mismatched machine ID
+    expect(verifyLicenceToken(midKey, NOW, pub, undefined, 'DIFFERENT-MACHINE-ID')).toEqual({
+      valid: false,
+      reason: 'machine-mismatch',
+    });
+
+    // Missing expected machine ID when token requires one
+    expect(verifyLicenceToken(midKey, NOW, pub)).toEqual({
+      valid: false,
+      reason: 'machine-mismatch',
+    });
   });
 
   it('rejects garbage and the old accept-anything keys', () => {

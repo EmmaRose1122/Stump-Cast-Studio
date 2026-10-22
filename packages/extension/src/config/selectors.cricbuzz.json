@@ -392,5 +392,259 @@
       "regex": "(?:Target|TAR):?\\s*(\\d+)"
     }
   },
-  "minConfidenceFields": ["score", "overs"]
+  "domLists": {
+    "team1.squad": {
+      "heading": "playing XI",
+      "column": "div[class~=\"w-1/2\"]",
+      "index": 0,
+      "item": "a[href*='/profiles/']",
+      "name": "span:not([class])",
+      "role": "div[class~=\"text-cbTxtSec\"]",
+      "marker": "span[class~=\"ml-1\"]",
+      "image": "img",
+      "attr": "src"
+    },
+    "team2.squad": {
+      "heading": "playing XI",
+      "column": "div[class~=\"w-1/2\"]",
+      "index": 1,
+      "item": "a[href*='/profiles/']",
+      "name": "span:not([class])",
+      "role": "div[class~=\"text-cbTxtSec\"]",
+      "marker": "span[class~=\"ml-1\"]",
+      "image": "img",
+      "attr": "src"
+    }
+  },
+  "minConfidenceFields": ["score", "overs"],
+  "pageVariants": {
+    "live": {
+      "urlPattern": "^https?://(?:www\\.|m\\.)?cricbuzz\\.com/(?:live-cricket-scores|cricket-scores|live-cricket-scorecard|cricket-match-highlights|live-cricket-score|cricket-commentary|cricket-scorecard|cricket-match-facts|cricket-match-squads|live-cricket-scores-commentary|live-scores|cricket-series)/\\d+/?$",
+      "jsonTaps": [
+        {
+          "urlRegex": "/api/mcenter/livescore/\\d+",
+          "map": {
+            "format": "miniscore.matchScoreDetails.matchFormat",
+            "status": "miniscore.status",
+            "battingTeam": "miniscore.batTeamScoreObj.teamName",
+            "score": "${miniscore.batTeam.teamScore}/${miniscore.batTeam.teamWkts}",
+            "overs": "miniscore.overs",
+            "inn1.team": "miniscore.matchScoreDetails.inningsScoreList[0].batTeamName",
+            "inn1.score": "${miniscore.matchScoreDetails.inningsScoreList[0].score}/${miniscore.matchScoreDetails.inningsScoreList[0].wickets}",
+            "inn1.overs": "miniscore.matchScoreDetails.inningsScoreList[0].overs",
+            "inn2.team": "miniscore.matchScoreDetails.inningsScoreList[1].batTeamName",
+            "inn2.score": "${miniscore.matchScoreDetails.inningsScoreList[1].score}/${miniscore.matchScoreDetails.inningsScoreList[1].wickets}",
+            "inn2.overs": "miniscore.matchScoreDetails.inningsScoreList[1].overs",
+            "inn3.team": "miniscore.matchScoreDetails.inningsScoreList[2].batTeamName",
+            "inn3.score": "${miniscore.matchScoreDetails.inningsScoreList[2].score}/${miniscore.matchScoreDetails.inningsScoreList[2].wickets}",
+            "inn3.overs": "miniscore.matchScoreDetails.inningsScoreList[2].overs",
+            "inn4.team": "miniscore.matchScoreDetails.inningsScoreList[3].batTeamName",
+            "inn4.score": "${miniscore.matchScoreDetails.inningsScoreList[3].score}/${miniscore.matchScoreDetails.inningsScoreList[3].wickets}",
+            "inn4.overs": "miniscore.matchScoreDetails.inningsScoreList[3].overs",
+            "batter1.name": "${miniscore.batsmanStriker.name} *",
+            "batter1.runs": "miniscore.batsmanStriker.runs",
+            "batter1.balls": "miniscore.batsmanStriker.balls",
+            "batter1.fours": "miniscore.batsmanStriker.fours",
+            "batter1.sixes": "miniscore.batsmanStriker.sixes",
+            "batter2.name": "miniscore.batsmanNonStriker.name",
+            "batter2.runs": "miniscore.batsmanNonStriker.runs",
+            "batter2.balls": "miniscore.batsmanNonStriker.balls",
+            "batter2.fours": "miniscore.batsmanNonStriker.fours",
+            "batter2.sixes": "miniscore.batsmanNonStriker.sixes",
+            "bowler.name": "miniscore.bowlerStriker.name",
+            "bowler.overs": "miniscore.bowlerStriker.overs",
+            "bowler.maidens": "miniscore.bowlerStriker.maidens",
+            "bowler.runs": "miniscore.bowlerStriker.runs",
+            "bowler.wkts": "miniscore.bowlerStriker.wickets",
+            "partnership": "${miniscore.partnerShip.runs} (${miniscore.partnerShip.balls})",
+            "target": "miniscore.target",
+            "crr": "miniscore.currentRunRate",
+            "rrr": "miniscore.requiredRunRate",
+            "thisOver": "miniscore.recentOvsStats"
+          }
+        }
+      ],
+      "domLists": {
+        "team1.squad": {
+          "heading": "playing XI",
+          "column": "div[class~=\"w-1/2\"]",
+          "index": 0,
+          "item": "a[href*='/profiles/']",
+          "name": "span:not([class])",
+          "role": "div[class~=\"text-cbTxtSec\"]",
+          "marker": "span[class~=\"ml-1\"]",
+          "image": "img",
+          "attr": "src"
+        },
+        "team2.squad": {
+          "heading": "playing XI",
+          "column": "div[class~=\"w-1/2\"]",
+          "index": 1,
+          "item": "a[href*='/profiles/']",
+          "name": "span:not([class])",
+          "role": "div[class~=\"text-cbTxtSec\"]",
+          "marker": "span[class~=\"ml-1\"]",
+          "image": "img",
+          "attr": "src"
+        }
+      }
+    },
+    "scorecard": {
+      "urlPattern": "^https?://(?:www\\.|m\\.)?cricbuzz\\.com/.*/scorecard/\\d+",
+      "jsonTaps": [],
+      "dom": {
+        "title": { "selectors": ["h1.cb-nav-hdr", "h1"] },
+        "team1": { "selectors": [".cb-scrd-hdr-rw:nth-child(1) .cb-col-100", ".cb-scrd-hdr-rw .cb-col-100:first-child"] },
+        "team2": { "selectors": [".cb-scrd-hdr-rw:nth-child(2) .cb-col-100", ".cb-scrd-hdr-rw .cb-col-100:last-child"] },
+        "inn1.team": { "selectors": [".cb-col-100.cb-scrd-itms .cb-col-100:first-child .cb-col-100"] },
+        "inn1.score": { "selectors": [".cb-col-100.cb-scrd-itms .cb-col-100:first-child .cb-col-100:nth-child(2)"] },
+        "inn1.overs": { "selectors": [".cb-col-100.cb-scrd-itms .cb-col-100:first-child .cb-col-100:nth-child(3)"] },
+        "inn2.team": { "selectors": [".cb-col-100.cb-scrd-itms .cb-col-100:nth-child(2) .cb-col-100"] },
+        "inn2.score": { "selectors": [".cb-col-100.cb-scrd-itms .cb-col-100:nth-child(2) .cb-col-100:nth-child(2)"] },
+        "inn2.overs": { "selectors": [".cb-col-100.cb-scrd-itms .cb-col-100:nth-child(2) .cb-col-100:nth-child(3)"] },
+        "batter1.name": { "selectors": [".cb-scrd-itms .cb-col-100 a[href*='/profiles/']:first-child"] },
+        "bowler.name": { "selectors": [".cb-scrd-itms .cb-col-100 a[href*='/profiles/']:last-child"] }
+      },
+      "domLists": {
+        "team1.squad": {
+          "heading": "batting",
+          "headingSelectors": [".cb-col-100.cb-scrd-hdr-rw"],
+          "column": ".cb-col-100.cb-scrd-itms",
+          "index": 0,
+          "item": "a[href*='/profiles/']",
+          "name": "span",
+          "role": ".cb-col-100 .cb-col-10:nth-of-type(2)",
+          "marker": ".cb-col-100 .cb-col-10:last-child",
+          "image": "img",
+          "attr": "src"
+        },
+        "team2.squad": {
+          "heading": "batting",
+          "headingSelectors": [".cb-col-100.cb-scrd-hdr-rw"],
+          "column": ".cb-col-100.cb-scrd-itms",
+          "index": 1,
+          "item": "a[href*='/profiles/']",
+          "name": "span",
+          "role": ".cb-col-100 .cb-col-10:nth-of-type(2)",
+          "marker": ".cb-col-100 .cb-col-10:last-child",
+          "image": "img",
+          "attr": "src"
+        }
+      }
+    },
+    "squads": {
+      "urlPattern": "^https?://(?:www\\.|m\\.)?cricbuzz\\.com/.*(?:squads|cricket-match-squads)/\\d+",
+      "jsonTaps": [],
+      "dom": {
+        "title": { "selectors": ["h1.cb-nav-hdr", "h1"] },
+        "team1": { "selectors": [".cb-col-50.cb-col-rt .cb-col-100:first-child"] },
+        "team2": { "selectors": [".cb-col-50.cb-col-rt .cb-col-100:last-child"] }
+      },
+      "domLists": {
+        "team1.squad": {
+          "heading": "playing XI",
+          "column": "div[class~=\"w-1/2\"]",
+          "index": 0,
+          "item": "a[href*='/profiles/']",
+          "name": "span:not([class])",
+          "role": "div[class~=\"text-cbTxtSec\"]",
+          "marker": "span[class~=\"ml-1\"]",
+          "image": "img",
+          "attr": "src"
+        },
+        "team2.squad": {
+          "heading": "playing XI",
+          "column": "div[class~=\"w-1/2\"]",
+          "index": 1,
+          "item": "a[href*='/profiles/']",
+          "name": "span:not([class])",
+          "role": "div[class~=\"text-cbTxtSec\"]",
+          "marker": "span[class~=\"ml-1\"]",
+          "image": "img",
+          "attr": "src"
+        }
+      }
+    },
+    "overs": {
+      "urlPattern": "^https?://(?:www\\.|m\\.)?cricbuzz\\.com/.*/overs/\\d+",
+      "jsonTaps": [
+        {
+          "urlRegex": "/api/mcenter/overs/\\d+",
+          "map": {
+            "thisOver": "overs",
+            "lastBalls": "overs",
+            "score": "score",
+            "overs": "overs"
+          }
+        }
+      ],
+      "dom": {
+        "title": { "selectors": ["h1.cb-nav-hdr", "h1"] },
+        "thisOver": { "selectors": [".cb-min-rec", ".cb-col-100 .cb-col-100"] },
+        "lastBalls": { "selectors": [".cb-min-rec", ".text-\\[\\#666\\]"] }
+      }
+    },
+    "commentary": {
+      "urlPattern": "^https?://(?:www\\.|m\\.)?cricbuzz\\.com/.*/commentary/\\d+",
+      "jsonTaps": [
+        {
+          "urlRegex": "/api/mcenter/comm/\\d+",
+          "map": {
+            "title": "${matchHeader.team1.name} vs ${matchHeader.team2.name}, ${matchHeader.matchDescription}, ${matchHeader.seriesDesc}",
+            "team1": "matchHeader.team1.name",
+            "team2": "matchHeader.team2.name",
+            "format": "matchHeader.matchFormat",
+            "toss": "${matchHeader.tossResults.tossWinnerName} won the toss and chose to ${matchHeader.tossResults.decision}",
+            "inn1.team": "miniscore.matchScoreDetails.inningsScoreList[0].batTeamName",
+            "inn1.score": "${miniscore.matchScoreDetails.inningsScoreList[0].score}/${miniscore.matchScoreDetails.inningsScoreList[0].wickets}",
+            "inn1.overs": "miniscore.matchScoreDetails.inningsScoreList[0].overs",
+            "inn2.team": "miniscore.matchScoreDetails.inningsScoreList[1].batTeamName",
+            "inn2.score": "${miniscore.matchScoreDetails.inningsScoreList[1].score}/${miniscore.matchScoreDetails.inningsScoreList[1].wickets}",
+            "inn2.overs": "miniscore.matchScoreDetails.inningsScoreList[1].overs"
+          }
+        }
+      ],
+      "dom": {
+        "title": { "selectors": ["h1.cb-nav-hdr", "h1"] },
+        "commentaryLast": { "selectors": [".cb-col-100.cb-col-rt .cb-col-100:first-child .cb-col-100"] }
+      }
+    },
+    "match-facts": {
+      "urlPattern": "^https?://(?:www\\.|m\\.)?cricbuzz\\.com/.*/match-facts/\\d+",
+      "jsonTaps": [],
+      "dom": {
+        "title": { "selectors": ["h1.cb-nav-hdr", "h1"] },
+        "venue": { "selectors": [".cb-nav-subhdr", "a[href*='/venues/']"] },
+        "toss": { "selectors": [".cb-text-toss", ".text-cbPreview"] }
+      }
+    },
+    "highlights": {
+      "urlPattern": "^https?://(?:www\\.|m\\.)?cricbuzz\\.com/.*/highlights/\\d+",
+      "jsonTaps": [],
+      "dom": {
+        "title": { "selectors": ["h1.cb-nav-hdr", "h1"] }
+      }
+    },
+    "news": {
+      "urlPattern": "^https?://(?:www\\.|m\\.)?cricbuzz\\.com/.*/news/\\d+",
+      "jsonTaps": [],
+      "dom": {
+        "title": { "selectors": ["h1.cb-nav-hdr", "h1"] }
+      }
+    },
+    "graphs": {
+      "urlPattern": "^https?://(?:www\\.|m\\.)?cricbuzz\\.com/.*/graphs/\\d+",
+      "jsonTaps": [],
+      "dom": {
+        "title": { "selectors": ["h1.cb-nav-hdr", "h1"] }
+      }
+    },
+    "points-table": {
+      "urlPattern": "^https?://(?:www\\.|m\\.)?cricbuzz\\.com/.*/points-table/\\d+",
+      "jsonTaps": [],
+      "dom": {
+        "title": { "selectors": ["h1.cb-nav-hdr", "h1"] }
+      }
+    }
+  }
 }

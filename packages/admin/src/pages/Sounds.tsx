@@ -19,11 +19,32 @@ type CommPatch = Partial<{
   ai: boolean;
 }>;
 
-/** Play audio locally in the operator's headphones using Web Audio API synthesis or HTML5 Audio */
+const CROWD_SOUND_MAP: Record<string, string> = {
+  cheer: '/assets/sounds/crowd-cheer-roar.mp3',
+  roar: '/assets/sounds/crowd-cheer-roar.mp3',
+  clap: '/assets/sounds/crowd-chants-claps.mp3',
+  chants: '/assets/sounds/crowd-chants-claps.mp3',
+  four: '/assets/sounds/boundary-four-burst.mp3',
+  six: '/assets/sounds/crowd-cheer-roar.mp3',
+  wicket: '/assets/sounds/wicket-fall-gasp.mp3',
+  murmur: '/assets/sounds/stadium-murmur.mp3',
+  whistle: '/assets/sounds/stadium-whistles-applause.mp3',
+};
+
+/** Play audio locally in the operator's headphones using real audio assets or Web Audio API synthesis */
 const playLocalAudio = (typeOrUrl: string, gainLevel: number) => {
   try {
-    if (typeOrUrl.includes('/') || typeOrUrl.includes('.')) {
-      const audio = new Audio(typeOrUrl.startsWith('/') ? typeOrUrl : `/assets/${typeOrUrl}`);
+    const mapped = CROWD_SOUND_MAP[typeOrUrl.toLowerCase()];
+    const resolvedUrl =
+      mapped ||
+      (typeOrUrl.includes('/') || typeOrUrl.includes('.')
+        ? typeOrUrl.startsWith('/')
+          ? typeOrUrl
+          : `/assets/${typeOrUrl}`
+        : null);
+
+    if (resolvedUrl) {
+      const audio = new Audio(resolvedUrl);
       audio.volume = Math.max(0, Math.min(1, gainLevel));
       audio.play().catch(() => undefined);
       return;
@@ -349,24 +370,57 @@ export const SoundsPage = () => {
 
   useEffect(() => () => monitor.disable(), []);
 
-  const handleQuickAdd = async (sampleTitle: string) => {
+  const loadPreset = useMutation({
+    mutationFn: (id: string) => soundsApi.preset(id),
+    onSuccess: (o) => {
+      refresh(o);
+      toast({ title: 'Added crowd sound to rack', kind: 'success' });
+    },
+    onError,
+  });
+
+  const handleQuickAdd = async (presetId: string, label: string) => {
     try {
-      await samples.mutateAsync();
-      toast({ title: `Added preset: ${sampleTitle}`, kind: 'success' });
+      if (presetId === 'all') {
+        await samples.mutateAsync();
+        toast({ title: 'Full Stadium Crowd Rack Loaded!', kind: 'success' });
+      } else {
+        await loadPreset.mutateAsync(presetId);
+        toast({ title: `Added: ${label}`, kind: 'success' });
+      }
     } catch (e) {
       onError(e);
     }
   };
 
   const handleInstantCrowd = async (soundIdOrName: string) => {
+    if (soundIdOrName === 'murmur') {
+      if (isLoopRunning) {
+        control.mutate(soundsApi.loopStop);
+        toast({ title: 'Stadium crowd ambient murmur stopped', kind: 'info' });
+      } else {
+        control.mutate(soundsApi.loopStart);
+        toast({ title: '🏟️ Stadium ambient murmur loop playing!', kind: 'success' });
+      }
+      return;
+    }
+
     // With the monitor on, the operator already hears the track through the `sound` channel;
     // playing it locally as well doubled it.
     if (!headphoneMonitor) playLocalAudio(soundIdOrName, master / 100);
-    const slot = slots.find(
-      (s) =>
-        s.title.toLowerCase().includes(soundIdOrName.toLowerCase()) ||
-        s.id.toLowerCase() === soundIdOrName.toLowerCase(),
-    );
+
+    const norm = soundIdOrName.toLowerCase();
+    const slot = slots.find((s) => {
+      const title = s.title.toLowerCase();
+      const id = s.id.toLowerCase();
+      if (norm === 'cheer' || norm === 'roar') return id.includes('cheer') || id.includes('roar') || title.includes('roar') || title.includes('cheer');
+      if (norm === 'clap' || norm === 'chants') return id.includes('clap') || id.includes('chant') || title.includes('clap') || title.includes('chant');
+      if (norm === 'four') return id.includes('four') || title.includes('four');
+      if (norm === 'wicket') return id.includes('wicket') || title.includes('wicket');
+      if (norm === 'whistle') return id.includes('whistle') || title.includes('whistle') || title.includes('ovation');
+      return id === norm || title.includes(norm);
+    });
+
     if (slot) {
       await soundsApi.play(slot.id).catch(onError);
     } else if (slots[0]) {
@@ -406,31 +460,66 @@ export const SoundsPage = () => {
       </div>
 
       {/* Crowd Bar */}
-      <div className="w-full flex flex-wrap items-center justify-center sm:justify-start gap-3 rounded-xl border border-blue-200 bg-white px-4 py-2.5 shadow-sm">
-        <span className="text-xs font-bold uppercase tracking-wider text-blue-950">CROWD:</span>
-        <button
-          onClick={() => handleInstantCrowd('cheer')}
-          className="flex items-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-3 py-1 text-xs font-bold text-rose-700 transition hover:bg-rose-100 shadow-xs"
-        >
-          📣 Cheer
-        </button>
-        <button
-          onClick={() => handleInstantCrowd('clap')}
-          className="flex items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-bold text-amber-800 transition hover:bg-amber-100 shadow-xs"
-        >
-          👏 Clap
-        </button>
-        <button
-          onClick={() => handleInstantCrowd('four')}
-          className="flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-bold text-blue-800 transition hover:bg-blue-100 shadow-xs"
-        >
-          📯 Four
-        </button>
+      <div className="w-full flex flex-wrap items-center justify-between gap-3 rounded-xl border border-blue-200 bg-white px-4 py-2.5 shadow-sm">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs font-bold uppercase tracking-wider text-blue-950 flex items-center gap-1">
+            <span>🏟️</span> CROWD:
+          </span>
+          <button
+            onClick={() => handleInstantCrowd('murmur')}
+            className={clsx(
+              'flex items-center gap-1.5 rounded-lg border px-3 py-1 text-xs font-bold transition shadow-xs',
+              isLoopRunning
+                ? 'border-emerald-300 bg-emerald-50 text-emerald-800'
+                : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100',
+            )}
+            title="Toggle background continuous ambient stadium crowd murmur loop"
+          >
+            🏟️ Ambient Murmur {isLoopRunning ? '● ON' : '○ OFF'}
+          </button>
+          <button
+            onClick={() => handleInstantCrowd('cheer')}
+            className="flex items-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-3 py-1 text-xs font-bold text-rose-700 transition hover:bg-rose-100 shadow-xs active:scale-95"
+            title="Massive stadium roar and crowd cheering"
+          >
+            📣 Roar Cheer
+          </button>
+          <button
+            onClick={() => handleInstantCrowd('clap')}
+            className="flex items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-bold text-amber-800 transition hover:bg-amber-100 shadow-xs active:scale-95"
+            title="Rhythmic stadium claps and crowd chants"
+          >
+            👏 Chants &amp; Claps
+          </button>
+          <button
+            onClick={() => handleInstantCrowd('four')}
+            className="flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-bold text-blue-800 transition hover:bg-blue-100 shadow-xs active:scale-95"
+            title="Boundary four stadium celebration burst"
+          >
+            📯 Boundary Four
+          </button>
+          <button
+            onClick={() => handleInstantCrowd('wicket')}
+            className="flex items-center gap-1.5 rounded-lg border border-purple-200 bg-purple-50 px-3 py-1 text-xs font-bold text-purple-800 transition hover:bg-purple-100 shadow-xs active:scale-95"
+            title="Shock gasp and wicket fall roar"
+          >
+            ⚡ Wicket Roar
+          </button>
+          <button
+            onClick={() => handleInstantCrowd('whistle')}
+            className="flex items-center gap-1.5 rounded-lg border border-teal-200 bg-teal-50 px-3 py-1 text-xs font-bold text-teal-800 transition hover:bg-teal-100 shadow-xs active:scale-95"
+            title="Piercing whistles and standing ovation"
+          >
+            🎺 Whistles
+          </button>
+        </div>
+
         <button
           onClick={() => control.mutate(soundsApi.stopAll)}
-          className="flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-1 text-xs font-bold text-red-700 transition hover:bg-red-100 shadow-xs"
+          className="flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-1 text-xs font-bold text-red-700 transition hover:bg-red-100 shadow-xs active:scale-95 ml-auto"
+          title="Stop all currently playing crowd sounds and loops"
         >
-          🔴 Mute
+          🔴 Mute All
         </button>
       </div>
 
@@ -597,19 +686,43 @@ export const SoundsPage = () => {
             <span className="text-xs font-bold text-slate-900 uppercase tracking-wider">
               + ADD AUDIO TRACK ({Math.max(0, 10 - slots.length)} SLOTS REMAINING)
             </span>
-            <div className="flex items-center gap-2 text-xs">
-              <span className="text-slate-500">Quick Presets:</span>
+            <div className="flex flex-wrap items-center gap-1.5 text-xs">
+              <span className="text-slate-500 font-semibold mr-1">Quick Presets:</span>
               <button
-                onClick={() => handleQuickAdd('Stadium Murmur')}
+                onClick={() => handleQuickAdd('stadium-murmur', 'Stadium Murmur (Loop)')}
                 className="rounded-lg border border-blue-200 bg-white px-2.5 py-1 text-xs font-semibold text-blue-900 hover:bg-blue-50 shadow-xs"
               >
-                + Stadium Murmur
+                + 🏟️ Murmur
               </button>
               <button
-                onClick={() => handleQuickAdd('Roar Cheer')}
+                onClick={() => handleQuickAdd('crowd-cheer-roar', 'Massive Crowd Roar')}
                 className="rounded-lg border border-blue-200 bg-white px-2.5 py-1 text-xs font-semibold text-blue-900 hover:bg-blue-50 shadow-xs"
               >
-                + Roar Cheer
+                + 📣 Roar Cheer
+              </button>
+              <button
+                onClick={() => handleQuickAdd('crowd-chants-claps', 'Chants & Claps')}
+                className="rounded-lg border border-blue-200 bg-white px-2.5 py-1 text-xs font-semibold text-blue-900 hover:bg-blue-50 shadow-xs"
+              >
+                + 👏 Chants &amp; Claps
+              </button>
+              <button
+                onClick={() => handleQuickAdd('boundary-four-burst', 'Boundary Four')}
+                className="rounded-lg border border-blue-200 bg-white px-2.5 py-1 text-xs font-semibold text-blue-900 hover:bg-blue-50 shadow-xs"
+              >
+                + 📯 Boundary Four
+              </button>
+              <button
+                onClick={() => handleQuickAdd('wicket-fall-gasp', 'Wicket Fall Roar')}
+                className="rounded-lg border border-blue-200 bg-white px-2.5 py-1 text-xs font-semibold text-blue-900 hover:bg-blue-50 shadow-xs"
+              >
+                + ⚡ Wicket Roar
+              </button>
+              <button
+                onClick={() => handleQuickAdd('all', 'Full Stadium Crowd Rack')}
+                className="rounded-lg border border-orange-300 bg-orange-50 px-2.5 py-1 text-xs font-bold text-orange-800 hover:bg-orange-100 shadow-xs"
+              >
+                ⚡ Load All Crowd Tracks
               </button>
             </div>
           </div>

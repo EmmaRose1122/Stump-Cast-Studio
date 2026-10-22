@@ -35,6 +35,19 @@ const request = <T,>(url: string, method = 'GET', body?: unknown): Promise<T> =>
 
 const TV_THEMES = [
   {
+    id: 'none',
+    name: 'LOOK DEFAULT',
+    desc: 'No theme override — the active pro look drives every colour on air',
+    swatches: ['#1e293b', '#475569', '#94a3b8'],
+    primary: '#334155',
+    accent: '#94a3b8',
+    accent2: '#64748b',
+    border: '#475569',
+    glow: 'rgba(148, 163, 184, 0.4)',
+    barBg: 'linear-gradient(90deg, #1e293b 0%, #475569 50%, #1e293b 100%)',
+    live: true,
+  },
+  {
     id: 'orange-blue',
     name: 'ORANGE & BLUE BROADCAST',
     desc: 'StumpCast Orange, White, Blue Broadcast Theme',
@@ -212,7 +225,7 @@ export const VideoPage = () => {
   const [portDraft, setPortDraft] = useState('4455');
   const [sceneDraft, setSceneDraft] = useState('');
   const [customBgUrl, setCustomBgUrl] = useState('');
-  const [activeTheme, setActiveTheme] = useState(video?.tvTheme || 'star-sports');
+  const [activeTheme, setActiveTheme] = useState(video?.tvTheme || 'none');
   const [activeStadiumDraft, setActiveStadiumDraft] = useState<string | null>(null);
   const [cameraHostCount, setCameraHostCount] = useState<'none' | 'one' | 'two'>('none');
   const [cameraTab, setCameraTab] = useState<'webcam' | 'obs' | 'guide'>('webcam');

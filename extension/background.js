@@ -401,7 +401,261 @@
         regex: "(?:Target|TAR):?\\s*(\\d+)"
       }
     },
-    minConfidenceFields: ["score", "overs"]
+    domLists: {
+      "team1.squad": {
+        heading: "playing XI",
+        column: 'div[class~="w-1/2"]',
+        index: 0,
+        item: "a[href*='/profiles/']",
+        name: "span:not([class])",
+        role: 'div[class~="text-cbTxtSec"]',
+        marker: 'span[class~="ml-1"]',
+        image: "img",
+        attr: "src"
+      },
+      "team2.squad": {
+        heading: "playing XI",
+        column: 'div[class~="w-1/2"]',
+        index: 1,
+        item: "a[href*='/profiles/']",
+        name: "span:not([class])",
+        role: 'div[class~="text-cbTxtSec"]',
+        marker: 'span[class~="ml-1"]',
+        image: "img",
+        attr: "src"
+      }
+    },
+    minConfidenceFields: ["score", "overs"],
+    pageVariants: {
+      live: {
+        urlPattern: "^https?://(?:www\\.|m\\.)?cricbuzz\\.com/(?:live-cricket-scores|cricket-scores|live-cricket-scorecard|cricket-match-highlights|live-cricket-score|cricket-commentary|cricket-scorecard|cricket-match-facts|cricket-match-squads|live-cricket-scores-commentary|live-scores|cricket-series)/\\d+/?$",
+        jsonTaps: [
+          {
+            urlRegex: "/api/mcenter/livescore/\\d+",
+            map: {
+              format: "miniscore.matchScoreDetails.matchFormat",
+              status: "miniscore.status",
+              battingTeam: "miniscore.batTeamScoreObj.teamName",
+              score: "${miniscore.batTeam.teamScore}/${miniscore.batTeam.teamWkts}",
+              overs: "miniscore.overs",
+              "inn1.team": "miniscore.matchScoreDetails.inningsScoreList[0].batTeamName",
+              "inn1.score": "${miniscore.matchScoreDetails.inningsScoreList[0].score}/${miniscore.matchScoreDetails.inningsScoreList[0].wickets}",
+              "inn1.overs": "miniscore.matchScoreDetails.inningsScoreList[0].overs",
+              "inn2.team": "miniscore.matchScoreDetails.inningsScoreList[1].batTeamName",
+              "inn2.score": "${miniscore.matchScoreDetails.inningsScoreList[1].score}/${miniscore.matchScoreDetails.inningsScoreList[1].wickets}",
+              "inn2.overs": "miniscore.matchScoreDetails.inningsScoreList[1].overs",
+              "inn3.team": "miniscore.matchScoreDetails.inningsScoreList[2].batTeamName",
+              "inn3.score": "${miniscore.matchScoreDetails.inningsScoreList[2].score}/${miniscore.matchScoreDetails.inningsScoreList[2].wickets}",
+              "inn3.overs": "miniscore.matchScoreDetails.inningsScoreList[2].overs",
+              "inn4.team": "miniscore.matchScoreDetails.inningsScoreList[3].batTeamName",
+              "inn4.score": "${miniscore.matchScoreDetails.inningsScoreList[3].score}/${miniscore.matchScoreDetails.inningsScoreList[3].wickets}",
+              "inn4.overs": "miniscore.matchScoreDetails.inningsScoreList[3].overs",
+              "batter1.name": "${miniscore.batsmanStriker.name} *",
+              "batter1.runs": "miniscore.batsmanStriker.runs",
+              "batter1.balls": "miniscore.batsmanStriker.balls",
+              "batter1.fours": "miniscore.batsmanStriker.fours",
+              "batter1.sixes": "miniscore.batsmanStriker.sixes",
+              "batter2.name": "miniscore.batsmanNonStriker.name",
+              "batter2.runs": "miniscore.batsmanNonStriker.runs",
+              "batter2.balls": "miniscore.batsmanNonStriker.balls",
+              "batter2.fours": "miniscore.batsmanNonStriker.fours",
+              "batter2.sixes": "miniscore.batsmanNonStriker.sixes",
+              "bowler.name": "miniscore.bowlerStriker.name",
+              "bowler.overs": "miniscore.bowlerStriker.overs",
+              "bowler.maidens": "miniscore.bowlerStriker.maidens",
+              "bowler.runs": "miniscore.bowlerStriker.runs",
+              "bowler.wkts": "miniscore.bowlerStriker.wickets",
+              partnership: "${miniscore.partnerShip.runs} (${miniscore.partnerShip.balls})",
+              target: "miniscore.target",
+              crr: "miniscore.currentRunRate",
+              rrr: "miniscore.requiredRunRate",
+              thisOver: "miniscore.recentOvsStats"
+            }
+          }
+        ],
+        domLists: {
+          "team1.squad": {
+            heading: "playing XI",
+            column: 'div[class~="w-1/2"]',
+            index: 0,
+            item: "a[href*='/profiles/']",
+            name: "span:not([class])",
+            role: 'div[class~="text-cbTxtSec"]',
+            marker: 'span[class~="ml-1"]',
+            image: "img",
+            attr: "src"
+          },
+          "team2.squad": {
+            heading: "playing XI",
+            column: 'div[class~="w-1/2"]',
+            index: 1,
+            item: "a[href*='/profiles/']",
+            name: "span:not([class])",
+            role: 'div[class~="text-cbTxtSec"]',
+            marker: 'span[class~="ml-1"]',
+            image: "img",
+            attr: "src"
+          }
+        }
+      },
+      scorecard: {
+        urlPattern: "^https?://(?:www\\.|m\\.)?cricbuzz\\.com/.*/scorecard/\\d+",
+        jsonTaps: [],
+        dom: {
+          title: { selectors: ["h1.cb-nav-hdr", "h1"] },
+          team1: { selectors: [".cb-scrd-hdr-rw:nth-child(1) .cb-col-100", ".cb-scrd-hdr-rw .cb-col-100:first-child"] },
+          team2: { selectors: [".cb-scrd-hdr-rw:nth-child(2) .cb-col-100", ".cb-scrd-hdr-rw .cb-col-100:last-child"] },
+          "inn1.team": { selectors: [".cb-col-100.cb-scrd-itms .cb-col-100:first-child .cb-col-100"] },
+          "inn1.score": { selectors: [".cb-col-100.cb-scrd-itms .cb-col-100:first-child .cb-col-100:nth-child(2)"] },
+          "inn1.overs": { selectors: [".cb-col-100.cb-scrd-itms .cb-col-100:first-child .cb-col-100:nth-child(3)"] },
+          "inn2.team": { selectors: [".cb-col-100.cb-scrd-itms .cb-col-100:nth-child(2) .cb-col-100"] },
+          "inn2.score": { selectors: [".cb-col-100.cb-scrd-itms .cb-col-100:nth-child(2) .cb-col-100:nth-child(2)"] },
+          "inn2.overs": { selectors: [".cb-col-100.cb-scrd-itms .cb-col-100:nth-child(2) .cb-col-100:nth-child(3)"] },
+          "batter1.name": { selectors: [".cb-scrd-itms .cb-col-100 a[href*='/profiles/']:first-child"] },
+          "bowler.name": { selectors: [".cb-scrd-itms .cb-col-100 a[href*='/profiles/']:last-child"] }
+        },
+        domLists: {
+          "team1.squad": {
+            heading: "batting",
+            headingSelectors: [".cb-col-100.cb-scrd-hdr-rw"],
+            column: ".cb-col-100.cb-scrd-itms",
+            index: 0,
+            item: "a[href*='/profiles/']",
+            name: "span",
+            role: ".cb-col-100 .cb-col-10:nth-of-type(2)",
+            marker: ".cb-col-100 .cb-col-10:last-child",
+            image: "img",
+            attr: "src"
+          },
+          "team2.squad": {
+            heading: "batting",
+            headingSelectors: [".cb-col-100.cb-scrd-hdr-rw"],
+            column: ".cb-col-100.cb-scrd-itms",
+            index: 1,
+            item: "a[href*='/profiles/']",
+            name: "span",
+            role: ".cb-col-100 .cb-col-10:nth-of-type(2)",
+            marker: ".cb-col-100 .cb-col-10:last-child",
+            image: "img",
+            attr: "src"
+          }
+        }
+      },
+      squads: {
+        urlPattern: "^https?://(?:www\\.|m\\.)?cricbuzz\\.com/.*(?:squads|cricket-match-squads)/\\d+",
+        jsonTaps: [],
+        dom: {
+          title: { selectors: ["h1.cb-nav-hdr", "h1"] },
+          team1: { selectors: [".cb-col-50.cb-col-rt .cb-col-100:first-child"] },
+          team2: { selectors: [".cb-col-50.cb-col-rt .cb-col-100:last-child"] }
+        },
+        domLists: {
+          "team1.squad": {
+            heading: "playing XI",
+            column: 'div[class~="w-1/2"]',
+            index: 0,
+            item: "a[href*='/profiles/']",
+            name: "span:not([class])",
+            role: 'div[class~="text-cbTxtSec"]',
+            marker: 'span[class~="ml-1"]',
+            image: "img",
+            attr: "src"
+          },
+          "team2.squad": {
+            heading: "playing XI",
+            column: 'div[class~="w-1/2"]',
+            index: 1,
+            item: "a[href*='/profiles/']",
+            name: "span:not([class])",
+            role: 'div[class~="text-cbTxtSec"]',
+            marker: 'span[class~="ml-1"]',
+            image: "img",
+            attr: "src"
+          }
+        }
+      },
+      overs: {
+        urlPattern: "^https?://(?:www\\.|m\\.)?cricbuzz\\.com/.*/overs/\\d+",
+        jsonTaps: [
+          {
+            urlRegex: "/api/mcenter/overs/\\d+",
+            map: {
+              thisOver: "overs",
+              lastBalls: "overs",
+              score: "score",
+              overs: "overs"
+            }
+          }
+        ],
+        dom: {
+          title: { selectors: ["h1.cb-nav-hdr", "h1"] },
+          thisOver: { selectors: [".cb-min-rec", ".cb-col-100 .cb-col-100"] },
+          lastBalls: { selectors: [".cb-min-rec", ".text-\\[\\#666\\]"] }
+        }
+      },
+      commentary: {
+        urlPattern: "^https?://(?:www\\.|m\\.)?cricbuzz\\.com/.*/commentary/\\d+",
+        jsonTaps: [
+          {
+            urlRegex: "/api/mcenter/comm/\\d+",
+            map: {
+              title: "${matchHeader.team1.name} vs ${matchHeader.team2.name}, ${matchHeader.matchDescription}, ${matchHeader.seriesDesc}",
+              team1: "matchHeader.team1.name",
+              team2: "matchHeader.team2.name",
+              format: "matchHeader.matchFormat",
+              toss: "${matchHeader.tossResults.tossWinnerName} won the toss and chose to ${matchHeader.tossResults.decision}",
+              "inn1.team": "miniscore.matchScoreDetails.inningsScoreList[0].batTeamName",
+              "inn1.score": "${miniscore.matchScoreDetails.inningsScoreList[0].score}/${miniscore.matchScoreDetails.inningsScoreList[0].wickets}",
+              "inn1.overs": "miniscore.matchScoreDetails.inningsScoreList[0].overs",
+              "inn2.team": "miniscore.matchScoreDetails.inningsScoreList[1].batTeamName",
+              "inn2.score": "${miniscore.matchScoreDetails.inningsScoreList[1].score}/${miniscore.matchScoreDetails.inningsScoreList[1].wickets}",
+              "inn2.overs": "miniscore.matchScoreDetails.inningsScoreList[1].overs"
+            }
+          }
+        ],
+        dom: {
+          title: { selectors: ["h1.cb-nav-hdr", "h1"] },
+          commentaryLast: { selectors: [".cb-col-100.cb-col-rt .cb-col-100:first-child .cb-col-100"] }
+        }
+      },
+      "match-facts": {
+        urlPattern: "^https?://(?:www\\.|m\\.)?cricbuzz\\.com/.*/match-facts/\\d+",
+        jsonTaps: [],
+        dom: {
+          title: { selectors: ["h1.cb-nav-hdr", "h1"] },
+          venue: { selectors: [".cb-nav-subhdr", "a[href*='/venues/']"] },
+          toss: { selectors: [".cb-text-toss", ".text-cbPreview"] }
+        }
+      },
+      highlights: {
+        urlPattern: "^https?://(?:www\\.|m\\.)?cricbuzz\\.com/.*/highlights/\\d+",
+        jsonTaps: [],
+        dom: {
+          title: { selectors: ["h1.cb-nav-hdr", "h1"] }
+        }
+      },
+      news: {
+        urlPattern: "^https?://(?:www\\.|m\\.)?cricbuzz\\.com/.*/news/\\d+",
+        jsonTaps: [],
+        dom: {
+          title: { selectors: ["h1.cb-nav-hdr", "h1"] }
+        }
+      },
+      graphs: {
+        urlPattern: "^https?://(?:www\\.|m\\.)?cricbuzz\\.com/.*/graphs/\\d+",
+        jsonTaps: [],
+        dom: {
+          title: { selectors: ["h1.cb-nav-hdr", "h1"] }
+        }
+      },
+      "points-table": {
+        urlPattern: "^https?://(?:www\\.|m\\.)?cricbuzz\\.com/.*/points-table/\\d+",
+        jsonTaps: [],
+        dom: {
+          title: { selectors: ["h1.cb-nav-hdr", "h1"] }
+        }
+      }
+    }
   };
 
   // ../../node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/external.js
@@ -4446,12 +4700,25 @@
   var NEVER = INVALID;
 
   // ../shared/src/team.ts
+  var SquadPlayerSchema = external_exports.object({
+    name: external_exports.string().min(1).max(60),
+    /** The source's own words, e.g. "WK-Batter" or "Bowling Allrounder". Never invented. */
+    role: external_exports.string().min(1).max(40).optional(),
+    captain: external_exports.boolean().optional(),
+    keeper: external_exports.boolean().optional(),
+    /** The picture the page shows for this player, same idea as a team crest. */
+    imageUrl: external_exports.string().url().optional()
+  });
   var TeamSchema = external_exports.object({
     id: external_exports.string().min(1),
     name: external_exports.string().min(1),
     short: external_exports.string().min(1).max(5),
     color: external_exports.string().regex(/^#[0-9a-fA-F]{6}$/),
-    logoAssetId: external_exports.string().optional()
+    logoAssetId: external_exports.string().optional(),
+    /** The announced line-up when the source carries one. */
+    players: external_exports.array(external_exports.string().min(1).max(60)).max(30).optional(),
+    /** The same line-up with what the source says about each player. */
+    squad: external_exports.array(SquadPlayerSchema).max(30).optional()
   });
   var PlayerSchema = external_exports.object({
     id: external_exports.string().min(1),
@@ -4683,6 +4950,34 @@
     boundaries: external_exports.object({ fours: external_exports.number().int().min(0), sixes: external_exports.number().int().min(0) }).optional(),
     ballsObserved: external_exports.number().int().min(0).optional(),
     /**
+     * Extras given away this innings, split by type. The score already includes them; this is the
+     * breakdown a scorecard line (`7 (b 0, lb 3, w 4, nb 0, p 0)`) needs and a feed never sends.
+     */
+    extras: external_exports.object({
+      wide: external_exports.number().int().min(0),
+      noball: external_exports.number().int().min(0),
+      bye: external_exports.number().int().min(0),
+      legbye: external_exports.number().int().min(0),
+      penalty: external_exports.number().int().min(0)
+    }).optional(),
+    /**
+     * The wicket the commentary is still talking about. A broadcast that never shows who just fell
+     * looks like a scoreboard that forgot to update, so the last dismissal stays on the bar until
+     * the next one. Figures are the best the feed showed for that batter before they got out.
+     */
+    lastWicket: external_exports.object({
+      name: external_exports.string().min(1),
+      runs: external_exports.number().int().min(0),
+      balls: external_exports.number().int().min(0),
+      /** Only when the feed said how; ball-by-ball tokens usually do not. */
+      kind: WicketSchema.shape.kind.optional(),
+      /** Team score and delivery when it fell. */
+      teamRuns: external_exports.number().int().min(0),
+      wkts: external_exports.number().int().min(0).max(10),
+      over: external_exports.number().int().min(0),
+      ball: external_exports.number().int().min(1)
+    }).optional(),
+    /**
      * The feed only publishes the pair at the crease and the bowler running in, so these are the
      * best figures seen anywhere in the match. Absent when the snapshots carried no player rows.
      */
@@ -4779,7 +5074,14 @@
       ]),
       easing: external_exports.string().default("power2.out"),
       durationMs: external_exports.number().int().min(50).max(3e3).default(500)
-    })
+    }),
+    /**
+     * What actually differs between this look and the rest, one short phrase per axis. Optional so
+     * packs written before it existed still parse. Generate these from the look's own fields
+     * (`describeLook`) rather than writing them by hand: hand-written tags drifted out of sync with
+     * the shapes the looks declare.
+     */
+    tags: external_exports.array(external_exports.string().min(2).max(48)).min(2).max(4).optional()
   });
 
   // ../shared/src/looks-data/aqua-mono.json
@@ -5166,7 +5468,13 @@
       entrance: "slide",
       easing: "power2.out",
       durationMs: 480
-    }
+    },
+    tags: [
+      "slide entrances",
+      "scores on top",
+      "pill score bar",
+      "cut-out player photos"
+    ]
   };
 
   // ../shared/src/looks-data/k02.json
@@ -5209,7 +5517,13 @@
       entrance: "rise",
       easing: "power2.out",
       durationMs: 480
-    }
+    },
+    tags: [
+      "rise entrances",
+      "scores at the bottom",
+      "floating score cards",
+      "photo badges on the right"
+    ]
   };
 
   // ../shared/src/looks-data/k03.json
@@ -5252,7 +5566,13 @@
       entrance: "glitch",
       easing: "power2.out",
       durationMs: 450
-    }
+    },
+    tags: [
+      "glitch entrances",
+      "scores at the bottom",
+      "pill score bar",
+      "round photo badges"
+    ]
   };
 
   // ../shared/src/looks-data/k04.json
@@ -5295,7 +5615,13 @@
       entrance: "iris",
       easing: "power2.inOut",
       durationMs: 520
-    }
+    },
+    tags: [
+      "iris entrances",
+      "scores on top",
+      "arrow score bar",
+      "mirrored player cards"
+    ]
   };
 
   // ../shared/src/looks-data/k05.json
@@ -5338,7 +5664,13 @@
       entrance: "blinds",
       easing: "power2.out",
       durationMs: 460
-    }
+    },
+    tags: [
+      "blinds entrances",
+      "scores on top",
+      "floating score cards",
+      "photo badges on the right"
+    ]
   };
 
   // ../shared/src/looks-data/k08.json
@@ -5381,7 +5713,13 @@
       entrance: "curtain",
       easing: "power3.inOut",
       durationMs: 550
-    }
+    },
+    tags: [
+      "curtain entrances",
+      "scores at the bottom",
+      "floating score cards",
+      "cut-out player photos"
+    ]
   };
 
   // ../shared/src/looks-data/k09.json
@@ -5424,7 +5762,13 @@
       entrance: "flip",
       easing: "power2.out",
       durationMs: 500
-    }
+    },
+    tags: [
+      "flip entrances",
+      "scores at the bottom",
+      "flat score bar",
+      "mirrored player cards"
+    ]
   };
 
   // ../shared/src/looks-data/k10.json
@@ -5467,7 +5811,13 @@
       entrance: "unfold",
       easing: "power3.out",
       durationMs: 520
-    }
+    },
+    tags: [
+      "unfold entrances",
+      "scores on top",
+      "slanted score bar",
+      "cut-out player photos"
+    ]
   };
 
   // ../shared/src/looks-data/k11.json
@@ -5510,7 +5860,13 @@
       entrance: "skew",
       easing: "expo.out",
       durationMs: 480
-    }
+    },
+    tags: [
+      "skew entrances",
+      "scores at the bottom",
+      "arrow score bar",
+      "mirrored player cards"
+    ]
   };
 
   // ../shared/src/looks-data/k12.json
@@ -5553,7 +5909,13 @@
       entrance: "pop",
       easing: "back.out(1.5)",
       durationMs: 460
-    }
+    },
+    tags: [
+      "pop entrances",
+      "scores at the bottom",
+      "arrow score bar",
+      "photo badges on the right"
+    ]
   };
 
   // ../shared/src/looks-data/k13.json
@@ -5596,7 +5958,13 @@
       entrance: "drop",
       easing: "power2.out",
       durationMs: 480
-    }
+    },
+    tags: [
+      "drop entrances",
+      "scores on top",
+      "arrow score bar",
+      "mirrored player cards"
+    ]
   };
 
   // ../shared/src/looks-data/k14.json
@@ -5639,7 +6007,13 @@
       entrance: "fade",
       easing: "power2.out",
       durationMs: 500
-    }
+    },
+    tags: [
+      "fade entrances",
+      "scores on top",
+      "pill score bar",
+      "round photo badges"
+    ]
   };
 
   // ../shared/src/looks-data/k15.json
@@ -5682,7 +6056,13 @@
       entrance: "swing",
       easing: "power2.out",
       durationMs: 520
-    }
+    },
+    tags: [
+      "swing entrances",
+      "scores at the bottom",
+      "notched score bar",
+      "round photo badges"
+    ]
   };
 
   // ../shared/src/looks-data/k16.json
@@ -5725,7 +6105,13 @@
       entrance: "blur",
       easing: "power2.out",
       durationMs: 550
-    }
+    },
+    tags: [
+      "blur entrances",
+      "scores on top",
+      "glass score bar",
+      "cut-out player photos"
+    ]
   };
 
   // ../shared/src/looks-data/k17.json
@@ -5768,7 +6154,13 @@
       entrance: "zoom-out",
       easing: "power3.out",
       durationMs: 520
-    }
+    },
+    tags: [
+      "zoom-out entrances",
+      "scores at the bottom",
+      "glass score bar",
+      "round photo badges"
+    ]
   };
 
   // ../shared/src/looks-data/k18.json
@@ -5811,7 +6203,13 @@
       entrance: "slide-right",
       easing: "power2.out",
       durationMs: 480
-    }
+    },
+    tags: [
+      "slide-right entrances",
+      "scores on top",
+      "notched score bar",
+      "mirrored player cards"
+    ]
   };
 
   // ../shared/src/looks-data/k19.json
@@ -5854,7 +6252,13 @@
       entrance: "stretch",
       easing: "power3.out",
       durationMs: 500
-    }
+    },
+    tags: [
+      "stretch entrances",
+      "scores at the bottom",
+      "slanted score bar",
+      "cut-out player photos"
+    ]
   };
 
   // ../shared/src/looks-data/k20.json
@@ -5897,7 +6301,13 @@
       entrance: "diamond",
       easing: "power2.inOut",
       durationMs: 500
-    }
+    },
+    tags: [
+      "diamond entrances",
+      "scores on top",
+      "slanted score bar",
+      "round photo badges"
+    ]
   };
 
   // ../shared/src/looks-data/k21.json
@@ -5940,7 +6350,13 @@
       entrance: "zoom",
       easing: "back.out(1.4)",
       durationMs: 480
-    }
+    },
+    tags: [
+      "zoom entrances",
+      "scores at the bottom",
+      "slanted score bar",
+      "cut-out player photos"
+    ]
   };
 
   // ../shared/src/looks-data/k22.json
@@ -5983,7 +6399,13 @@
       entrance: "spin",
       easing: "power2.out",
       durationMs: 540
-    }
+    },
+    tags: [
+      "spin entrances",
+      "scores at the bottom",
+      "notched score bar",
+      "photo badges on the right"
+    ]
   };
 
   // ../shared/src/looks-data/k23.json
@@ -6026,7 +6448,13 @@
       entrance: "drop",
       easing: "power2.out",
       durationMs: 480
-    }
+    },
+    tags: [
+      "drop entrances",
+      "scores at the bottom",
+      "notched score bar",
+      "photo badges on the right"
+    ]
   };
 
   // ../shared/src/looks-data/k24.json
@@ -6069,7 +6497,13 @@
       entrance: "zoom",
       easing: "back.out(1.4)",
       durationMs: 480
-    }
+    },
+    tags: [
+      "zoom entrances",
+      "scores on top",
+      "flat score bar",
+      "photo badges on the right"
+    ]
   };
 
   // ../shared/src/looks-data/k25.json
@@ -6112,7 +6546,13 @@
       entrance: "pop",
       easing: "back.out(1.5)",
       durationMs: 460
-    }
+    },
+    tags: [
+      "pop entrances",
+      "scores on top",
+      "notched score bar",
+      "round photo badges"
+    ]
   };
 
   // ../shared/src/looks-data/sc-monsoon-night.json
@@ -6155,7 +6595,13 @@
       entrance: "blur",
       easing: "power3.out",
       durationMs: 560
-    }
+    },
+    tags: [
+      "blur entrances",
+      "scores at the bottom",
+      "glass score bar",
+      "mirrored player cards"
+    ]
   };
 
   // ../shared/src/looks-data/sc-desert-dusk.json
@@ -6198,7 +6644,13 @@
       entrance: "skew",
       easing: "power2.out",
       durationMs: 500
-    }
+    },
+    tags: [
+      "skew entrances",
+      "scores on top",
+      "slanted score bar",
+      "framed photo badges"
+    ]
   };
 
   // ../shared/src/looks-data/sc-paper-scoreboard.json
@@ -6241,7 +6693,13 @@
       entrance: "rise",
       easing: "power2.out",
       durationMs: 420
-    }
+    },
+    tags: [
+      "rise entrances",
+      "scores at the bottom",
+      "flat score bar",
+      "photo badges on the right"
+    ]
   };
 
   // ../shared/src/looks-data/sc-royal-maroon.json
@@ -6284,7 +6742,13 @@
       entrance: "curtain",
       easing: "power3.out",
       durationMs: 600
-    }
+    },
+    tags: [
+      "curtain entrances",
+      "scores on top",
+      "notched score bar",
+      "cut-out player photos"
+    ]
   };
 
   // ../shared/src/looks-data/sc-arctic-mint.json
@@ -6327,7 +6791,13 @@
       entrance: "fade",
       easing: "sine.out",
       durationMs: 520
-    }
+    },
+    tags: [
+      "fade entrances",
+      "scores on top",
+      "line score bar",
+      "round photo badges"
+    ]
   };
 
   // ../shared/src/looks-data/sc-volt-carbon.json
@@ -6370,7 +6840,13 @@
       entrance: "glitch",
       easing: "power4.out",
       durationMs: 380
-    }
+    },
+    tags: [
+      "glitch entrances",
+      "scores at the bottom",
+      "arrow score bar",
+      "framed photo badges"
+    ]
   };
 
   // ../shared/src/looks.ts
@@ -6484,7 +6960,9 @@
       obsHost: external_exports.string().max(255).default("127.0.0.1"),
       obsPort: external_exports.number().int().min(1).max(65535).default(4455),
       obsScene: external_exports.string().max(255).default(""),
-      tvTheme: external_exports.string().default("star-sports"),
+      // `none` leaves the broadcast entirely Look-driven. A TV theme is an explicit operator
+      // choice, not a default that quietly overrides the pro look they just paid for.
+      tvTheme: external_exports.string().default("none"),
       backgroundImage: external_exports.string().max(2048).nullable().default(null),
       backgroundDim: external_exports.number().min(0).max(0.8).default(0.3),
       obsMap: external_exports.object({ matchVideo: external_exports.string().max(255).default(""), cam1: external_exports.string().max(255).default(""), cam2: external_exports.string().max(255).default("") }).default({})
@@ -6572,7 +7050,7 @@
 
   // ../shared/src/provider.ts
   var SourceSiteSchema = external_exports.enum(["cricbuzz", "crex"]);
-  var RawSourceSchema = external_exports.enum(["cricbuzz", "crex", "manual", "api"]);
+  var RawSourceSchema = external_exports.enum(["cricbuzz", "crex", "manual", "api", "multi-page-fetch"]);
   var oversField = external_exports.object({
     overs: external_exports.number().int().min(0),
     balls: external_exports.number().int().min(0).max(5)
@@ -6599,7 +7077,19 @@
            * whatever the operator is already watching carries it, and the first sighting of a new
            * team is what files its crest in the asset store.
            */
-          logoUrl: external_exports.string().url().optional()
+          logoUrl: external_exports.string().url().optional(),
+          /**
+           * The announced line-up, as names. A source that lists eleven players gives the overlay
+           * a squad card to show; one that does not leaves the scene saying so rather than
+           * inventing a team.
+           */
+          players: external_exports.array(external_exports.string().min(1).max(60)).max(30).optional(),
+          /**
+           * The same eleven with the role, the captain/keeper markers and the photo the page shows.
+           * `players` is what the overlay reads; this is what the studio needs to prepare a cutout
+           * for every name before the player walks out.
+           */
+          squad: external_exports.array(SquadPlayerSchema).max(30).optional()
         })
       ).max(2).default([]),
       innings: external_exports.array(
@@ -6644,7 +7134,9 @@
       commentaryLast: external_exports.string().optional(),
       /** Sources that know the format (the manual scorer) say so instead of guessing from text. */
       format: external_exports.enum(["T20", "ODI", "TEST", "OTHER"]).optional(),
-      oversLimit: external_exports.number().int().positive().optional()
+      oversLimit: external_exports.number().int().positive().optional(),
+      /** Multi-page fetch results from extension (live, scorecard, squads, etc.) */
+      multiPageData: external_exports.array(external_exports.unknown()).optional()
     }),
     /** Names of expected fields the adapter could not find. */
     missing: external_exports.array(external_exports.string()).default([])
@@ -6693,7 +7185,8 @@
     external_exports.object({ command: external_exports.literal("focusMatch"), matchId: external_exports.string().min(1) }),
     external_exports.object({ command: external_exports.literal("closeMatch"), matchId: external_exports.string().min(1) }),
     external_exports.object({ command: external_exports.literal("reloadSelectors") }),
-    external_exports.object({ command: external_exports.literal("killSwitch"), enabled: external_exports.boolean().default(true) })
+    external_exports.object({ command: external_exports.literal("killSwitch"), enabled: external_exports.boolean().default(true) }),
+    external_exports.object({ command: external_exports.literal("fetchAllPages"), matchId: external_exports.string().min(1), baseUrl: external_exports.string().url() })
   ]);
   var ExtServerMessageSchema = external_exports.union([
     external_exports.object({ type: external_exports.literal("authed") }),
@@ -7290,6 +7783,13 @@
     "batter1.photo",
     "batter2.photo",
     "bowler.photo",
+    /**
+     * A whole announced line-up. One field per side; the value is a JSON array of
+     * `{ name, role, captain, keeper, imageUrl }` read by a `domLists` rule, because a squad is a
+     * list of rows and every other field this engine reads is a single value.
+     */
+    "team1.squad",
+    "team2.squad",
     "partnership",
     "target",
     "crr",
@@ -7323,6 +7823,27 @@
      */
     label: external_exports.string().min(1).optional()
   });
+  var DomListRuleSchema = external_exports.object({
+    /** Heading text (whitespace/case-insensitive, whole) that identifies the block. */
+    heading: external_exports.string().min(1),
+    /** Heading is looked for among these tags. Defaults to h1-h4. */
+    headingSelectors: external_exports.array(external_exports.string().min(1)).default(["h1", "h2", "h3", "h4"]),
+    /** The block is the heading's parent element, narrowed to this selector if given. */
+    scope: external_exports.string().optional(),
+    /** Columns inside the block; column `index` is this field's team. */
+    column: external_exports.string().min(1),
+    index: external_exports.number().int().min(0),
+    /** One row inside the column. */
+    item: external_exports.string().min(1),
+    /** Relative to a row. `name` is required; the rest are optional extras. */
+    name: external_exports.string().min(1),
+    role: external_exports.string().optional(),
+    /** Text like "(C)" / "(WK)". Absent means neither. */
+    marker: external_exports.string().optional(),
+    image: external_exports.string().optional(),
+    /** Attribute holding the picture. */
+    attr: external_exports.string().default("src")
+  });
   var JsonTapSchema = external_exports.object({
     /** Matched against the URL of responses the page itself fetched. */
     urlRegex: regexString,
@@ -7343,12 +7864,286 @@
     matchIdRegex: regexString.optional(),
     jsonTaps: external_exports.array(JsonTapSchema).default([]),
     dom: external_exports.record(FieldKeySchema, DomRuleSchema).default({}),
+    /** Line-ups: one rule per side, each producing a JSON array under its field. */
+    domLists: external_exports.record(FieldKeySchema, DomListRuleSchema).default({}),
     /** Fields that must parse (and pass sanity checks) for full confidence. */
-    minConfidenceFields: external_exports.array(FieldKeySchema).default([])
+    minConfidenceFields: external_exports.array(FieldKeySchema).default([]),
+    /** Optional page-specific variants (live, scorecard, squads, etc.) */
+    pageVariants: external_exports.record(external_exports.object({
+      urlPattern: regexString,
+      jsonTaps: external_exports.array(JsonTapSchema).default([]),
+      dom: external_exports.record(FieldKeySchema, DomRuleSchema).default({}),
+      domLists: external_exports.record(FieldKeySchema, DomListRuleSchema).default({}),
+      minConfidenceFields: external_exports.array(FieldKeySchema).default([])
+    })).optional()
   });
 
   // src/adapters/cricbuzz.ts
   var cricbuzzConfig = SelectorConfigSchema.parse(selectors_cricbuzz_default);
+
+  // src/config/selectors.crex.json
+  var selectors_crex_default = {
+    version: 1,
+    site: "crex",
+    urlPatterns: [
+      "^https?://(?:www\\.)?crex\\.com/",
+      "^https?://(?:www\\.)?crex\\.live/"
+    ],
+    matchIdRegex: "/(?:live|match|scores|fixtures|scoreboard|match-center)/([a-zA-Z0-9_-]+)",
+    jsonTaps: [],
+    dom: {
+      title: {
+        selectors: [
+          "h1",
+          ".match-info h1",
+          "title",
+          ".header-title",
+          '[class*="matchTitle"]',
+          '[class*="headerTitle"]'
+        ]
+      },
+      status: {
+        selectors: [
+          ".match-status",
+          ".live-status",
+          ".match-note",
+          ".status-text",
+          '[class*="matchStatus"]',
+          '[class*="liveStatus"]'
+        ]
+      },
+      venue: {
+        selectors: [
+          ".venue-name",
+          ".match-venue",
+          '[class*="venue"]'
+        ]
+      },
+      team1: {
+        selectors: [
+          ".team-name:first-child",
+          ".team-1-name",
+          '[class*="teamName"]:first-child',
+          '[class*="team-name"]:first-child'
+        ]
+      },
+      team2: {
+        selectors: [
+          ".team-name:last-child",
+          ".team-2-name",
+          '[class*="teamName"]:last-child',
+          '[class*="team-name"]:last-child'
+        ]
+      },
+      score: {
+        selectors: [
+          ".live-score",
+          ".team-score",
+          ".score-wrap",
+          ".score",
+          '[class*="liveScore"]',
+          '[class*="teamScore"]',
+          '[class*="score"]'
+        ]
+      },
+      overs: {
+        selectors: [
+          ".overs",
+          ".live-overs",
+          ".overs-wrap",
+          '[class*="liveOvers"]',
+          '[class*="overs"]'
+        ]
+      },
+      "batter1.name": {
+        selectors: [
+          ".batter-name",
+          ".batsman:first-child .name"
+        ]
+      },
+      "batter1.runs": {
+        selectors: [
+          ".batter-runs",
+          ".batsman:first-child .runs"
+        ]
+      },
+      "batter1.balls": {
+        selectors: [
+          ".batter-balls",
+          ".batsman:first-child .balls"
+        ]
+      },
+      "batter2.name": {
+        selectors: [
+          ".batsman:nth-child(2) .name"
+        ]
+      },
+      "batter2.runs": {
+        selectors: [
+          ".batsman:nth-child(2) .runs"
+        ]
+      },
+      "batter2.balls": {
+        selectors: [
+          ".batsman:nth-child(2) .balls"
+        ]
+      },
+      "bowler.name": {
+        selectors: [
+          ".bowler-name",
+          ".bowler .name"
+        ]
+      },
+      "bowler.overs": {
+        selectors: [
+          ".bowler-overs",
+          ".bowler .overs"
+        ]
+      },
+      "bowler.runs": {
+        selectors: [
+          ".bowler-runs",
+          ".bowler .runs"
+        ]
+      },
+      "bowler.wkts": {
+        selectors: [
+          ".bowler-wkts",
+          ".bowler .wickets"
+        ]
+      },
+      thisOver: {
+        selectors: [
+          ".recent-balls",
+          ".this-over",
+          ".overs-balls"
+        ]
+      },
+      "team1.logo": {
+        selectors: [
+          ".team1 .team-logo img",
+          '[class*="team1"] img[class*="team-head"]',
+          "img.team-head-img"
+        ],
+        attr: "src"
+      },
+      "team2.logo": {
+        selectors: [
+          ".team2 .team-logo img",
+          '[class*="team2"] img[class*="team-head"]'
+        ],
+        attr: "src"
+      }
+    },
+    minConfidenceFields: ["score", "overs"],
+    pageVariants: {
+      live: {
+        urlPattern: "^https?://(?:www\\.)?crex\\.(com|live)/(?:live|match|scores|fixtures|scoreboard|match-center)/[a-zA-Z0-9_-]+/?$",
+        jsonTaps: [],
+        dom: {
+          title: { selectors: ["h1", ".match-info h1", "title", ".header-title", '[class*="matchTitle"]', '[class*="headerTitle"]'] },
+          status: { selectors: [".match-status", ".live-status", ".match-note", ".status-text", '[class*="matchStatus"]', '[class*="liveStatus"]'] },
+          venue: { selectors: [".venue-name", ".match-venue", '[class*="venue"]'] },
+          team1: { selectors: [".team-name:first-child", ".team-1-name", '[class*="teamName"]:first-child', '[class*="team-name"]:first-child'] },
+          team2: { selectors: [".team-name:last-child", ".team-2-name", '[class*="teamName"]:last-child', '[class*="team-name"]:last-child'] },
+          score: { selectors: [".live-score", ".team-score", ".score-wrap", ".score", '[class*="liveScore"]', '[class*="teamScore"]', '[class*="score"]'] },
+          overs: { selectors: [".overs", ".live-overs", ".overs-wrap", '[class*="liveOvers"]', '[class*="overs"]'] },
+          "batter1.name": { selectors: [".batter-name", ".batsman:first-child .name"] },
+          "batter1.runs": { selectors: [".batter-runs", ".batsman:first-child .runs"] },
+          "batter1.balls": { selectors: [".batter-balls", ".batsman:first-child .balls"] },
+          "batter2.name": { selectors: [".batsman:nth-child(2) .name"] },
+          "batter2.runs": { selectors: [".batsman:nth-child(2) .runs"] },
+          "batter2.balls": { selectors: [".batsman:nth-child(2) .balls"] },
+          "bowler.name": { selectors: [".bowler-name", ".bowler .name"] },
+          "bowler.overs": { selectors: [".bowler-overs", ".bowler .overs"] },
+          "bowler.runs": { selectors: [".bowler-runs", ".bowler .runs"] },
+          "bowler.wkts": { selectors: [".bowler-wkts", ".bowler .wickets"] },
+          thisOver: { selectors: [".recent-balls", ".this-over", ".overs-balls"] },
+          "team1.logo": { selectors: [".team1 .team-logo img", '[class*="team1"] img[class*="team-head"]', "img.team-head-img"], attr: "src" },
+          "team2.logo": { selectors: [".team2 .team-logo img", '[class*="team2"] img[class*="team-head"]'], attr: "src" }
+        }
+      },
+      scorecard: {
+        urlPattern: "^https?://(?:www\\.)?crex\\.(com|live)/.*/scoreboard/[a-zA-Z0-9_-]+",
+        jsonTaps: [],
+        dom: {
+          title: { selectors: ["h1", ".match-info h1", "title"] },
+          team1: { selectors: [".scorecard .team-name:first-child", ".team-1-name"] },
+          team2: { selectors: [".scorecard .team-name:last-child", ".team-2-name"] },
+          "inn1.team": { selectors: [".innings:first-child .team-name"] },
+          "inn1.score": { selectors: [".innings:first-child .score"] },
+          "inn1.overs": { selectors: [".innings:first-child .overs"] },
+          "inn2.team": { selectors: [".innings:last-child .team-name"] },
+          "inn2.score": { selectors: [".innings:last-child .score"] },
+          "inn2.overs": { selectors: [".innings:last-child .overs"] }
+        }
+      },
+      squads: {
+        urlPattern: "^https?://(?:www\\.)?crex\\.(com|live)/.*/squads/[a-zA-Z0-9_-]+",
+        jsonTaps: [],
+        dom: {
+          title: { selectors: ["h1", ".match-info h1", "title"] },
+          team1: { selectors: [".squad .team-name:first-child"] },
+          team2: { selectors: [".squad .team-name:last-child"] }
+        },
+        domLists: {
+          "team1.squad": {
+            heading: "playing XI",
+            headingSelectors: [".squad-header"],
+            column: ".squad-list",
+            index: 0,
+            item: ".player",
+            name: ".player-name",
+            role: ".player-role",
+            marker: ".player-marker",
+            image: "img.player-photo",
+            attr: "src"
+          },
+          "team2.squad": {
+            heading: "playing XI",
+            headingSelectors: [".squad-header"],
+            column: ".squad-list",
+            index: 1,
+            item: ".player",
+            name: ".player-name",
+            role: ".player-role",
+            marker: ".player-marker",
+            image: "img.player-photo",
+            attr: "src"
+          }
+        }
+      },
+      overs: {
+        urlPattern: "^https?://(?:www\\.)?crex\\.(com|live)/.*/overs/[a-zA-Z0-9_-]+",
+        jsonTaps: [],
+        dom: {
+          title: { selectors: ["h1", "title"] },
+          thisOver: { selectors: [".recent-balls", ".this-over", ".overs-balls"] },
+          lastBalls: { selectors: [".recent-balls", ".this-over", ".overs-balls"] }
+        }
+      },
+      commentary: {
+        urlPattern: "^https?://(?:www\\.)?crex\\.(com|live)/.*/commentary/[a-zA-Z0-9_-]+",
+        jsonTaps: [],
+        dom: {
+          title: { selectors: ["h1", "title"] },
+          commentaryLast: { selectors: [".commentary-item:first-child .text"] }
+        }
+      },
+      "match-center": {
+        urlPattern: "^https?://(?:www\\.)?crex\\.(com|live)/.*/match-center/[a-zA-Z0-9_-]+",
+        jsonTaps: [],
+        dom: {
+          title: { selectors: ["h1", "title"] },
+          venue: { selectors: [".venue-name", ".match-venue"] },
+          toss: { selectors: [".toss-info", ".toss-result"] }
+        }
+      }
+    }
+  };
+
+  // src/adapters/crex.ts
+  var crexConfig = SelectorConfigSchema.parse(selectors_crex_default);
 
   // src/background/connector.ts
   var HEARTBEAT_MS = 5e3;
@@ -7889,9 +8684,137 @@
           this.killed = cmd.enabled;
           await this.deps.storage.set("killed", cmd.enabled);
           return;
+        case "fetchAllPages":
+          await this.fetchAllPages(cmd.matchId, cmd.baseUrl);
+          return;
       }
     }
+    async fetchAllPages(matchId, baseUrl) {
+      const pageTypes = getPageTypesForUrl(baseUrl);
+      if (pageTypes.length === 0) return;
+      const startedAt = this.deps.now();
+      const pages = [];
+      for (const { type: pageType, pathSuffix } of pageTypes) {
+        const pageUrl = buildPageUrl(baseUrl, pathSuffix);
+        const tabId = await this.deps.tabs.open(pageUrl);
+        if (tabId == null) {
+          pages.push({ pageType, url: pageUrl, rawUpdate: null, confidence: 0, error: "Failed to open tab" });
+          continue;
+        }
+        await new Promise((r) => setTimeout(r, 2e3));
+        const result = await fetchPageContent(this.deps, tabId, pageType, pageUrl);
+        pages.push(result);
+        await this.deps.tabs.close(tabId);
+        await new Promise((r) => setTimeout(r, 500));
+      }
+      const completedAt = this.deps.now();
+      await this.send({
+        type: "update",
+        update: {
+          source: "multi-page-fetch",
+          matchId,
+          url: baseUrl,
+          capturedAt: completedAt,
+          confidence: pages.reduce((sum, p) => sum + p.confidence, 0) / pages.length,
+          fields: {
+            teams: [],
+            innings: [],
+            batters: [],
+            thisOver: [],
+            lastBalls: [],
+            multiPageData: pages
+          },
+          missing: []
+        }
+      });
+    }
   };
+  var CRICBUZZ_PAGE_TYPES = [
+    { type: "live", pathSuffix: "" },
+    { type: "scorecard", pathSuffix: "/scorecard" },
+    { type: "squads", pathSuffix: "/squads" },
+    { type: "overs", pathSuffix: "/overs" },
+    { type: "commentary", pathSuffix: "/commentary" },
+    { type: "match-facts", pathSuffix: "/match-facts" },
+    { type: "highlights", pathSuffix: "/highlights" },
+    { type: "news", pathSuffix: "/news" },
+    { type: "graphs", pathSuffix: "/graphs" },
+    { type: "points-table", pathSuffix: "/points-table" }
+  ];
+  var CREX_PAGE_TYPES = [
+    { type: "live", pathSuffix: "" },
+    { type: "scorecard", pathSuffix: "/scorecard" },
+    { type: "squads", pathSuffix: "/squads" },
+    { type: "overs", pathSuffix: "/overs" },
+    { type: "commentary", pathSuffix: "/commentary" },
+    { type: "match-center", pathSuffix: "/match-center" }
+  ];
+  function getPageTypesForUrl(url) {
+    try {
+      const u = new URL(url);
+      if (u.hostname.includes("cricbuzz.com")) return CRICBUZZ_PAGE_TYPES;
+      if (u.hostname.includes("crex.com") || u.hostname.includes("crex.live")) return CREX_PAGE_TYPES;
+    } catch {
+    }
+    return [];
+  }
+  function buildPageUrl(baseUrl, pathSuffix) {
+    try {
+      const u = new URL(baseUrl);
+      const basePath = u.pathname.replace(/\/+$/, "");
+      const matchIdMatch = basePath.match(/\/(\d+)(?:\/|$)/);
+      if (matchIdMatch) {
+        const matchId = matchIdMatch[1];
+        const newPath = basePath.replace(matchIdMatch[0], `/${matchId}${pathSuffix}`);
+        u.pathname = newPath;
+        return u.toString();
+      }
+      return `${u.origin}${basePath}${pathSuffix}`;
+    } catch {
+      return baseUrl;
+    }
+  }
+  async function fetchPageContent(deps, tabId, pageType, url) {
+    try {
+      const script = `
+      (function() {
+        try {
+          const config = ${JSON.stringify(pageType.includes("cricbuzz") ? cricbuzzConfig : crexConfig)};
+          // Run the same extraction logic as content script
+          const result = {
+            pageType: '${pageType}',
+            url: '${url}',
+            html: document.documentElement.outerHTML,
+            title: document.title,
+          };
+          return result;
+        } catch (e) {
+          return { error: e.message };
+        }
+      })();
+    `;
+      const results = await chrome.scripting.executeScript({
+        target: { tabId },
+        func: () => {
+          return { html: document.documentElement.outerHTML, title: document.title };
+        }
+      });
+      return {
+        pageType,
+        url,
+        rawUpdate: results[0]?.result ?? { error: "No result" },
+        confidence: 1
+      };
+    } catch (err) {
+      return {
+        pageType,
+        url,
+        rawUpdate: null,
+        confidence: 0,
+        error: err instanceof Error ? err.message : String(err)
+      };
+    }
+  }
   var isAllowedMatchUrl = (raw) => {
     try {
       const u = new URL(raw);

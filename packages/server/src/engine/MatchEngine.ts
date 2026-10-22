@@ -1,4 +1,4 @@
-import { MatchStateSchema, type MatchState, type RawUpdate } from '@stumpcast/shared';
+import { MatchStateSchema, resolveTeam, type MatchState, type RawUpdate, type Team } from '@stumpcast/shared';
 import { sql } from 'drizzle-orm';
 import { schema, type StumpCastDb } from '../db';
 import { rawToBaseState } from './adapt';
@@ -31,6 +31,17 @@ const deepFreeze = <T>(o: T): T => {
   return o;
 };
 
+/** An update whose only content is a line-up — a squads page, never a score page. */
+const isSquadOnly = (raw: RawUpdate): boolean =>
+  raw.fields.innings.length === 0 && raw.fields.teams.some((t) => (t.squad?.length ?? 0) > 0);
+
+/** "South Africa" and "RSA" are the same side; an unknown name is only itself. */
+const sameTeam = (scrapedName: string, team: Team): boolean => {
+  const a = resolveTeam(scrapedName)?.code ?? scrapedName.trim().toLowerCase();
+  const b = resolveTeam(team.short)?.code ?? resolveTeam(team.name)?.code ?? team.name.trim().toLowerCase();
+  return a === b;
+};
+
 /**
  * Provider-agnostic engine: RawUpdate -> validated MatchState with derived stats.
  * Emits only when the state changed; persists an immutable snapshot per change.
@@ -53,6 +64,12 @@ export class MatchEngine {
   /** Returns the new state, or null if nothing changed. */
   process(raw: RawUpdate): MatchState | null {
     const at = new Date(this.now()).toISOString();
+
+    // A squads page shows the eleven and nothing else: no innings, no score. Run through the
+    // normal path it would "replace" a live match with 0-0, so a squad-only update is applied to
+    // the state already on air and can never move a number.
+    if (isSquadOnly(raw)) return this.mergeSquad(raw, at);
+
     const base = MatchStateSchema.safeParse(rawToBaseState(raw, at));
     // Validate before observing: a rejected scrape must not pollute the dot/boundary/powerplay
     // counts that the *next* valid state gets published with.
@@ -62,14 +79,18 @@ export class MatchEngine {
     const derived = deriveStats(this.players.apply(this.tracker.apply(base.data)));
     const parsed = MatchStateSchema.safeParse(derived);
     if (!parsed.success) return null; // never publish an invalid state
-    const state = parsed.data;
+    return this.publish(parsed.data, at);
+  }
 
-    const print = fingerprint(state);
-    if (this.prints.get(state.id) === print) return null;
-    this.prints.set(state.id, print);
+  /** Publishes a finished state: deduplicated by fingerprint, frozen, stored, then announced. */
+  private publish(state: MatchState, at: string): MatchState | null {
+    const withTime = { ...state, updatedAt: at };
+    const print = fingerprint(withTime);
+    if (this.prints.get(withTime.id) === print) return null;
+    this.prints.set(withTime.id, print);
 
-    const frozen = deepFreeze(structuredClone(state));
-    this.states.set(state.id, frozen);
+    const frozen = deepFreeze(structuredClone(withTime));
+    this.states.set(frozen.id, frozen);
     this.persist(frozen);
     // One bad subscriber (Director, commentary) must not skip the others or fail the ingest.
     for (const cb of this.listeners) {
@@ -80,6 +101,29 @@ export class MatchEngine {
       }
     }
     return frozen;
+  }
+
+  /**
+   * Fold a scraped line-up into the match it belongs to. Teams are matched by identity rather than
+   * position — a squads page lists the sides in its own order, and pairing the wrong eleven with
+   * the wrong crest is worse than not updating at all.
+   */
+  private mergeSquad(raw: RawUpdate, at: string): MatchState | null {
+    const prev = this.states.get(raw.matchId);
+    if (!prev) return null;
+    const squads = raw.fields.teams.filter((t) => (t.squad?.length ?? 0) > 0);
+    if (squads.length === 0) return null;
+    let changed = false;
+    const fold = (team: Team): Team => {
+      const src = squads.find((s) => sameTeam(s.name, team));
+      if (!src?.squad) return team;
+      if (JSON.stringify(team.squad) === JSON.stringify(src.squad)) return team;
+      changed = true;
+      return { ...team, squad: src.squad, players: src.squad.map((p) => p.name) };
+    };
+    const teams: [Team, Team] = [fold(prev.teams[0]!), fold(prev.teams[1]!)];
+    if (!changed) return null;
+    return this.publish({ ...structuredClone(prev), teams }, at);
   }
 
   getState(matchId: string): MatchState | undefined {

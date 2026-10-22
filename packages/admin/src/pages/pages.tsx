@@ -49,6 +49,85 @@ export const SettingsPage = () => {
   const [openaiKeyInput, setOpenaiKeyInput] = useState('');
   const [cricketKeyInput, setCricketKeyInput] = useState('');
   const [showKeySecret, setShowKeySecret] = useState(false);
+  const [licenceInput, setLicenceInput] = useState('');
+  const [isActivating, setIsActivating] = useState(false);
+  const [isDeactivating, setIsDeactivating] = useState(false);
+
+  const licenceQuery = useQuery({
+    queryKey: ['licence'],
+    queryFn: async () => {
+      const res = await fetch('/api/licence');
+      return res.ok
+        ? ((await res.json()) as {
+            licensed: boolean;
+            token: string | null;
+            machineId?: string;
+            payload?: { channel?: string; plan?: string; exp?: number; mid?: string } | null;
+            error?: string | null;
+          })
+        : { licensed: false, token: null };
+    },
+    refetchInterval: 5000,
+  });
+  const isLicensed = licenceQuery.data?.licensed ?? false;
+  const machineId = licenceQuery.data?.machineId ?? '';
+  const licencePayload = licenceQuery.data?.payload;
+
+  const handleActivateLicence = async () => {
+    const key = licenceInput.trim();
+    if (!key) {
+      toast({ title: 'Please enter a valid licence key', kind: 'error' });
+      return;
+    }
+    setIsActivating(true);
+    try {
+      const res = await fetch('/api/licence', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ key }),
+      });
+      const data = (await res.json().catch(() => ({}))) as { error?: string; reason?: string };
+      if (res.ok) {
+        toast({
+          title: 'Licence key activated successfully!',
+          description: 'All 29+ Pro Looks unlocked and watermark removed.',
+          kind: 'success',
+        });
+        setLicenceInput('');
+        void qc.invalidateQueries({ queryKey: ['licence'] });
+        void qc.invalidateQueries({ queryKey: ['looks'] });
+      } else {
+        toast({
+          title: data.error || 'Failed to activate licence key',
+          description: data.reason === 'machine-mismatch' ? 'The key was generated for a different Machine ID.' : undefined,
+          kind: 'error',
+        });
+      }
+    } catch {
+      toast({ title: 'Network error activating licence key', kind: 'error' });
+    } finally {
+      setIsActivating(false);
+    }
+  };
+
+  const handleDeactivateLicence = async () => {
+    if (!window.confirm('Are you sure you want to deactivate this licence from this machine?')) return;
+    setIsDeactivating(true);
+    try {
+      const res = await fetch('/api/licence', { method: 'DELETE' });
+      if (res.ok) {
+        toast({ title: 'Licence deactivated', kind: 'info' });
+        void qc.invalidateQueries({ queryKey: ['licence'] });
+        void qc.invalidateQueries({ queryKey: ['looks'] });
+      } else {
+        toast({ title: 'Failed to deactivate licence', kind: 'error' });
+      }
+    } catch {
+      toast({ title: 'Network error deactivating licence', kind: 'error' });
+    } finally {
+      setIsDeactivating(false);
+    }
+  };
 
   const saveKeyMutation = useMutation({
     mutationFn: async ({ provider, key }: { provider: 'gemini' | 'openai' | 'cricket'; key: string }) => {
@@ -214,6 +293,169 @@ export const SettingsPage = () => {
             GO PRO ON WHATSAPP
           </a>
         </div>
+      </div>
+
+      {/* PRO BROADCAST LICENSE & MACHINE HARDWARE ID */}
+      <div className="w-full rounded-xl border border-blue-200 bg-white p-5 shadow-sm space-y-5">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <span className="text-2xl">🔐</span>
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="font-heading text-sm font-bold uppercase tracking-wider text-blue-950">
+                  Broadcast License &amp; Machine ID
+                </h2>
+                {isLicensed ? (
+                  <span className="rounded bg-emerald-100 px-2 py-0.5 text-[10px] font-mono font-bold text-emerald-800 border border-emerald-300 flex items-center gap-1">
+                    <span className="size-1.5 rounded-full bg-emerald-500" />
+                    PRO ACTIVATED
+                  </span>
+                ) : (
+                  <span className="rounded bg-amber-100 px-2 py-0.5 text-[10px] font-mono font-bold text-amber-800 border border-amber-300">
+                    FREE EDITION
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Each license key is cryptographically bound to this computer's unique Machine ID.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {isLicensed ? (
+              <button
+                type="button"
+                onClick={handleDeactivateLicence}
+                disabled={isDeactivating}
+                className="rounded-lg border border-rose-200 bg-rose-50 px-3.5 py-1.5 text-xs font-bold text-rose-700 hover:bg-rose-100 transition shadow-xs"
+              >
+                {isDeactivating ? 'Deactivating...' : 'Deactivate License'}
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setShowProLooks(true)}
+                className="rounded-lg border border-blue-200 bg-blue-50 px-3.5 py-1.5 text-xs font-bold text-blue-700 hover:bg-blue-100 transition shadow-xs"
+              >
+                Browse 29+ Pro Looks
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Machine ID Box */}
+        <div className="rounded-xl border border-blue-200 bg-gradient-to-r from-blue-50/80 via-white to-blue-50/50 p-4 space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <span className="text-[11px] font-bold uppercase tracking-wider text-blue-900 block">
+                💻 This Computer's Unique Machine ID
+              </span>
+              <p className="text-xs text-slate-500">
+                Send this Machine ID to admin to get your Pro License Key generated.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  if (machineId) {
+                    navigator.clipboard.writeText(machineId);
+                    toast({
+                      title: 'Machine ID copied to clipboard!',
+                      description: 'Send this ID to admin to get your Pro License Key.',
+                      kind: 'success',
+                    });
+                  }
+                }}
+                className="rounded-lg bg-blue-600 px-3.5 py-1.5 text-xs font-bold text-white hover:bg-blue-700 transition shadow-xs flex items-center gap-1.5"
+              >
+                📋 Copy Machine ID
+              </button>
+              <a
+                href={`https://wa.me/?text=${encodeURIComponent(
+                  `Hi StumpCast, here is my Computer Machine ID for Pro License:\n${machineId || ''}`,
+                )}`}
+                target="_blank"
+                rel="noreferrer"
+                className="rounded-lg border border-emerald-300 bg-emerald-50 px-3.5 py-1.5 text-xs font-bold text-emerald-800 hover:bg-emerald-100 transition shadow-xs flex items-center gap-1.5"
+              >
+                💬 Send via WhatsApp
+              </a>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 bg-white rounded-lg border border-blue-200 p-2.5 shadow-xs">
+            <span className="text-slate-400 font-mono text-xs select-none">MACHINE ID:</span>
+            <input
+              type="text"
+              readOnly
+              value={machineId || 'Detecting Machine ID...'}
+              onClick={(e) => (e.target as HTMLInputElement).select()}
+              className="w-full bg-transparent font-mono text-xs sm:text-sm font-bold text-blue-950 focus:outline-none select-all"
+            />
+            <span className="rounded bg-blue-100 px-2 py-0.5 text-[10px] font-mono font-bold text-blue-700 whitespace-nowrap">
+              HARDWARE LOCKED
+            </span>
+          </div>
+        </div>
+
+        {/* License Details or Activation Input */}
+        {isLicensed ? (
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 border-t border-blue-100 pt-3">
+            <div className="rounded-lg border border-blue-100 bg-blue-50/40 p-3">
+              <span className="text-[10px] font-bold uppercase text-slate-500 block">Channel / Licensee</span>
+              <span className="font-heading text-sm font-bold text-slate-900 truncate block">
+                {licencePayload?.channel ?? 'Active Studio'}
+              </span>
+            </div>
+            <div className="rounded-lg border border-blue-100 bg-blue-50/40 p-3">
+              <span className="text-[10px] font-bold uppercase text-slate-500 block">Plan</span>
+              <span className="font-heading text-sm font-bold uppercase text-blue-800">
+                {licencePayload?.plan ?? 'PRO'}
+              </span>
+            </div>
+            <div className="rounded-lg border border-blue-100 bg-blue-50/40 p-3">
+              <span className="text-[10px] font-bold uppercase text-slate-500 block">Expiry</span>
+              <span className="font-heading text-xs font-bold text-slate-800">
+                {licencePayload?.exp ? new Date(licencePayload.exp * 1000).toLocaleDateString() : 'Lifetime (Never Expires)'}
+              </span>
+            </div>
+            <div className="rounded-lg border border-blue-100 bg-blue-50/40 p-3">
+              <span className="text-[10px] font-bold uppercase text-slate-500 block">Status</span>
+              <span className="text-xs font-bold text-emerald-700 flex items-center gap-1 mt-0.5">
+                <span className="size-2 rounded-full bg-emerald-500" />
+                Hardware Verified
+              </span>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-3 border-t border-blue-100 pt-3">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-700 block">
+              Enter Pro License Key
+            </span>
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+              <input
+                type="text"
+                value={licenceInput}
+                onChange={(e) => setLicenceInput(e.target.value)}
+                placeholder="Paste SC1.eyJ2Ijox... license key here"
+                className="flex-1 rounded-lg border border-blue-200 bg-white px-3.5 py-2 font-mono text-xs sm:text-sm text-slate-800 focus:border-orange-500 focus:outline-none"
+              />
+              <button
+                type="button"
+                onClick={handleActivateLicence}
+                disabled={isActivating || !licenceInput.trim()}
+                className="rounded-lg bg-orange-500 px-5 py-2 text-xs font-bold text-white hover:bg-orange-600 border border-orange-400 transition shadow-xs disabled:opacity-50 whitespace-nowrap"
+              >
+                {isActivating ? 'Verifying...' : 'Activate License'}
+              </button>
+            </div>
+            <p className="text-[11px] text-slate-500">
+              Need a key? Ask your admin to run the Key Generator and provide your Machine ID shown above.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Setup Guide Card */}

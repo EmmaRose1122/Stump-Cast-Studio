@@ -66,6 +66,13 @@ describe('setup and gating', () => {
     expect(m.describe().battingTeamId).toBe('team-alpha');
   });
 
+  it('publishes the squad it was given, so the overlay can show a real Playing XI', () => {
+    const m = new ManualMatch('m', setup());
+    const teams = m.toRawUpdate(1).fields.teams;
+    expect(teams[0]?.players).toEqual(names('Alpha'));
+    expect(teams[1]?.players).toEqual(names('Bravo'));
+  });
+
   it('refuses a toss after play has started', () => {
     const m = ready();
     m.apply(ball(1));

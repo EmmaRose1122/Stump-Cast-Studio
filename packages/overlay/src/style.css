@@ -13,6 +13,10 @@ body {
   font-family: var(--font-body, 'Inter', sans-serif);
   color: var(--color-text, #e6edf3);
   --sb-bg: var(--color-surface, #161b22);
+  /* One place the accent gradient is resolved. Arena rail labels used to each hardcode
+     `linear-gradient(90deg, #f59e0b, #d97706) !important`, which painted every pro look with
+     Stadium Gold labels no matter which look was on air. */
+  --accent-grad: var(--gradient-accent, linear-gradient(90deg, var(--color-accent, #f59e0b), var(--color-accent2, #d97706)));
   --card-scale: 1;
 }
 
@@ -128,6 +132,13 @@ body {
   border-radius: var(--radius-chip, 8px);
   background: rgba(255, 255, 255, 0.1);
   font-size: 20px;
+}
+/* The dismissal chip is deliberately the loudest thing on the bar: it is the news of the over. */
+.sb-chip.sb-wkt {
+  background: rgba(214, 69, 69, 0.24);
+  border: 1px solid rgba(255, 122, 122, 0.55);
+  color: #ffe0e0;
+  letter-spacing: 0.02em;
 }
 .sb-brand-pill {
   display: none;
@@ -253,9 +264,10 @@ html[data-score-bar='floating'] .sb-bowl {
 .to-latest {
   box-shadow: 0 0 0 3px var(--color-text);
 }
-.to-empty .to-strip::after {
-  content: '—';
-  opacity: 0.4;
+/* First ball of an over not bowled yet: the panel has nothing to report, so it must not hold an
+   empty box on air. The rail reclaims the space as soon as a delivery lands. */
+.c-thisover.to-empty {
+  display: none;
 }
 
 /* Match context and single-ball callout ---------------------------------------------------- */
@@ -434,7 +446,7 @@ html[data-score-bar='floating'] .sb-bowl {
 }
 .pc-card {
   display: grid;
-  grid-template-columns: 76px 1fr auto;
+  grid-template-columns: var(--pc-photo, 76px) 1fr auto;
   grid-template-areas:
     'photo name main'
     'photo name sub';
@@ -453,24 +465,28 @@ html[data-score-bar='floating'] .sb-bowl {
 }
 .pc-photo {
   grid-area: photo;
-  width: 76px;
-  height: 76px;
+  width: var(--pc-photo, 76px);
+  height: var(--pc-photo, 76px);
   display: grid;
   place-items: center;
   font-family: var(--font-heading, sans-serif);
-  font-size: 28px;
+  font-size: calc(var(--pc-photo, 76px) * 0.37);
   font-weight: 700;
-  background: linear-gradient(160deg, var(--color-accent), var(--color-accent2));
+  background: var(--accent-grad, linear-gradient(160deg, var(--color-accent), var(--color-accent2)));
   color: var(--color-bg);
   border-radius: 50%;
   flex-shrink: 0;
 }
 html[data-player-card='cutout'] .pc-photo {
   border-radius: 0;
-  height: 96px;
+  height: calc(var(--pc-photo, 76px) * 1.26);
   align-self: end;
   margin-top: -20px;
   clip-path: polygon(10% 0, 100% 0, 100% 100%, 0 100%);
+}
+html[data-player-card='badge'] .pc-photo {
+  border-radius: var(--radius-card, 12px);
+  border: 2px solid var(--color-accent);
 }
 html[data-player-card='round-badge'] .pc-photo {
   border-radius: 50%;
@@ -478,16 +494,26 @@ html[data-player-card='round-badge'] .pc-photo {
   box-shadow: 0 0 14px var(--color-accent);
 }
 html[data-player-card='badge-right'] .pc-card {
-  grid-template-columns: 1fr auto 76px;
+  grid-template-columns: 1fr auto var(--pc-photo, 76px);
   grid-template-areas:
     'name main photo'
     'name sub photo';
   padding: 10px 10px 10px 16px;
 }
+/* `.pc-card` is a grid, so the `flex-direction: row-reverse` this replaces never applied: the
+   second card only moved its accent bar. Flipping the grid areas actually mirrors the card. */
 html[data-player-card='mirrored'] .pc-card:nth-child(2) {
-  flex-direction: row-reverse;
+  grid-template-columns: auto 1fr var(--pc-photo, 76px);
+  grid-template-areas:
+    'main name photo'
+    'sub name photo';
+  text-align: right;
+  padding: 10px 10px 10px 16px;
   border-left-width: 0;
   border-right: 5px solid transparent;
+}
+html[data-player-card='mirrored'] .pc-card:nth-child(2) .pc-name {
+  text-align: right;
 }
 html[data-player-card='mirrored'] .pc-card:nth-child(2).pc-strike {
   border-right-color: var(--color-accent);
@@ -728,8 +754,8 @@ html[data-score-position='bottom'] #stage[data-layout='classic'][data-compositio
 #stage[data-layout='arena'][data-composition] .zone-main {
   left: 48px !important;
   right: 48px !important;
-  top: 24px !important;
-  bottom: auto !important;
+  top: var(--arena-bar-top, 24px) !important;
+  bottom: var(--arena-bar-bottom, auto) !important;
   width: calc(100% - 96px) !important;
   height: 124px !important;
   transform: none !important;
@@ -1173,9 +1199,106 @@ html[data-score-position='bottom'] #stage[data-layout='arena'][data-composition]
   overflow: hidden;
   contain: layout style;
 }
-[data-layout='arena'] .c-batters,
-[data-layout='arena'] .c-bowler {
-  display: none !important;
+/* Arena player photo band -------------------------------------------------------------------- */
+/* The arena composition is budgeted against the 1080px canvas. `cardScale` reaches 2 in settings,
+   and a frame 530px * 2 tall pushes the band off the bottom of the OBS canvas, where
+   `#stage { overflow: hidden }` silently clips the player cards away. The frame now gives up height
+   before the band goes off air, and the band hangs off the frame's real rendered bottom. */
+#stage[data-layout='arena'] {
+  --arena-bar-top: 24px;
+  --arena-bar-bottom: auto;
+  --arena-bar-origin: 50% 0;
+  --arena-frame-top: 172px;
+  --arena-band-h: 116px;
+  /* With the bar on top it already sits above the frame, so it claims nothing below. */
+  --arena-bar-reserve: 0px;
+  --arena-frame-h: min(
+    530px,
+    calc((1080px - var(--arena-frame-top) - var(--arena-bar-reserve) - 16px - var(--arena-band-h) * var(--card-scale)) / var(--card-scale))
+  );
+}
+html[data-score-position='bottom'] #stage[data-layout='arena'] {
+  --arena-bar-top: auto;
+  --arena-bar-bottom: 24px;
+  --arena-bar-origin: 50% 100%;
+  --arena-frame-top: 36px;
+  /* The bar moved under the band, so its own scaled height comes back out of the budget. */
+  --arena-bar-reserve: calc(24px + 124px * var(--card-scale) + 16px);
+}
+.c-player-band {
+  display: none;
+}
+#stage[data-layout='arena'] .c-player-band {
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+  position: absolute;
+  left: 50%;
+  top: calc(var(--arena-frame-top, 172px) + var(--arena-frame-h, 530px) * var(--card-scale) + 12px);
+  width: 980px;
+  transform: translateX(-50%) scale(var(--card-scale));
+  transform-origin: 50% 0;
+  z-index: 6;
+  /* Same band the ball-by-ball pop-up takes for ~3 s; whichever is off air must not block the
+     other, mirroring how the centre performance strip already steps aside. */
+  pointer-events: none;
+}
+#stage[data-layout='arena'] .c-player-band.is-suppressed {
+  display: none;
+}
+#stage[data-layout='arena'] .c-player-band .c-batters {
+  display: flex;
+  flex-direction: row;
+  gap: 12px;
+  flex: 2 1 0;
+  min-width: 0;
+}
+#stage[data-layout='arena'] .c-player-band .c-bowler {
+  display: flex;
+  flex: 1 1 0;
+  min-width: 0;
+}
+#stage[data-layout='arena'] .c-player-band .pc-card {
+  flex: 1 1 0;
+  min-width: 0;
+  /* Three cards share 980px, so the rail sizing (76px photo, 38px figures) would not fit. */
+  --pc-photo: 58px;
+  padding: 8px 12px 8px 8px;
+  background: var(--color-surface, rgba(10, 14, 23, 0.92));
+  border: 1.5px solid var(--color-accent, rgba(245, 158, 11, 0.5));
+  border-left-width: 5px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.8);
+}
+#stage[data-layout='arena'] .c-player-band .pc-name {
+  font-size: 17px;
+  /* Three cards share 980px: on one line every surname past ~12 characters ellipsised. */
+  white-space: normal;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  line-height: 1.15;
+  align-self: center;
+}
+#stage[data-layout='arena'] .c-player-band .pc-main {
+  font-size: 26px;
+}
+#stage[data-layout='arena'] .c-player-band .pc-sub {
+  font-size: 11px;
+}
+#stage[data-layout='arena'] .c-player-band .pc-strike {
+  border-left-color: var(--color-accent);
+}
+/* `badge-right` and `mirrored` move the photo with grid areas, so the left accent bar has to
+   follow the photo side or the strike marker ends up on the wrong edge. */
+html[data-player-card='badge-right'] #stage[data-layout='arena'] .c-player-band .pc-card {
+  border-left-width: 1.5px;
+  border-right-width: 5px;
+  border-right-color: transparent;
+  padding: 8px 8px 8px 12px;
+}
+html[data-player-card='badge-right'] #stage[data-layout='arena'] .c-player-band .pc-strike {
+  border-right-color: var(--color-accent);
 }
 
 /* Arena Match Centre (left rail) */
@@ -1370,7 +1493,8 @@ html[data-score-position='bottom'] #stage[data-layout='arena'][data-composition]
   margin-bottom: 8px;
 }
 [data-layout='arena'] .to-label {
-  color: var(--color-accent, #6ee7b7);
+  /* The header bar is painted with the accent, so accent-coloured text here vanished into it. */
+  color: inherit;
   font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.12em;
@@ -1627,14 +1751,25 @@ html[data-debug] [data-component] {
   backdrop-filter: blur(8px);
 }
 
-/* In arena layout, the scorebar always spans the top (or bottom if configured) at full broadcast width */
+/* The brand pills baked into the panels are the free-tier mark, same as `.c-watermark`, so a
+   licence has to clear them too. Without this a paid channel still wore six StumpCast badges. */
+html[data-licensed='1'] .sb-brand-pill,
+html[data-licensed='1'] .mc-brand-pill,
+html[data-licensed='1'] .tb-brand-pill,
+html[data-licensed='1'] .to-brand-pill,
+html[data-licensed='1'] .sf-brand-badge {
+  display: none;
+}
+
+/* In arena layout, the scorebar spans the full broadcast width and follows the look's score
+   position: `--arena-bar-top`/`--arena-bar-bottom` swap which edge it pins to. */
 #stage[data-layout='arena'] .zone-main,
 #stage[data-layout='arena'][data-composition] .zone-main {
   left: 48px !important;
   right: 48px !important;
   width: calc(100% - 96px) !important;
-  top: 24px !important;
-  bottom: auto !important;
+  top: var(--arena-bar-top, 24px) !important;
+  bottom: var(--arena-bar-bottom, auto) !important;
   height: 124px !important;
   transform: none !important;
   z-index: 25 !important;
@@ -1931,7 +2066,10 @@ html[data-score-position='bottom'] #stage[data-layout='classic'] .zone-main {
   top: 36px !important;
   bottom: auto !important;
   width: max-content !important;
-  max-width: 90% !important;
+  /* The bar is scaled by 1.2 * cardScale after layout, so a percentage max-width is applied to the
+     unscaled box and the bar grew into both side rails (measured 117x46 overlap on each). Dividing
+     by the same factor keeps the *rendered* width inside the gutter between them at any scale. */
+  max-width: calc(980px / (1.2 * var(--card-scale))) !important;
   display: block !important;
   transform: translateX(-50%) scale(calc(1.2 * var(--card-scale))) !important;
   transform-origin: 50% 0 !important;
@@ -1998,13 +2136,13 @@ html[data-score-position='bottom'] #stage[data-layout='fullscreen'] .zone-main {
 #stage[data-layout='arena'] .zone-main {
   left: 48px !important;
   right: 48px !important;
-  top: 24px !important;
-  bottom: auto !important;
+  top: var(--arena-bar-top, 24px) !important;
+  bottom: var(--arena-bar-bottom, auto) !important;
   width: calc(100% - 96px) !important;
   height: 124px !important;
   display: block !important;
   transform: scale(var(--card-scale)) !important;
-  transform-origin: 50% 0 !important;
+  transform-origin: var(--arena-bar-origin, 50% 0) !important;
   z-index: 25 !important;
 }
 
@@ -2017,10 +2155,13 @@ html[data-score-position='bottom'] #stage[data-layout='fullscreen'] .zone-main {
   grid-template-areas: 'bat meta bowl' !important;
   align-items: center !important;
   padding: 0 20px !important;
-  border-radius: 16px !important;
-  border: 2.5px solid #f6b800 !important;
-  background: linear-gradient(90deg, #0d5f30 0%, #15803d 43%, #0c121c 43.1%, #0c121c 56.9%, #714f0e 57%, #5c4415 100%) !important;
-  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.85), 0 0 24px rgba(246, 184, 0, 0.35) !important;
+  border-radius: var(--radius-card, 16px) !important;
+  border: 2.5px solid var(--color-accent, #f6b800) !important;
+  /* Was a hardcoded pitch-green/old-gold split, so every pro look broadcast in arena wore the same
+     bar. Same team-driven gradient the other layouts use, still overridable by a look that ships
+     its own `--look-scorebar-bg`. */
+  background: var(--look-scorebar-bg, var(--tv-bar-bg, linear-gradient(108deg, var(--team-bat-color, #026644) 0%, rgba(13, 130, 92, 0.85) 44%, var(--color-bg, #0a0e17) 44.5%, var(--color-bg, #0a0e17) 55.5%, rgba(122, 80, 2, 0.85) 56%, var(--team-bowl-color, #523500) 100%))) !important;
+  box-shadow: var(--shadow-card, 0 10px 32px rgba(0, 0, 0, 0.85)) !important;
   overflow: hidden !important;
 }
 
@@ -2142,7 +2283,7 @@ html[data-score-position='bottom'] #stage[data-layout='fullscreen'] .zone-main {
   font-family: var(--font-heading, sans-serif) !important;
   font-size: 16px !important;
   font-weight: 900 !important;
-  color: #facc15 !important;
+  color: var(--color-accent, #facc15) !important;
   letter-spacing: 0.14em !important;
 }
 
@@ -2218,14 +2359,16 @@ html[data-score-position='bottom'] #stage[data-layout='fullscreen'] .zone-main {
   display: block !important;
   position: absolute !important;
   left: 50% !important;
-  top: 172px !important;
+  top: var(--arena-frame-top, 172px) !important;
   transform: translateX(-50%) scale(var(--card-scale)) !important;
   transform-origin: 50% 0 !important;
   width: 980px !important;
-  height: 530px !important;
-  border: 2.5px solid var(--tv-border, #22c55e) !important;
+  height: var(--arena-frame-h, 530px) !important;
+  /* A TV theme wins when the operator has picked one; with `none` the frame must follow the look,
+     not fall back to a fixed broadcast green that every pro look then wore. */
+  border: 2.5px solid var(--tv-border, var(--color-accent, #22c55e)) !important;
   border-radius: 16px !important;
-  box-shadow: 0 0 28px var(--tv-glow, rgba(34, 197, 94, 0.35)), 0 20px 50px rgba(0, 0, 0, 0.9) !important;
+  box-shadow: 0 0 28px var(--tv-glow, var(--color-accent, rgba(34, 197, 94, 0.35))), 0 20px 50px rgba(0, 0, 0, 0.9) !important;
   overflow: hidden !important;
   background: #021a10 var(--stadium-bg, url('/assets/backgrounds/floodlight.jpg')) center/cover no-repeat !important;
   z-index: 5 !important;
@@ -2310,8 +2453,8 @@ html[data-score-position='bottom'] #stage[data-layout='fullscreen'] .zone-main {
 }
 
 #stage[data-layout='arena'] .c-matchcentre {
-  background: #111d15 !important;
-  border: 2.5px solid #ca8a04 !important;
+  background: var(--color-surface, #111d15) !important;
+  border: 2.5px solid var(--color-accent, #ca8a04) !important;
   border-radius: 14px !important;
   padding: 16px 20px !important;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.85) !important;
@@ -2326,7 +2469,7 @@ html[data-score-position='bottom'] #stage[data-layout='fullscreen'] .zone-main {
   font-family: var(--font-heading, sans-serif) !important;
   font-size: 18px !important;
   font-weight: 900 !important;
-  color: #facc15 !important;
+  color: var(--color-accent, #facc15) !important;
   letter-spacing: 0.12em !important;
   display: flex !important;
   align-items: center !important;
@@ -2408,7 +2551,7 @@ html[data-score-position='bottom'] #stage[data-layout='fullscreen'] .zone-main {
 }
 
 #stage[data-layout='arena'] .c-matchcentre .mc-detail .mc-label {
-  background: linear-gradient(90deg, #f59e0b, #d97706) !important;
+  background: var(--accent-grad) !important;
   color: #000000 !important;
   font-family: var(--font-heading, sans-serif) !important;
   font-size: 12px !important;
@@ -2491,7 +2634,7 @@ html[data-score-position='bottom'] #stage[data-layout='fullscreen'] .zone-main {
 }
 
 #stage[data-layout='arena'] .c-thisball .tb-label {
-  background: linear-gradient(90deg, #f59e0b, #eab308) !important;
+  background: var(--accent-grad) !important;
   color: #000000 !important;
   font-family: var(--font-heading, sans-serif) !important;
   font-size: 13px !important;
@@ -2567,8 +2710,8 @@ html[data-score-position='bottom'] #stage[data-layout='fullscreen'] .zone-main {
 }
 
 #stage[data-layout='arena'] .c-thisover .to-header {
-  background: #064e3b !important;
-  color: #a7f3d0 !important;
+  background: var(--color-accent, #064e3b) !important;
+  color: var(--color-bg, #04150f) !important;
   font-family: var(--font-heading, sans-serif) !important;
   font-size: 13px !important;
   font-weight: 900 !important;
@@ -2586,8 +2729,8 @@ html[data-score-position='bottom'] #stage[data-layout='fullscreen'] .zone-main {
 }
 
 #stage[data-layout='arena'] .c-thisover .to-body {
-  background: rgba(6, 78, 59, 0.45) !important;
-  border: 1.5px solid #047857 !important;
+  background: var(--color-surface, rgba(6, 78, 59, 0.45)) !important;
+  border: 1.5px solid var(--color-accent2, #047857) !important;
   border-top: none !important;
   border-radius: 0 0 10px 10px !important;
   padding: 8px 14px !important;
@@ -2684,7 +2827,7 @@ html[data-score-position='bottom'] #stage[data-layout='fullscreen'] .zone-main {
 }
 
 #stage[data-layout='arena'] .c-stats .st-label {
-  background: linear-gradient(90deg, #f59e0b, #d97706) !important;
+  background: var(--accent-grad) !important;
   color: #000000 !important;
   font-family: var(--font-heading, sans-serif) !important;
   font-size: 13px !important;
@@ -2710,6 +2853,74 @@ html[data-score-position='bottom'] #stage[data-layout='fullscreen'] .zone-main {
   box-sizing: border-box !important;
 }
 
+/* Projected score and extras rails -----------------------------------------------------------
+   Same tab-over-a-plate idiom as the stat tiles so the right rail reads as one instrument panel.
+   Both hide themselves (`root.hidden`) whenever the feed has nothing to say, so an innings with no
+   projection or a clean sheet of extras never leaves a dead box in the rail. */
+.c-projected,
+.c-extras {
+  display: none;
+}
+#stage[data-layout='arena'] .c-projected,
+#stage[data-layout='arena'] .c-extras {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5);
+}
+#stage[data-layout='arena'] .pj-label,
+#stage[data-layout='arena'] .ex-label {
+  background: var(--accent-grad);
+  color: #000000;
+  font-family: var(--font-heading, sans-serif);
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-align: center;
+  padding: 5px 8px;
+}
+#stage[data-layout='arena'] .pj-row,
+#stage[data-layout='arena'] .ex-row {
+  display: grid;
+  gap: 2px;
+  background: var(--color-surface, #0f172a);
+}
+#stage[data-layout='arena'] .pj-row {
+  grid-template-columns: 1fr 1fr;
+}
+#stage[data-layout='arena'] .ex-row {
+  grid-template-columns: repeat(3, 1fr);
+}
+#stage[data-layout='arena'] .pj-cell,
+#stage[data-layout='arena'] .ex-cell {
+  background: #ffffff;
+  color: #000000;
+  text-align: center;
+  padding: 6px 4px;
+}
+#stage[data-layout='arena'] .pj-now,
+#stage[data-layout='arena'] .pj-push,
+#stage[data-layout='arena'] .ex-wide,
+#stage[data-layout='arena'] .ex-noball,
+#stage[data-layout='arena'] .ex-bye {
+  display: block;
+  font-family: var(--font-numbers, 'Barlow Condensed', sans-serif);
+  font-size: 34px;
+  font-weight: 900;
+  line-height: 1;
+}
+#stage[data-layout='arena'] .pj-cap,
+#stage[data-layout='arena'] .ex-cap {
+  display: block;
+  margin-top: 3px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #334155;
+}
+
 #stage[data-layout='arena'] .c-winprob {
   display: flex !important;
   flex-direction: column !important;
@@ -2719,12 +2930,19 @@ html[data-score-position='bottom'] #stage[data-layout='fullscreen'] .zone-main {
   border-radius: 0 !important;
 }
 
+/* The rule above pins `display: flex !important`, which otherwise beats the global `[hidden]`
+   rule and leaves the rail on air as an empty box whenever the engine has no estimate — a Test,
+   or a match that has not started. Same tie, same answer: hidden wins. */
+#stage[data-layout='arena'] .c-winprob[hidden] {
+  display: none !important;
+}
+
 #stage[data-layout='arena'] .c-winprob .wp-title {
   display: none !important;
 }
 
 #stage[data-layout='arena'] .c-winprob .wp-label {
-  background: linear-gradient(90deg, #f59e0b, #d97706) !important;
+  background: var(--accent-grad) !important;
   color: #000000 !important;
   font-family: var(--font-heading, sans-serif) !important;
   font-size: 13px !important;
@@ -3462,7 +3680,13 @@ html[data-look='ink-gold'] #stage[data-layout='arena'] .c-thisover {
 
 /* ==========================================================================================
    LIVE TELEVISION COLOR SCHEMES / THEMES
-   star-sports, icc-gold, sky-sports, supersport, willow, fox-cricket, cyberpunk, frosted-glass
+   star-sports, icc-gold, sky-sports, supersport, willow, fox-cricket, cyberpunk, frosted-glass.
+
+   A theme supplies `--tv-*` values only. It must never write `--color-accent` or `--sb-bg`:
+   those belong to the Look, and a `!important` here used to win over `applyLook()`'s inline
+   custom properties, so all 29 pro looks rendered with one theme's accent and the theme's
+   five-stop versus gradient painted every panel (match centre, player cards, stat tiles).
+   `none` (no `data-tv-theme` on the stage) leaves the broadcast entirely look-driven.
    ========================================================================================== */
 
 /* 1. STAR SPORTS PREMIER (IPL / T20 World Cup) */
@@ -3475,9 +3699,6 @@ html[data-tv-theme='star-sports'] #stage,
   --tv-border: #3b82f6;
   --tv-glow: rgba(59, 130, 246, 0.55);
   --tv-bar-bg: linear-gradient(90deg, #091226 0%, #1e40af 42%, #0b1320 50%, #c2410c 58%, #7c2d12 100%);
-  --color-accent: #f97316 !important;
-  --color-accent2: #3b82f6 !important;
-  --sb-bg: var(--tv-bar-bg) !important;
 }
 
 /* 2. ICC GOLD CHAMPIONSHIP (Official ICC Look) */
@@ -3490,9 +3711,6 @@ html[data-tv-theme='icc-gold'] #stage,
   --tv-border: #eab308;
   --tv-glow: rgba(234, 179, 8, 0.55);
   --tv-bar-bg: linear-gradient(90deg, #18181b 0%, #27272a 42%, #09090b 50%, #713f12 58%, #854d0e 100%);
-  --color-accent: #eab308 !important;
-  --color-accent2: #06b6d4 !important;
-  --sb-bg: var(--tv-bar-bg) !important;
 }
 
 /* 3. SKY SPORTS CARBON & CYAN (European Modern) */
@@ -3505,9 +3723,6 @@ html[data-tv-theme='sky-sports'] #stage,
   --tv-border: #06b6d4;
   --tv-glow: rgba(6, 182, 212, 0.55);
   --tv-bar-bg: linear-gradient(90deg, #0f172a 0%, #0e7490 42%, #020617 50%, #9f1239 58%, #4c0519 100%);
-  --color-accent: #06b6d4 !important;
-  --color-accent2: #f43f5e !important;
-  --sb-bg: var(--tv-bar-bg) !important;
 }
 
 /* 4. SUPERSPORT STADIUM EMERALD (South Africa & CPL) */
@@ -3520,9 +3735,6 @@ html[data-tv-theme='supersport'] #stage,
   --tv-border: #10b981;
   --tv-glow: rgba(16, 185, 129, 0.55);
   --tv-bar-bg: linear-gradient(90deg, #064e3b 0%, #047857 42%, #022c22 50%, #78350f 58%, #451a03 100%);
-  --color-accent: #10b981 !important;
-  --color-accent2: #f59e0b !important;
-  --sb-bg: var(--tv-bar-bg) !important;
 }
 
 /* 5. WILLOW BURGUNDY & GOLD (Ashes & Classic Test) */
@@ -3535,9 +3747,6 @@ html[data-tv-theme='willow'] #stage,
   --tv-border: #eab308;
   --tv-glow: rgba(234, 179, 8, 0.5);
   --tv-bar-bg: linear-gradient(90deg, #450a0a 0%, #7f1d1d 42%, #1c0606 50%, #713f12 58%, #3f2207 100%);
-  --color-accent: #eab308 !important;
-  --color-accent2: #10b981 !important;
-  --sb-bg: var(--tv-bar-bg) !important;
 }
 
 /* 6. FOX CRICKET VELOCITY (Big Bash High Voltage) */
@@ -3550,9 +3759,6 @@ html[data-tv-theme='fox-cricket'] #stage,
   --tv-border: #facc15;
   --tv-glow: rgba(250, 204, 21, 0.55);
   --tv-bar-bg: linear-gradient(90deg, #09090b 0%, #27272a 42%, #000000 50%, #991b1b 58%, #450a0a 100%);
-  --color-accent: #facc15 !important;
-  --color-accent2: #ef4444 !important;
-  --sb-bg: var(--tv-bar-bg) !important;
 }
 
 /* 7. CYBERPUNK MIDNIGHT NEON (Twitch / YouTube Gaming) */
@@ -3565,9 +3771,6 @@ html[data-tv-theme='cyberpunk'] #stage,
   --tv-border: #22c55e;
   --tv-glow: rgba(139, 92, 246, 0.6);
   --tv-bar-bg: linear-gradient(90deg, #09090b 0%, #4c1d95 42%, #030712 50%, #064e3b 58%, #022c22 100%);
-  --color-accent: #8b5cf6 !important;
-  --color-accent2: #22c55e !important;
-  --sb-bg: var(--tv-bar-bg) !important;
 }
 
 /* 8. FROSTED GLASS MINIMALIST (Clean Translucent OBS) */
@@ -3580,9 +3783,6 @@ html[data-tv-theme='frosted-glass'] #stage,
   --tv-border: rgba(56, 189, 248, 0.7);
   --tv-glow: rgba(56, 189, 248, 0.45);
   --tv-bar-bg: linear-gradient(90deg, rgba(15, 23, 42, 0.85) 0%, rgba(30, 41, 59, 0.85) 100%);
-  --color-accent: #38bdf8 !important;
-  --color-accent2: #f8fafc !important;
-  --sb-bg: var(--tv-bar-bg) !important;
 }
 
 /* TV Theme Dynamic Overrides Across All Layouts */
@@ -3654,66 +3854,125 @@ html[data-tv-theme='frosted-glass'] #stage,
 
 /* ==========================================================================================
    PRO LOOK SCOREBAR SHAPES
-   pill, arrow, slanted, floating, notched, glass, flat
+   flat, pill, glass, notched, slanted, line, mono, arrow, floating.
+   Every rule hops through `#stage` so it reaches specificity (1,2,1) - the same as
+   `#stage[data-tv-theme] .c-scorebar` and `#stage[data-layout='arena'] .c-scorebar`. Both of
+   those set border/background/box-shadow with `!important`, and the bare
+   `html[data-score-bar='x'] .c-scorebar` form lost to them, which made `line` and `mono` render
+   exactly like `flat`. Equal specificity plus later source order means the shape wins.
    ========================================================================================== */
-html[data-score-bar='pill'] .c-scorebar,
-#stage[data-score-bar='pill'] .c-scorebar {
+html[data-score-bar='flat'] #stage .c-scorebar {
+  border-radius: 0 !important;
+  border: 3px solid var(--color-accent, #f59e0b) !important;
+}
+
+html[data-score-bar='pill'] #stage .c-scorebar {
   border-radius: 999px !important;
+  border-left-width: 0 !important;
+  padding-left: 44px !important;
+  padding-right: 44px !important;
 }
 
-html[data-score-bar='arrow'] .c-scorebar,
-#stage[data-score-bar='arrow'] .c-scorebar {
-  clip-path: polygon(24px 0%, calc(100% - 24px) 0%, 100% 50%, calc(100% - 24px) 100%, 24px 100%, 0% 50%) !important;
-  border-radius: 0 !important;
+html[data-score-bar='glass'] #stage .c-scorebar {
+  border-radius: var(--radius-card, 14px) !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+  border: 1px solid rgba(255, 255, 255, 0.38) !important;
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.5) !important;
+  backdrop-filter: blur(20px) !important;
 }
 
-html[data-score-bar='slanted'] .c-scorebar,
-#stage[data-score-bar='slanted'] .c-scorebar {
-  clip-path: polygon(28px 0, 100% 0, calc(100% - 28px) 100%, 0 100%) !important;
-  border-radius: 0 !important;
-}
-
-html[data-score-bar='notched'] .c-scorebar,
-#stage[data-score-bar='notched'] .c-scorebar {
+html[data-score-bar='notched'] #stage .c-scorebar {
   clip-path: polygon(14px 0, calc(100% - 14px) 0, 100% 14px, 100% calc(100% - 14px), calc(100% - 14px) 100%, 14px 100%, 0 calc(100% - 14px), 0 14px) !important;
   border-radius: 0 !important;
 }
 
-html[data-score-bar='glass'] .c-scorebar,
-#stage[data-score-bar='glass'] .c-scorebar {
-  backdrop-filter: blur(20px) !important;
-  background: rgba(15, 23, 42, 0.75) !important;
-  border: 2px solid rgba(255, 255, 255, 0.35) !important;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8), inset 0 1px 1px rgba(255, 255, 255, 0.4) !important;
-}
-
-html[data-score-bar='floating'] .c-scorebar,
-#stage[data-score-bar='floating'] .c-scorebar {
-  border-radius: 20px !important;
-  border: 2px solid var(--color-accent, #38bdf8) !important;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.85), 0 0 24px var(--color-accent, #38bdf8) !important;
-}
-
-html[data-score-bar='flat'] .c-scorebar,
-#stage[data-score-bar='flat'] .c-scorebar {
+html[data-score-bar='slanted'] #stage .c-scorebar {
+  clip-path: polygon(28px 0, 100% 0, calc(100% - 28px) 100%, 0 100%) !important;
   border-radius: 0 !important;
-  border: 3px solid var(--color-accent, #f59e0b) !important;
+  padding-right: 64px !important;
+}
+
+/* `line`: no box at all, just a rule under the score. The theme's border has to go for that. */
+html[data-score-bar='line'] #stage .c-scorebar {
+  border-radius: 0 !important;
+  background: rgba(10, 10, 12, 0.72) !important;
+  border-width: 0 0 4px !important;
+  border-style: solid !important;
+  border-color: var(--color-accent, #19d3c5) !important;
+  box-shadow: none !important;
+}
+
+/* `mono`: an outlined box with nothing in it - no fill, no glow. */
+html[data-score-bar='mono'] #stage .c-scorebar {
+  border-radius: 0 !important;
+  background: transparent !important;
+  border: 2px solid var(--color-accent, #19d3c5) !important;
+  box-shadow: none !important;
+}
+
+html[data-score-bar='arrow'] #stage .c-scorebar {
+  clip-path: polygon(24px 0%, calc(100% - 24px) 0%, 100% 50%, calc(100% - 24px) 100%, 24px 100%, 0% 50%) !important;
+  border-radius: 0 !important;
+  padding-right: 72px !important;
+}
+
+/* `floating`: the bar itself disappears and each segment carries its own chip. */
+html[data-score-bar='floating'] #stage .c-scorebar {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  column-gap: 16px !important;
+}
+html[data-score-bar='floating'] #stage .sb-bat,
+html[data-score-bar='floating'] #stage .sb-score-wrap,
+html[data-score-bar='floating'] #stage .sb-meta,
+html[data-score-bar='floating'] #stage .sb-bowl {
+  background: var(--sb-bg) !important;
+  border: 1px solid rgba(255, 255, 255, 0.14) !important;
+  border-radius: var(--radius-card, 14px);
+  padding: 8px 20px;
+  box-shadow: var(--shadow-card, 0 8px 24px rgba(0, 0, 0, 0.45));
 }
 
 /* ==========================================================================================
    ON-AIR SCREENS: RESULT SCREEN & PRE-MATCH SCREEN
    ========================================================================================== */
 
+/* The arena/fullscreen rules that lay these zones out are written as
+   `#stage[data-layout='arena'][data-composition] .zone-left` — specificity (1,3,1). `applyComposition`
+   always sets `data-composition`, so a plain `#stage[data-active-screen=…] .zone-left` (1,2,1) lost
+   to it and a finished match showed the result screen *through* the still-live rails. Carrying the
+   same `[data-composition]` arm here restores the tie and lets source order decide. */
 #stage[data-active-screen='result'] .zone-main,
 #stage[data-active-screen='result'] .zone-left,
 #stage[data-active-screen='result'] .zone-right,
 #stage[data-active-screen='result'] .zone-bottom,
+#stage[data-active-screen='result'] .zone-card,
+#stage[data-active-screen='result'] .c-player-band,
 #stage[data-active-screen='result'] .c-stream-frame,
+#stage[data-active-screen='result'][data-composition] .zone-main,
+#stage[data-active-screen='result'][data-composition] .zone-left,
+#stage[data-active-screen='result'][data-composition] .zone-right,
+#stage[data-active-screen='result'][data-composition] .zone-bottom,
+#stage[data-active-screen='result'][data-composition] .zone-card,
+#stage[data-active-screen='result'][data-composition] .c-player-band,
+#stage[data-active-screen='result'][data-composition] .c-stream-frame,
 #stage[data-active-screen='pre'] .zone-main,
 #stage[data-active-screen='pre'] .zone-left,
 #stage[data-active-screen='pre'] .zone-right,
 #stage[data-active-screen='pre'] .zone-bottom,
-#stage[data-active-screen='pre'] .c-stream-frame {
+#stage[data-active-screen='pre'] .zone-card,
+#stage[data-active-screen='pre'] .c-player-band,
+#stage[data-active-screen='pre'] .c-stream-frame,
+#stage[data-active-screen='pre'][data-composition] .zone-main,
+#stage[data-active-screen='pre'][data-composition] .zone-left,
+#stage[data-active-screen='pre'][data-composition] .zone-right,
+#stage[data-active-screen='pre'][data-composition] .zone-bottom,
+#stage[data-active-screen='pre'][data-composition] .zone-card,
+#stage[data-active-screen='pre'][data-composition] .c-player-band,
+#stage[data-active-screen='pre'][data-composition] .c-stream-frame {
   display: none !important;
 }
 
@@ -4506,10 +4765,14 @@ html[data-score-bar='flat'] .c-scorebar,
   display: none;
   align-items: center;
   justify-content: center;
+  /* Hidden means gone, not transparent: an ad that only fades would still eat every click
+     meant for the overlay underneath. */
+  pointer-events: none;
 }
 
 .c-upgrade-popup.visible {
   display: flex;
+  pointer-events: none;
 }
 
 .upgrade-popup-backdrop {
@@ -4517,10 +4780,12 @@ html[data-score-bar='flat'] .c-scorebar,
   inset: 0;
   background: rgba(0, 0, 0, 0.6);
   backdrop-filter: blur(4px);
+  pointer-events: none;
 }
 
 .upgrade-popup-box {
   position: relative;
+  pointer-events: auto;
   background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
   border: 2px solid #f97316;
   border-radius: 20px;
@@ -4617,84 +4882,7 @@ html[data-score-bar='flat'] .c-scorebar,
   }
 }
 
-/* Centre performance strip + score pop-up ---------------------------------------------------- */
-.c-perf-strip {
-  display: none;
-}
-#stage[data-layout='arena'] .c-perf-strip,
-[data-layout='arena'] .c-perf-strip,
-#stage[data-layout='arena'][data-composition] .c-perf-strip {
-  display: grid;
-  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
-  gap: 12px;
-  position: absolute;
-  left: 50%;
-  top: calc(172px + 530px * var(--card-scale) + 10px);
-  width: 980px;
-  transform: translateX(-50%) scale(var(--card-scale));
-  transform-origin: 50% 0;
-  z-index: 6;
-  pointer-events: none;
-}
-/* The arena frame pins `top: 172px !important` (see the arena block above), so the strip anchors
-   to exactly that bottom edge at any --card-scale. */
-/* The class rule above sets `display`, so `hidden` needs to win explicitly. */
-#stage[data-layout='arena'] .c-perf-strip[hidden] {
-  display: none;
-}
-.ps-group {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 10px 18px;
-  background: rgba(6, 10, 18, 0.88);
-  border: 1px solid var(--color-accent, rgba(245, 158, 11, 0.55));
-  border-radius: 12px;
-  font-family: var(--font-heading, sans-serif);
-  min-width: 0;
-}
-.ps-heading {
-  font-size: 12px;
-  letter-spacing: 0.18em;
-  color: var(--color-accent, #f59e0b);
-}
-.ps-rows {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-.ps-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto auto;
-  gap: 14px;
-  align-items: baseline;
-  font-size: 20px;
-  color: #f7f2e5;
-}
-.ps-name {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.ps-figures {
-  font-family: var(--font-numbers, 'Barlow Condensed', sans-serif);
-  font-size: 24px;
-  font-weight: 700;
-}
-.ps-rate,
-.ps-extra {
-  font-size: 14px;
-  letter-spacing: 0.06em;
-  color: #9fb3a8;
-}
-.ps-on-strike .ps-figures {
-  color: var(--color-accent2, #ffd166);
-}
-.ps-empty {
-  font-size: 15px;
-  color: #7d8a84;
-}
-
+/* Score pop-up (the arena player band took over the centre performance strip's slot) ---------- */
 .c-score-pop {
   display: none;
 }
@@ -4807,4 +4995,232 @@ html[data-score-position='bottom'] #stage[data-layout='fullscreen'] .c-score-pop
 }
 .c-score-pop[data-kind='dot'] .sp-ball {
   color: #9fb3a8;
+}
+
+/* ============================================================================================
+   LIVE AMBIENCE (Phase 13)
+
+   A broadcast that sits perfectly still reads as a screenshot. Everything below loops for as
+   long as the overlay is open, so the frame always has something moving in it the way a real
+   feed does. Two rules were held to while writing it:
+
+   - Only transform, opacity and filters animate. OBS captures this page every frame, and any
+     property that can move a layout box costs a dropped frame on air.
+   - Nothing animates on #stage itself. The page background is transparent so OBS can composite
+     the match video underneath, and a stage-wide glow would burn a haze into the picture.
+   ============================================================================================ */
+
+@keyframes live-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.4;
+    transform: scale(1.45);
+  }
+}
+
+@keyframes sheen-sweep {
+  0% {
+    transform: translateX(-130%) skewX(-18deg);
+    opacity: 0;
+  }
+  12% {
+    opacity: 0.55;
+  }
+  45%,
+  100% {
+    transform: translateX(360%) skewX(-18deg);
+    opacity: 0;
+  }
+}
+
+@keyframes token-drop {
+  from {
+    opacity: 0;
+    transform: translateY(-9px) scale(0.82);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes value-focus {
+  from {
+    opacity: 0.25;
+    transform: translateY(5px);
+    filter: blur(2px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+
+@keyframes bar-breathe {
+  0%,
+  100% {
+    filter: brightness(1);
+    transform: scaleY(1);
+  }
+  50% {
+    filter: brightness(1.28);
+    transform: scaleY(1.14);
+  }
+}
+
+@keyframes edge-breathe {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 0.9;
+  }
+}
+
+@keyframes crest-drift {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+@keyframes ticker-crawl {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+/* The red LIVE dots: the single clearest "this is happening now" signal on the frame. */
+.sf-live-dot,
+.sb-brand-dot,
+.to-brand-dot,
+.sf-brand-dot {
+  position: relative;
+}
+
+.sf-live-dot::after,
+.sb-brand-dot::after,
+.to-brand-dot::after,
+.sf-brand-dot::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  animation: live-pulse 1.8s ease-in-out infinite;
+}
+
+/* A light sweeps across the score bar every few seconds, like a camera passing a lit stand. */
+.c-scorebar,
+.c-player-band .pc-card,
+.c-thisover,
+.c-stats,
+.c-winprob {
+  position: relative;
+  overflow: hidden;
+}
+
+.c-scorebar::after,
+.c-player-band .pc-card::after {
+  content: '';
+  position: absolute;
+  inset: -20% -10%;
+  pointer-events: none;
+  background: linear-gradient(
+    100deg,
+    transparent 42%,
+    rgba(255, 255, 255, 0.16) 50%,
+    transparent 58%
+  );
+  animation: sheen-sweep 9s ease-in-out infinite;
+}
+
+.c-player-band .pc-card::after {
+  animation-duration: 11s;
+  animation-delay: 3s;
+}
+
+/* Newest ball in the strip lands; the rest of the over stays put. */
+.to-strip > :last-child {
+  animation: token-drop 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.3) both;
+}
+
+/* A figure that just changed re-focuses instead of teleporting to its new value. */
+.st-value {
+  animation: value-focus 0.5s ease-out both;
+}
+
+/* Win probability and progress bars breathe so they never look like a frozen chart. */
+.wp-bar > * {
+  transform-origin: left center;
+  animation: bar-breathe 4.5s ease-in-out infinite;
+}
+
+/* Accent edges of the panels glow slowly, so the frame reads as lit rather than printed. */
+.c-scorebar,
+.c-thisover,
+.c-stats,
+.c-winprob,
+.c-player-band .pc-card {
+  isolation: isolate;
+}
+
+.c-thisover::before,
+.c-stats::before,
+.c-winprob::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  border-top: 2px solid var(--color-accent, #19d3c5);
+  animation: edge-breathe 6s ease-in-out infinite;
+}
+
+.c-stats::before {
+  animation-delay: 2s;
+}
+
+.c-winprob::before {
+  animation-delay: 4s;
+}
+
+/* Crests bob a pixel or two — enough to feel rendered live, not pasted from a file. */
+.sb-crest img,
+.pc-photo img {
+  animation: crest-drift 5.5s ease-in-out infinite;
+}
+
+/* Ticker layout: the crawl is the whole point of that layout, so it must never be still. */
+#stage[data-layout='ticker'] .c-score-pop,
+#stage[data-layout='ticker'] .sb-situation {
+  animation: ticker-crawl 22s linear infinite;
+}
+
+/* A paused or finished match must stop pretending: no motion on a dead frame. */
+#stage[data-status='result'] .sf-live-dot::after,
+#stage[data-status='result'] .sb-brand-dot::after,
+#stage[data-status='result'] .to-brand-dot::after,
+#stage[data-status='result'] .sf-brand-dot::after,
+#stage[data-status='result'] .c-scorebar::after,
+#stage[data-status='result'] .c-player-band .pc-card::after,
+#stage[data-status='result'] .c-thisover::before,
+#stage[data-status='result'] .c-stats::before,
+#stage[data-status='result'] .c-winprob::before,
+#stage[data-status='result'] .sb-crest img,
+#stage[data-status='result'] .pc-photo img,
+#stage[data-status='result'] .wp-bar > * {
+  animation: none;
 }

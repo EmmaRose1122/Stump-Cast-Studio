@@ -37,5 +37,11 @@
     "entrance": "skew",
     "easing": "expo.out",
     "durationMs": 480
-  }
+  },
+  "tags": [
+    "skew entrances",
+    "scores at the bottom",
+    "arrow score bar",
+    "mirrored player cards"
+  ]
 }

@@ -70,12 +70,12 @@ if (existsSync(serverAssets)) {
 
 const server = readJson(path.join(packages, 'server', 'package.json'));
 const self = readJson(path.join(desktop, 'package.json'));
-const appVersion = process.env.STUMPCAST_VERSION ?? self.version;
 
 if (existsSync(path.join(desktop, 'build', 'splash.html'))) {
+  // Copied verbatim: the splash prints the version the app reports at runtime
+  // (app.getVersion(), cross-checked with the engine's /api/health), so nothing is baked here.
   mkdirSync(path.join(stage, 'packages', 'desktop', 'build'), { recursive: true });
-  let splashContent = readFileSync(path.join(desktop, 'build', 'splash.html'), 'utf8');
-  splashContent = splashContent.replace(/<div class="version"[^>]*>.*?<\/div>/, `<div class="version" id="appVersion">v${appVersion}</div>`);
+  const splashContent = readFileSync(path.join(desktop, 'build', 'splash.html'), 'utf8');
   writeFileSync(path.join(stage, 'packages', 'desktop', 'build', 'splash.html'), splashContent, 'utf8');
   writeFileSync(path.join(stage, 'packages', 'desktop', 'splash.html'), splashContent, 'utf8');
   writeFileSync(path.join(stage, 'splash.html'), splashContent, 'utf8');

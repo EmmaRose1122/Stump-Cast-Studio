@@ -77,7 +77,9 @@ export const SettingsSchema = z.object({
       obsHost: z.string().max(255).default('127.0.0.1'),
       obsPort: z.number().int().min(1).max(65535).default(4455),
       obsScene: z.string().max(255).default(''),
-      tvTheme: z.string().default('star-sports'),
+      // `none` leaves the broadcast entirely Look-driven. A TV theme is an explicit operator
+      // choice, not a default that quietly overrides the pro look they just paid for.
+      tvTheme: z.string().default('none'),
       backgroundImage: z.string().max(2048).nullable().default(null),
       backgroundDim: z.number().min(0).max(0.8).default(0.3),
       obsMap: z.object({ matchVideo: z.string().max(255).default(''), cam1: z.string().max(255).default(''), cam2: z.string().max(255).default('') }).default({}),

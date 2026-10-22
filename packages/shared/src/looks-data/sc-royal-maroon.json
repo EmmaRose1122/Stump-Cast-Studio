@@ -37,5 +37,11 @@
     "entrance": "curtain",
     "easing": "power3.out",
     "durationMs": 600
-  }
+  },
+  "tags": [
+    "curtain entrances",
+    "scores on top",
+    "notched score bar",
+    "cut-out player photos"
+  ]
 }

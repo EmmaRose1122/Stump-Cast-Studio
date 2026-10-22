@@ -37,5 +37,11 @@
     "entrance": "zoom-out",
     "easing": "power3.out",
     "durationMs": 520
-  }
+  },
+  "tags": [
+    "zoom-out entrances",
+    "scores at the bottom",
+    "glass score bar",
+    "round photo badges"
+  ]
 }

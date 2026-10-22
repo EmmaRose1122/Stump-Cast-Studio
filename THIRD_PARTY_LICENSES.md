@@ -68,3 +68,29 @@ This document contains licensing information and copyright notices for third-par
 - **License:** Apache-2.0
 - **Copyright:** (c) 2013 Lovell Fuller and contributors
 - **Website:** https://sharp.pixelplumbing.com
+
+## Fonts
+
+Four typefaces are bundled into the broadcast overlay (`packages/overlay/src/fonts`, listed with
+their exact subsets and unicode ranges in `manifest.txt`, license text in `OFL.txt`) so an offline
+OBS machine never drops the scoreboard onto a system font. All four are SIL Open Font License 1.1.
+
+### Barlow Condensed
+- **License:** SIL Open Font License 1.1
+- **Copyright:** The Barlow Project Authors, as recorded upstream (the subset files served by Google Fonts carry the OFL license-URL record but not the copyright string, so the notice is taken from the upstream project rather than restated here)
+- **Website:** https://fonts.google.com/specimen/Barlow+Condensed
+
+### Inter
+- **License:** SIL Open Font License 1.1
+- **Copyright:** The Inter Project Authors, as recorded upstream
+- **Website:** https://fonts.google.com/specimen/Inter
+
+### Space Grotesk
+- **License:** SIL Open Font License 1.1
+- **Copyright:** The Space Grotesk Project Authors, as recorded upstream
+- **Website:** https://fonts.google.com/specimen/Space+Grotesk
+
+### Teko
+- **License:** SIL Open Font License 1.1
+- **Copyright:** The Teko Project Authors, as recorded upstream
+- **Website:** https://fonts.google.com/specimen/Teko

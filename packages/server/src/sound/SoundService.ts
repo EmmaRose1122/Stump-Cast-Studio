@@ -26,6 +26,59 @@ export const sniffAudio = (b: Buffer): 'wav' | 'mp3' | 'ogg' | null => {
   return null;
 };
 
+export interface CrowdSoundPreset {
+  id: string;
+  title: string;
+  file: string;
+  includeInLoop: boolean;
+  volume: number;
+}
+
+export const STADIUM_CROWD_PRESETS: CrowdSoundPreset[] = [
+  {
+    id: 'stadium-murmur',
+    title: 'Stadium Crowd Ambient (Loop)',
+    file: 'sounds/stadium-murmur.mp3',
+    includeInLoop: true,
+    volume: 0.85,
+  },
+  {
+    id: 'crowd-cheer-roar',
+    title: 'Massive Crowd Roar & Cheering',
+    file: 'sounds/crowd-cheer-roar.mp3',
+    includeInLoop: false,
+    volume: 0.95,
+  },
+  {
+    id: 'crowd-chants-claps',
+    title: 'Stadium Chants & Claps',
+    file: 'sounds/crowd-chants-claps.mp3',
+    includeInLoop: false,
+    volume: 0.9,
+  },
+  {
+    id: 'boundary-four-burst',
+    title: 'Boundary Four Celebration',
+    file: 'sounds/boundary-four-burst.mp3',
+    includeInLoop: false,
+    volume: 0.95,
+  },
+  {
+    id: 'wicket-fall-gasp',
+    title: 'Wicket Fall Roar & Gasp',
+    file: 'sounds/wicket-fall-gasp.mp3',
+    includeInLoop: false,
+    volume: 0.95,
+  },
+  {
+    id: 'stadium-whistles-applause',
+    title: 'Stadium Whistles & Ovation',
+    file: 'sounds/stadium-whistles-applause.mp3',
+    includeInLoop: false,
+    volume: 0.9,
+  },
+];
+
 /** Up to ten sound slots stored as files under data/assets/sounds (B9). */
 export class SoundService {
   readonly dir: string;
@@ -128,7 +181,94 @@ export class SoundService {
     this.db.delete(schema.sounds).where(eq(schema.sounds.id, id)).run();
   }
 
-  /** Install the three generated placeholder sounds that are not already present. */
+  private resolvePresetFile(filename: string): boolean {
+    const targetPath = path.join(this.dir, filename);
+    if (fs.existsSync(targetPath)) return true;
+
+    const candidates = [
+      path.resolve(process.cwd(), 'packages', 'server', 'data', 'assets', 'sounds', filename),
+      path.resolve(process.cwd(), 'data', 'assets', 'sounds', filename),
+      path.resolve(process.cwd(), 'assets', 'sounds', filename),
+      path.resolve(import.meta.dirname, '..', '..', 'data', 'assets', 'sounds', filename),
+      path.resolve(import.meta.dirname, '..', '..', '..', 'data', 'assets', 'sounds', filename),
+      path.resolve(import.meta.dirname, '..', '..', '..', 'packages', 'server', 'data', 'assets', 'sounds', filename),
+    ];
+    const found = candidates.find((c) => fs.existsSync(c));
+    if (found) {
+      try {
+        fs.copyFileSync(found, targetPath);
+        return true;
+      } catch {
+        /* ignore */
+      }
+    }
+    return false;
+  }
+
+  /** Seed realistic stadium crowd audio tracks into the rack. */
+  seedCrowdSounds(force = false): SoundSlot[] {
+    const existing = this.list();
+    const existingIds = new Set(existing.map((s) => s.id));
+    const added: SoundSlot[] = [];
+
+    // If rack only contains the old synthetic sine placeholders, replace them with real crowd noise
+    const onlySynthSamples =
+      existing.length > 0 && existing.every((s) => s.id.startsWith('sample-'));
+    if (onlySynthSamples || force) {
+      for (const s of existing) {
+        if (s.id.startsWith('sample-') || force) {
+          try {
+            this.db.delete(schema.sounds).where(eq(schema.sounds.id, s.id)).run();
+            existingIds.delete(s.id);
+          } catch {
+            /* ignore */
+          }
+        }
+      }
+    }
+
+    for (const preset of STADIUM_CROWD_PRESETS) {
+      if (existingIds.has(preset.id)) continue;
+      if (this.list().length >= MAX_SOUND_SLOTS) break;
+
+      const filename = path.basename(preset.file);
+      if (!this.resolvePresetFile(filename)) continue;
+
+      const slot: SoundSlot = {
+        id: preset.id,
+        title: preset.title,
+        file: preset.file,
+        includeInLoop: preset.includeInLoop,
+        volume: preset.volume,
+      };
+      this.db.insert(schema.sounds).values(slot).run();
+      added.push(slot);
+    }
+    return added;
+  }
+
+  addPreset(presetId: string): SoundSlot | undefined {
+    const preset = STADIUM_CROWD_PRESETS.find((p) => p.id === presetId);
+    if (!preset) return undefined;
+    const existing = this.get(preset.id);
+    if (existing) return existing;
+    this.assertCapacity();
+
+    const filename = path.basename(preset.file);
+    this.resolvePresetFile(filename);
+
+    const slot: SoundSlot = {
+      id: preset.id,
+      title: preset.title,
+      file: preset.file,
+      includeInLoop: preset.includeInLoop,
+      volume: preset.volume,
+    };
+    this.db.insert(schema.sounds).values(slot).run();
+    return slot;
+  }
+
+  /** Install sample sounds. */
   addSamples(): SoundSlot[] {
     const added: SoundSlot[] = [];
     for (const s of SAMPLE_SOUNDS) {
@@ -150,3 +290,4 @@ export class SoundService {
       .map((s) => s.id);
   }
 }
+

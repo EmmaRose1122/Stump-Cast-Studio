@@ -102,10 +102,17 @@ export const applyBackground = (
   stage.style.backgroundRepeat = 'no-repeat';
 };
 
-export const applyTvTheme = (stage: HTMLElement, tvTheme = 'star-sports'): void => {
-  stage.dataset.tvTheme = tvTheme;
-  if (typeof document !== 'undefined' && document.documentElement) {
-    document.documentElement.dataset.tvTheme = tvTheme;
+/**
+ * `none` removes the attribute entirely rather than writing `data-tv-theme='none'`: every theme
+ * rule keys off the attribute's *presence* (`#stage[data-tv-theme] .c-scorebar`), so leaving a
+ * value in place would keep the theme on air.
+ */
+export const applyTvTheme = (stage: HTMLElement, tvTheme = 'none'): void => {
+  const on = Boolean(tvTheme) && tvTheme !== 'none';
+  for (const el of [stage, typeof document === 'undefined' ? null : document.documentElement]) {
+    if (!el) continue;
+    if (on) el.dataset.tvTheme = tvTheme;
+    else delete el.dataset.tvTheme;
   }
 };
 

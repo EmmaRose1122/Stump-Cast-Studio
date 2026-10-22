@@ -37,5 +37,11 @@
     "entrance": "glitch",
     "easing": "power2.out",
     "durationMs": 450
-  }
+  },
+  "tags": [
+    "glitch entrances",
+    "scores at the bottom",
+    "pill score bar",
+    "round photo badges"
+  ]
 }

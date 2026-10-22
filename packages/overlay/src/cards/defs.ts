@@ -388,6 +388,20 @@ const fullScorecard: CardDef = {
       t.append(r);
     }
     const out: HTMLElement[] = [t];
+    // The feed never sends the split, so it is counted from the ball stream by the engine. Without
+    // it a scorecard total cannot be reconciled: 183 - (batters' 176) = 7 runs that belong nowhere.
+    const x = s.extras;
+    if (x && x.wide + x.noball + x.bye + x.legbye + x.penalty > 0) {
+      out.push(
+        row(
+          el(
+            'span',
+            'cd-name',
+            `EXTRAS ${x.bye + x.legbye + x.wide + x.noball + x.penalty} (b ${x.bye}, lb ${x.legbye}, w ${x.wide}, nb ${x.noball}, p ${x.penalty})`,
+          ),
+        ),
+      );
+    }
     const batters = s.batters.filter((b) => !placeholder(b.name));
     if (batters.length > 0) {
       out.push(

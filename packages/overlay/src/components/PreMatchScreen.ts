@@ -16,6 +16,13 @@ const STATUS_LINE: Record<string, string> = {
 };
 
 /**
+ * Team and player names arrive from a scraped page, and they are dropped into markup here — so
+ * they are escaped rather than trusted. A name is never HTML.
+ */
+const escapeHtml = (s: string): string =>
+  s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
+
+/**
  * Pre-Match TV broadcast presentation screen showing countdown clock, captains comparison,
  * toss outcome, and full team playing XIs.
  */
@@ -171,19 +178,24 @@ export class PreMatchScreen extends OverlayComponent {
     }
   }
 
-  /** The feed carries no line-ups, so the squad scene says so instead of listing invented players. */
+  /** The line-up when the feed carries one, and an honest placeholder when it does not. */
   private renderSquad(area: HTMLElement, team: Team): void {
     const el = document.createElement('div');
     el.className = 'pms-scene pms-scene-squad';
+    const squad = (team.players ?? []).filter((n) => n.trim().length > 0);
+    const names = squad
+      .map((n) => `<li class="pms-squad-player">${escapeHtml(n.toUpperCase())}</li>`)
+      .join('');
     el.innerHTML = `
       <div class="pms-squad-container">
         <div class="pms-squad-header">
           <div class="pms-squad-crest"></div>
           <div>
-            <h2 class="pms-squad-team-name">${team.name.toUpperCase()} PLAYING XI</h2>
-            <span class="pms-squad-sub">LINE-UP NOT ANNOUNCED IN THE FEED</span>
+            <h2 class="pms-squad-team-name">${escapeHtml(team.name.toUpperCase())} PLAYING XI</h2>
+            <span class="pms-squad-sub">${squad.length > 0 ? `${squad.length} NAMED` : 'LINE-UP NOT ANNOUNCED IN THE FEED'}</span>
           </div>
         </div>
+        ${squad.length > 0 ? `<ol class="pms-squad-list">${names}</ol>` : ''}
       </div>
     `;
     this.setCrest(el.querySelector<HTMLElement>('.pms-squad-crest')!, team.short);

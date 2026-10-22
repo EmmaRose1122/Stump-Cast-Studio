@@ -37,5 +37,11 @@
     "entrance": "iris",
     "easing": "power2.inOut",
     "durationMs": 520
-  }
+  },
+  "tags": [
+    "iris entrances",
+    "scores on top",
+    "arrow score bar",
+    "mirrored player cards"
+  ]
 }

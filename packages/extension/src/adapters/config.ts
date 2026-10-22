@@ -51,6 +51,13 @@ export const FIELD_KEYS = [
   'batter1.photo',
   'batter2.photo',
   'bowler.photo',
+  /**
+   * A whole announced line-up. One field per side; the value is a JSON array of
+   * `{ name, role, captain, keeper, imageUrl }` read by a `domLists` rule, because a squad is a
+   * list of rows and every other field this engine reads is a single value.
+   */
+  'team1.squad',
+  'team2.squad',
   'partnership',
   'target',
   'crr',
@@ -90,8 +97,39 @@ export const DomRuleSchema = z.object({
 });
 export type DomRule = z.infer<typeof DomRuleSchema>;
 
-export const JsonTapSchema = z.object({
-  /** Matched against the URL of responses the page itself fetched. */
+/**
+ * Reads a repeated block of rows — a Playing XI — into a JSON array.
+ *
+ * A squad is not one value, so it cannot go through `dom`. Instead the rule anchors on a heading
+ * the page itself writes ("playing XI"), takes one column per side, and reads the same handful of
+ * relative selectors off every row. Anchoring on the heading's words rather than on a positional
+ * path is what keeps it alive when the site reorders or restyles the page: the words are the
+ * contract with the reader, the classes are not.
+ */
+export const DomListRuleSchema = z.object({
+  /** Heading text (whitespace/case-insensitive, whole) that identifies the block. */
+  heading: z.string().min(1),
+  /** Heading is looked for among these tags. Defaults to h1-h4. */
+  headingSelectors: z.array(z.string().min(1)).default(['h1', 'h2', 'h3', 'h4']),
+  /** The block is the heading's parent element, narrowed to this selector if given. */
+  scope: z.string().optional(),
+  /** Columns inside the block; column `index` is this field's team. */
+  column: z.string().min(1),
+  index: z.number().int().min(0),
+  /** One row inside the column. */
+  item: z.string().min(1),
+  /** Relative to a row. `name` is required; the rest are optional extras. */
+  name: z.string().min(1),
+  role: z.string().optional(),
+  /** Text like "(C)" / "(WK)". Absent means neither. */
+  marker: z.string().optional(),
+  image: z.string().optional(),
+  /** Attribute holding the picture. */
+  attr: z.string().default('src'),
+});
+export type DomListRule = z.infer<typeof DomListRuleSchema>;
+
+export const JsonTapSchema = z.object({  /** Matched against the URL of responses the page itself fetched. */
   urlRegex: regexString,
   /**
    * field -> path such as `$.score.runs` or `data.innings[0].overs`.
@@ -111,7 +149,17 @@ export const SelectorConfigSchema = z.object({
   matchIdRegex: regexString.optional(),
   jsonTaps: z.array(JsonTapSchema).default([]),
   dom: z.record(FieldKeySchema, DomRuleSchema).default({}),
+  /** Line-ups: one rule per side, each producing a JSON array under its field. */
+  domLists: z.record(FieldKeySchema, DomListRuleSchema).default({}),
   /** Fields that must parse (and pass sanity checks) for full confidence. */
   minConfidenceFields: z.array(FieldKeySchema).default([]),
+  /** Optional page-specific variants (live, scorecard, squads, etc.) */
+  pageVariants: z.record(z.object({
+    urlPattern: regexString,
+    jsonTaps: z.array(JsonTapSchema).default([]),
+    dom: z.record(FieldKeySchema, DomRuleSchema).default({}),
+    domLists: z.record(FieldKeySchema, DomListRuleSchema).default({}),
+    minConfidenceFields: z.array(FieldKeySchema).default([]),
+  })).optional(),
 });
 export type SelectorConfig = z.infer<typeof SelectorConfigSchema>;

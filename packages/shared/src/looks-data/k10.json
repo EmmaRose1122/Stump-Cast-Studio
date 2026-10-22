@@ -37,5 +37,11 @@
     "entrance": "unfold",
     "easing": "power3.out",
     "durationMs": 520
-  }
+  },
+  "tags": [
+    "unfold entrances",
+    "scores on top",
+    "slanted score bar",
+    "cut-out player photos"
+  ]
 }

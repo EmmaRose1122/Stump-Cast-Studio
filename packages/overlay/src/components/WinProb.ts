@@ -1,11 +1,15 @@
 import type { MatchState } from '@stumpcast/shared';
 import { assetUrl, attachImage, teamAssetId } from '../assets';
 import { OverlayComponent } from '../component';
+import { battingTeam, bowlingTeam } from '../format';
 
 /** Two-sided win-probability bar. Hidden when the engine has no estimate (e.g. Tests). */
 export class WinProb extends OverlayComponent {
   protected override readonly alwaysVisible = true;
-  private e!: Record<'a' | 'b' | 'fillA' | 'pctA' | 'pctB' | 'crestA' | 'crestB', HTMLElement>;
+  private e!: Record<
+    'a' | 'b' | 'fillA' | 'pctA' | 'pctB' | 'crestA' | 'crestB',
+    HTMLElement
+  >;
 
   protected build(): HTMLElement {
     const root = document.createElement('div');
@@ -45,20 +49,25 @@ export class WinProb extends OverlayComponent {
   }
 
   update(s: MatchState): void {
-    this.root.hidden = !s.winProb;
-    if (!s.winProb) return;
-    this.e.a.textContent = s.teams[0].short;
-    this.e.b.textContent = s.teams[1].short;
-    this.e.fillA.style.width = `${(s.winProb.teamA * 100).toFixed(1)}%`;
-    this.e.fillA.style.background = s.teams[0].color;
-    const pctA = Math.round(s.winProb.teamA * 100);
+    this.root.hidden = !s.winProb || s.teams.length < 2;
+    if (this.root.hidden || !s.winProb) return;
+    // Left-to-right exactly as the scorebar lays it out, with the batting side first. The engine
+    // numbers its pair `teamA`/`teamB` by roster order, so reading the estimate means re-pairing it
+    // with the side it belongs to — otherwise a flag changes sides between the two widgets and
+    // every number on the bar reads for the wrong team.
+    const bat = battingTeam(s);
+    const bowl = bowlingTeam(s);
+    const pBat = bat.id === s.teams[0].id ? s.winProb.teamA : s.winProb.teamB;
+    this.e.a.textContent = bat.short;
+    this.e.b.textContent = bowl.short;
+    this.e.fillA.style.width = `${(pBat * 100).toFixed(1)}%`;
+    this.e.fillA.style.background = bat.color;
+    const pctBat = Math.round(pBat * 100);
     // One number, not two: rounding both halves independently can put 101% on air.
-    const pctB = 100 - pctA;
-    this.e.pctA.textContent = `${pctA}%`;
-    this.e.pctB.textContent = `${pctB}%`;
-    if (s.teams && s.teams.length >= 2) {
-      this.setCrest(this.e.crestA, s.teams[0].short);
-      this.setCrest(this.e.crestB, s.teams[1].short);
-    }
+    const pctBowl = 100 - pctBat;
+    this.e.pctA.textContent = `${pctBat}%`;
+    this.e.pctB.textContent = `${pctBowl}%`;
+    this.setCrest(this.e.crestA, bat.short);
+    this.setCrest(this.e.crestB, bowl.short);
   }
 }

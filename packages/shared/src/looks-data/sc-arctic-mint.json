@@ -37,5 +37,11 @@
     "entrance": "fade",
     "easing": "sine.out",
     "durationMs": 520
-  }
+  },
+  "tags": [
+    "fade entrances",
+    "scores on top",
+    "line score bar",
+    "round photo badges"
+  ]
 }

@@ -4,9 +4,11 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>StumpCast Broadcast Overlay</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800;900&family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700&family=Teko:wght@600;700&display=swap" rel="stylesheet" />
+    <!--
+      No Google Fonts link here on purpose. The four display faces are bundled and declared in
+      src/fonts.css, so an offline OBS machine or a mid-broadcast network blip cannot swap a
+      professional scoreboard onto a generic system face in front of an audience.
+    -->
   </head>
   <body>
     <div id="stage"></div>

@@ -151,8 +151,109 @@
       "attr": "src"
     }
   },
-  "minConfidenceFields": [
-    "score",
-    "overs"
-  ]
+  "minConfidenceFields": ["score", "overs"],
+  "pageVariants": {
+    "live": {
+      "urlPattern": "^https?://(?:www\\.)?crex\\.(com|live)/(?:live|match|scores|fixtures|scoreboard|match-center)/[a-zA-Z0-9_-]+/?$",
+      "jsonTaps": [],
+      "dom": {
+        "title": { "selectors": ["h1", ".match-info h1", "title", ".header-title", "[class*=\"matchTitle\"]", "[class*=\"headerTitle\"]"] },
+        "status": { "selectors": [".match-status", ".live-status", ".match-note", ".status-text", "[class*=\"matchStatus\"]", "[class*=\"liveStatus\"]"] },
+        "venue": { "selectors": [".venue-name", ".match-venue", "[class*=\"venue\"]"] },
+        "team1": { "selectors": [".team-name:first-child", ".team-1-name", "[class*=\"teamName\"]:first-child", "[class*=\"team-name\"]:first-child"] },
+        "team2": { "selectors": [".team-name:last-child", ".team-2-name", "[class*=\"teamName\"]:last-child", "[class*=\"team-name\"]:last-child"] },
+        "score": { "selectors": [".live-score", ".team-score", ".score-wrap", ".score", "[class*=\"liveScore\"]", "[class*=\"teamScore\"]", "[class*=\"score\"]"] },
+        "overs": { "selectors": [".overs", ".live-overs", ".overs-wrap", "[class*=\"liveOvers\"]", "[class*=\"overs\"]"] },
+        "batter1.name": { "selectors": [".batter-name", ".batsman:first-child .name"] },
+        "batter1.runs": { "selectors": [".batter-runs", ".batsman:first-child .runs"] },
+        "batter1.balls": { "selectors": [".batter-balls", ".batsman:first-child .balls"] },
+        "batter2.name": { "selectors": [".batsman:nth-child(2) .name"] },
+        "batter2.runs": { "selectors": [".batsman:nth-child(2) .runs"] },
+        "batter2.balls": { "selectors": [".batsman:nth-child(2) .balls"] },
+        "bowler.name": { "selectors": [".bowler-name", ".bowler .name"] },
+        "bowler.overs": { "selectors": [".bowler-overs", ".bowler .overs"] },
+        "bowler.runs": { "selectors": [".bowler-runs", ".bowler .runs"] },
+        "bowler.wkts": { "selectors": [".bowler-wkts", ".bowler .wickets"] },
+        "thisOver": { "selectors": [".recent-balls", ".this-over", ".overs-balls"] },
+        "team1.logo": { "selectors": [".team1 .team-logo img", "[class*=\"team1\"] img[class*=\"team-head\"]", "img.team-head-img"], "attr": "src" },
+        "team2.logo": { "selectors": [".team2 .team-logo img", "[class*=\"team2\"] img[class*=\"team-head\"]"], "attr": "src" }
+      }
+    },
+    "scorecard": {
+      "urlPattern": "^https?://(?:www\\.)?crex\\.(com|live)/.*/scoreboard/[a-zA-Z0-9_-]+",
+      "jsonTaps": [],
+      "dom": {
+        "title": { "selectors": ["h1", ".match-info h1", "title"] },
+        "team1": { "selectors": [".scorecard .team-name:first-child", ".team-1-name"] },
+        "team2": { "selectors": [".scorecard .team-name:last-child", ".team-2-name"] },
+        "inn1.team": { "selectors": [".innings:first-child .team-name"] },
+        "inn1.score": { "selectors": [".innings:first-child .score"] },
+        "inn1.overs": { "selectors": [".innings:first-child .overs"] },
+        "inn2.team": { "selectors": [".innings:last-child .team-name"] },
+        "inn2.score": { "selectors": [".innings:last-child .score"] },
+        "inn2.overs": { "selectors": [".innings:last-child .overs"] }
+      }
+    },
+    "squads": {
+      "urlPattern": "^https?://(?:www\\.)?crex\\.(com|live)/.*/squads/[a-zA-Z0-9_-]+",
+      "jsonTaps": [],
+      "dom": {
+        "title": { "selectors": ["h1", ".match-info h1", "title"] },
+        "team1": { "selectors": [".squad .team-name:first-child"] },
+        "team2": { "selectors": [".squad .team-name:last-child"] }
+      },
+      "domLists": {
+        "team1.squad": {
+          "heading": "playing XI",
+          "headingSelectors": [".squad-header"],
+          "column": ".squad-list",
+          "index": 0,
+          "item": ".player",
+          "name": ".player-name",
+          "role": ".player-role",
+          "marker": ".player-marker",
+          "image": "img.player-photo",
+          "attr": "src"
+        },
+        "team2.squad": {
+          "heading": "playing XI",
+          "headingSelectors": [".squad-header"],
+          "column": ".squad-list",
+          "index": 1,
+          "item": ".player",
+          "name": ".player-name",
+          "role": ".player-role",
+          "marker": ".player-marker",
+          "image": "img.player-photo",
+          "attr": "src"
+        }
+      }
+    },
+    "overs": {
+      "urlPattern": "^https?://(?:www\\.)?crex\\.(com|live)/.*/overs/[a-zA-Z0-9_-]+",
+      "jsonTaps": [],
+      "dom": {
+        "title": { "selectors": ["h1", "title"] },
+        "thisOver": { "selectors": [".recent-balls", ".this-over", ".overs-balls"] },
+        "lastBalls": { "selectors": [".recent-balls", ".this-over", ".overs-balls"] }
+      }
+    },
+    "commentary": {
+      "urlPattern": "^https?://(?:www\\.)?crex\\.(com|live)/.*/commentary/[a-zA-Z0-9_-]+",
+      "jsonTaps": [],
+      "dom": {
+        "title": { "selectors": ["h1", "title"] },
+        "commentaryLast": { "selectors": [".commentary-item:first-child .text"] }
+      }
+    },
+    "match-center": {
+      "urlPattern": "^https?://(?:www\\.)?crex\\.(com|live)/.*/match-center/[a-zA-Z0-9_-]+",
+      "jsonTaps": [],
+      "dom": {
+        "title": { "selectors": ["h1", "title"] },
+        "venue": { "selectors": [".venue-name", ".match-venue"] },
+        "toss": { "selectors": [".toss-info", ".toss-result"] }
+      }
+    }
+  }
 }

@@ -33,9 +33,8 @@ export class StatsTiles extends OverlayComponent {
           label: s.lead >= 0 ? 'LEAD' : 'TRAIL',
           value: String(Math.abs(s.lead)),
         });
-      } else if (s.projected !== undefined) {
-        out.push({ label: 'PROJECTED', value: String(s.projected) });
       }
+      // Arena has a dedicated PROJECTED SCORE panel for this, so the tile would repeat it.
       out.push({
         label: wktsLabel,
         value: String(s.wicketsLeft ?? Math.max(0, 10 - s.score.wkts)),

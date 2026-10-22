@@ -1,3 +1,4 @@
+import './fonts.css';
 import './style.css';
 import './cards.css';
 import {
@@ -19,7 +20,8 @@ import { OverlayWsClient } from './client';
 import { BoundaryBanner } from './components/BoundaryBanner';
 import { DataBadge } from './components/DataBadge';
 import { MatchCentre } from './components/MatchCentre';
-import { PerformanceStrip } from './components/PerformanceStrip';
+import { ExtrasRail } from './components/ExtrasRail';
+import { ProjectedScore } from './components/ProjectedScore';
 import { ScorePop } from './components/ScorePop';
 import { BatterCards, BowlerCard } from './components/PlayerCards';
 import { ScoreBar } from './components/ScoreBar';
@@ -29,14 +31,14 @@ import { ThisOver } from './components/ThisOver';
 import { Watermark } from './components/Watermark';
 import { WinProb } from './components/WinProb';
 import { UpgradePopup } from './components/UpgradePopup';
-import { mountDebug, parseParams } from './debug';
+import { mountDebug, parseParams, type OverlayParams } from './debug';
 import { CardManager } from './cards/CardManager';
 import { CARD_DEFS } from './cards/defs';
 import { mountGallery } from './cards/gallery';
 import { StreamFrame } from './components/StreamFrame';
 import { ResultScreen } from './components/ResultScreen';
 import { PreMatchScreen } from './components/PreMatchScreen';
-import { applyBackground, applyComposition, applyLayout, applyOnAirScreen, applyTvTheme, createZones } from './layout';
+import { applyBackground, applyComposition, applyLayout, applyOnAirScreen, applyTvTheme, createZones, type LayoutName } from './layout';
 import { bumpAsset } from './assets';
 import { OverlayAudio, createBrowserEngine } from './audio';
 import { OverlayCommentary } from './commentary';
@@ -44,11 +46,25 @@ import { applyLook } from './look';
 import { mountStage } from './stage';
 import { OverlayStore } from './store';
 
+/** The demo match a `?fixture=` review URL draws. `test` splits on `?resolution` for the DRS card. */
+const fixtureFor = (p: OverlayParams): MatchState | null => {
+  if (!p.fixture) return null;
+  const f = p.fixture.toLowerCase();
+  if (f === 'rsa' || f === 'rsa-aus' || (f === 'test' && p.resolution)) return fixtures.rsaVsAus;
+  if (f === 'test') return fixtures.test;
+  if (f === 'result') return fixtures.result;
+  return fixtures.t20;
+};
+
 const params = parseParams(location.search);
 const stageEl = document.getElementById('stage')!;
 mountStage(stageEl);
 
-const store = new OverlayStore(params.match);
+// A pinned fixture is pinned the same way `?match=` pins a live match: the operator's
+// `onStreamMatchId` in the settings snapshot used to walk straight over it, so every design
+// review and gallery preview silently rendered whatever match the studio happened to be on.
+const fixtureState = fixtureFor(params);
+const store = new OverlayStore(params.match ?? fixtureState?.id ?? null);
 const startLook = (params.look && getLook(params.look)) || store.get().look;
 store.setLook(startLook);
 
@@ -68,6 +84,10 @@ const withUrlOverrides = (s: Settings): Settings => {
     out = { ...out, video: { ...out.video, activeObsLayout: params.composition } };
   }
   if (params.fixture === 'RESULT') out = { ...out, onAirScreen: 'result' };
+  // `?look=` pins the Look for design review and the admin's per-look gallery previews. Without
+  // this the first settings snapshot (or a `layout/settings` push) reverts `theme` to whatever the
+  // operator has on air, so every card in the gallery renders the same look.
+  if (params.look && getLook(params.look)) out = { ...out, theme: params.look };
   return out;
 };
 
@@ -88,11 +108,31 @@ applyOnAirScreen(stageEl, store.get().settings.onAirScreen);
 // ---- components ---------------------------------------------------------------------------
 
 const zones = createZones(stageEl);
+/**
+ * Arena puts the striker, non-striker and bowler in one photo band under the video window, the way
+ * every reference broadcast does. The two components still own their own DOM, so they are moved
+ * into this host rather than duplicated - one player-card implementation for every layout, which is
+ * what lets a look's `playerCardStyle` behave identically in arena and fullscreen.
+ */
+const playerBand = document.createElement('div');
+playerBand.className = 'c-player-band';
+playerBand.dataset.component = 'PlayerBand';
+stageEl.append(playerBand);
+const placePlayers = (layout: LayoutName): void => {
+  if (layout === 'arena') {
+    playerBand.append(batters.element, bowler.element);
+  } else {
+    zones.left.append(batters.element);
+    zones.right.append(bowler.element);
+  }
+};
 const scoreBar = new ScoreBar();
 const thisOver = new ThisOver();
 const thisBall = new ThisBall();
 const matchCentre = new MatchCentre();
 const stats = new StatsTiles();
+const projected = new ProjectedScore();
+const extras = new ExtrasRail();
 const winProb = new WinProb();
 const batters = new BatterCards();
 const bowler = new BowlerCard();
@@ -101,7 +141,6 @@ const watermark = new Watermark();
 const upgradePopup = new UpgradePopup();
 const dataBadge = new DataBadge();
 const streamFrame = new StreamFrame();
-const perfStrip = new PerformanceStrip();
 const scorePop = new ScorePop();
 const resultScreen = new ResultScreen();
 const preMatchScreen = new PreMatchScreen();
@@ -114,6 +153,8 @@ thisBall.mount(zones.right, look);
 thisOver.mount(zones.right, look);
 bowler.mount(zones.right, look);
 stats.mount(zones.right, look);
+projected.mount(zones.right, look);
+extras.mount(zones.right, look);
 winProb.mount(zones.bottom, look);
 if (store.get().settings.layout === 'arena') {
   zones.right.append(winProb.element);
@@ -124,11 +165,15 @@ upgradePopup.mount(stageEl, look);
 dataBadge.mount(stageEl, look);
 streamFrame.mount(stageEl, look);
 streamFrame.setCameraMode(store.get().settings.video.cameraMode);
-perfStrip.mount(stageEl, look);
 scorePop.mount(stageEl, look);
-scorePop.onVisibility = (visible) => perfStrip.setSuppressed(visible);
+// The ball-by-ball pop-up owns the same band as the player cards, so whichever is not on air steps
+// aside rather than stacking text on top of the score.
+scorePop.onVisibility = (visible) => {
+  playerBand.classList.toggle('is-suppressed', visible);
+};
 resultScreen.mount(stageEl, look);
 preMatchScreen.mount(stageEl, look);
+placePlayers(store.get().settings.layout);
 
 const cards = new CardManager(zones.card, look, CARD_DEFS, {
   fetchHistory: async (id) => {
@@ -148,6 +193,8 @@ const components = [
   thisBall,
   thisOver,
   stats,
+  projected,
+  extras,
   winProb,
   batters,
   bowler,
@@ -156,7 +203,6 @@ const components = [
   upgradePopup,
   dataBadge,
   streamFrame,
-  perfStrip,
   scorePop,
   resultScreen,
   preMatchScreen,
@@ -187,9 +233,20 @@ const syncOnAirScreen = (s: typeof store extends { get(): infer G } ? G : never)
 
 syncOnAirScreen(store.get());
 
+/**
+ * Free-tier marks on air.
+ *
+ * The upgrade ad is for the operator, so it only runs in the admin's `?preview=1` frame. The URL
+ * handed to OBS carries no `preview`, and a viewer should never watch a broadcast black out behind
+ * a "Go Pro" box every twelve seconds - the persistent `Made with StumpCast Studio` mark and the
+ * panel brand pills do that job without eating the picture. A paid channel loses all of it, and a
+ * `?look=` design-review render loses it too, because the look gallery opens one frame per look and
+ * an ad in all of them hides the thing being reviewed.
+ */
 const applyLicenceState = (licensed: boolean) => {
+  document.documentElement.dataset.licensed = licensed ? '1' : '0';
   watermark.setVisible(!licensed);
-  if (licensed) upgradePopup.stop();
+  if (licensed || !params.preview || params.look) upgradePopup.stop();
   else upgradePopup.start();
 };
 
@@ -226,6 +283,7 @@ store.subscribe((s, prev) => {
       s.settings.cardWidth,
       s.settings.sideCardScale ?? 1,
     );
+    placePlayers(s.settings.layout);
     const updatedBg = s.settings.video.backgroundImage ?? 'floodlight';
     applyBackground(stageEl, updatedBg, s.settings.video.backgroundDim);
     applyComposition(stageEl, s.settings.video.activeObsLayout);
@@ -243,6 +301,9 @@ store.subscribe((s, prev) => {
   const match = store.current();
   const before = prev.matchId ? prev.matches[prev.matchId] : undefined;
   if (match && match !== before) {
+    // The ambience loops have to know when the match has actually stopped: a finished score
+    // that still pulses reads as a fake live feed.
+    stageEl.dataset.status = match.status;
     for (const c of components) c.update(match);
     cards.updateMatch(match);
     syncOnAirScreen(s);
@@ -355,16 +416,8 @@ const bootstrap = async () => {
   }
 };
 
-if (params.fixture) {
-  const f = params.fixture.toLowerCase();
-  const base: MatchState =
-    f === 'rsa' || f === 'rsa-aus' || (f === 'test' && params.resolution)
-      ? fixtures.rsaVsAus
-      : f === 'test'
-        ? fixtures.test
-        : f === 'result'
-          ? fixtures.result
-          : fixtures.t20;
+if (fixtureState) {
+  const base = fixtureState;
   store.setConnection('open');
   store.setMatch(deriveStats(base));
   if (params.event) {
@@ -437,15 +490,18 @@ const client = new OverlayWsClient({
       if (msg.event === 'settings') {
         const s = SettingsSchema.safeParse(msg.payload);
         if (s.success) {
-          store.setSettings(withUrlOverrides(s.data));
-          if (s.data.theme) {
-            const l = getLook(s.data.theme);
+          const effective = withUrlOverrides(s.data);
+          store.setSettings(effective);
+          // Read the theme back off the URL-pinned settings, never the raw payload, or a live
+          // settings push would undo `?look=` for every gallery preview.
+          if (effective.theme) {
+            const l = getLook(effective.theme);
             if (l && l.id !== store.get().look.id) store.setLook(l);
           }
         }
       } else if (msg.event === 'look') {
         const l = LookSchema.safeParse(msg.payload);
-        if (l.success) store.setLook(l.data);
+        if (l.success && !(params.look && getLook(params.look))) store.setLook(l.data);
       }
     }
   },

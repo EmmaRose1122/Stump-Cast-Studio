@@ -55,5 +55,46 @@ export const LookSchema = z.object({
     easing: z.string().default('power2.out'),
     durationMs: z.number().int().min(50).max(3000).default(500),
   }),
+  /**
+   * What actually differs between this look and the rest, one short phrase per axis. Optional so
+   * packs written before it existed still parse. Generate these from the look's own fields
+   * (`describeLook`) rather than writing them by hand: hand-written tags drifted out of sync with
+   * the shapes the looks declare.
+   */
+  tags: z.array(z.string().min(2).max(48)).min(2).max(4).optional(),
 });
 export type Look = z.infer<typeof LookSchema>;
+
+/** Human-readable label per score-bar shape, used for tags and the gallery. */
+const SCORE_BAR_TAGS: Record<Look['tokens']['scoreBarShape'], string> = {
+  flat: 'flat score bar',
+  pill: 'pill score bar',
+  glass: 'glass score bar',
+  notched: 'notched score bar',
+  slanted: 'slanted score bar',
+  line: 'line score bar',
+  mono: 'mono score bar',
+  arrow: 'arrow score bar',
+  floating: 'floating score cards',
+};
+
+const PLAYER_CARD_TAGS: Record<Look['layoutVariant']['playerCardStyle'], string> = {
+  cutout: 'cut-out player photos',
+  badge: 'framed photo badges',
+  'badge-right': 'photo badges on the right',
+  'round-badge': 'round photo badges',
+  mirrored: 'mirrored player cards',
+};
+
+/**
+ * The four tags for a look, derived from the fields the overlay really applies. A look that
+ * declares `scorePosition: 'bottom'` says "scores at the bottom" and nothing else.
+ */
+export const describeLook = (look: Look): string[] => [
+  `${look.motion.entrance} entrances`,
+  look.layoutVariant.scorePosition === 'bottom'
+    ? 'scores at the bottom'
+    : 'scores on top',
+  SCORE_BAR_TAGS[look.tokens.scoreBarShape],
+  PLAYER_CARD_TAGS[look.layoutVariant.playerCardStyle],
+];

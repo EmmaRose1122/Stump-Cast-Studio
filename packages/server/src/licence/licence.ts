@@ -1,6 +1,8 @@
 import { createPublicKey, sign, verify, createPrivateKey, type KeyObject } from 'node:crypto';
 import { z } from 'zod';
 import { LICENCE_PUBLIC_KEY_HEX } from './publicKey';
+import { isRevoked, loadRevocations, type RevocationIndex } from './revoked';
+import { normalizeMachineId } from './machineId';
 
 /**
  * Offline licence tokens (LC-3). Format: `SC1.<payload>.<signature>`, both base64url.
@@ -17,12 +19,14 @@ export const LicencePayloadSchema = z.object({
   iat: z.number().int().nonnegative(),
   /** Expiry, epoch seconds. Omitted for lifetime plans. */
   exp: z.number().int().positive().optional(),
+  /** Machine ID this key is cryptographically locked to. */
+  mid: z.string().min(1).max(128).optional(),
 });
 export type LicencePayload = z.infer<typeof LicencePayloadSchema>;
 
 export type LicenceCheck =
   | { valid: true; payload: LicencePayload }
-  | { valid: false; reason: 'malformed' | 'bad-signature' | 'expired' | 'invalid-payload' };
+  | { valid: false; reason: 'malformed' | 'bad-signature' | 'expired' | 'invalid-payload' | 'revoked' | 'machine-mismatch' };
 
 const SPKI_ED25519_PREFIX = Buffer.from('302a300506032b6570032100', 'hex');
 const PKCS8_ED25519_PREFIX = Buffer.from('302e020100300506032b657004220420', 'hex');
@@ -38,6 +42,8 @@ export const verifyLicenceToken = (
   token: string,
   nowSec: number = Math.floor(Date.now() / 1000),
   publicKeyHex: string = process.env.STUMPCAST_LICENCE_PUBLIC_KEY ?? LICENCE_PUBLIC_KEY_HEX,
+  revocations: RevocationIndex = loadRevocations(),
+  expectedMachineId?: string,
 ): LicenceCheck => {
   const parts = token.trim().split('.');
   if (parts.length !== 3 || parts[0] !== LICENCE_PREFIX) return { valid: false, reason: 'malformed' };
@@ -58,7 +64,19 @@ export const verifyLicenceToken = (
   }
   const parsed = LicencePayloadSchema.safeParse(json);
   if (!parsed.success) return { valid: false, reason: 'invalid-payload' };
+  // Only now — the signature has been checked, so this payload really came from us. A key the
+  // seller expired by hand in the key-generator app must stop working even though its expiry
+  // date is still in the future; without this the "Expire" button would be decoration.
+  if (isRevoked(token, parsed.data, revocations)) return { valid: false, reason: 'revoked' };
   if (parsed.data.exp !== undefined && parsed.data.exp < nowSec) return { valid: false, reason: 'expired' };
+
+  // Machine ID check: if the key is bound to a specific machine ID, verify match
+  if (parsed.data.mid) {
+    if (!expectedMachineId || normalizeMachineId(parsed.data.mid) !== normalizeMachineId(expectedMachineId)) {
+      return { valid: false, reason: 'machine-mismatch' };
+    }
+  }
+
   return { valid: true, payload: parsed.data };
 };
 

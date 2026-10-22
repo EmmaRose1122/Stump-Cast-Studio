@@ -165,7 +165,13 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
     queryFn: async () => {
       const res = await fetch('/api/licence');
       return res.ok
-        ? ((await res.json()) as { licensed: boolean; token: string | null })
+        ? ((await res.json()) as {
+            licensed: boolean;
+            token: string | null;
+            machineId?: string;
+            payload?: { channel?: string; plan?: string; exp?: number; mid?: string } | null;
+            error?: string | null;
+          })
         : { licensed: false, token: null };
     },
     refetchInterval: 10000,
@@ -456,27 +462,38 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
                 <div className="flex items-center gap-1.5 mt-0.5 text-[11px] text-slate-500 font-medium">
                   <span className="text-slate-600 font-semibold tracking-wide">Live Broadcast Engine</span>
                   <span className="text-slate-300">·</span>
-                  <span className="font-mono text-orange-600 font-bold">v1.0.7</span>
+                  <span className="font-mono text-orange-600 font-bold">v1.0.8</span>
                 </div>
               </div>
             </div>
 
             {isLicensed ? (
-              <span className="rounded border border-blue-200 bg-blue-50 px-2.5 py-1 font-mono text-[11px] font-bold tracking-wider text-blue-700">
-                PRO EDITION
-              </span>
+              <button
+                type="button"
+                onClick={() => setLicenceOpen(true)}
+                className="rounded border border-emerald-300 bg-emerald-50 px-2.5 py-1 font-mono text-[11px] font-bold tracking-wider text-emerald-800 hover:bg-emerald-100 transition shadow-xs flex items-center gap-1.5"
+                title="Pro License Active — Click to view details"
+              >
+                <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
+                PRO ACTIVATED
+              </button>
             ) : (
               <>
-                <span className="rounded border border-slate-200 bg-slate-50 px-2.5 py-1 font-mono text-[11px] font-bold tracking-wider text-slate-600">
+                <button
+                  type="button"
+                  onClick={() => setLicenceOpen(true)}
+                  className="rounded border border-slate-300 bg-slate-50 px-2.5 py-1 font-mono text-[11px] font-bold tracking-wider text-slate-700 hover:bg-slate-100 transition"
+                  title="Free Edition — Click to activate Pro"
+                >
                   FREE EDITION
-                </span>
+                </button>
 
                 <button
                   type="button"
                   onClick={() => setLicenceOpen(true)}
-                  className="rounded bg-orange-50 px-2.5 py-1 text-xs font-bold text-orange-700 border border-orange-300 hover:bg-orange-100 transition shadow-xs"
+                  className="rounded bg-orange-500 px-2.5 py-1 text-xs font-bold text-white border border-orange-600 hover:bg-orange-600 transition shadow-xs flex items-center gap-1"
                 >
-                  ENTER LICENCE KEY
+                  🔑 ACTIVATE LICENSE
                 </button>
                 <a
                   href="/license-generator/"
@@ -484,7 +501,7 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
                   rel="noopener noreferrer"
                   className="rounded bg-blue-50 px-2.5 py-1 text-xs font-bold text-blue-700 border border-blue-300 hover:bg-blue-100 transition shadow-xs flex items-center gap-1"
                 >
-                  🔑 KEY GENERATOR
+                  ⚙️ KEY GENERATOR
                 </a>
               </>
             )}
@@ -726,68 +743,145 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
       <Dialog
         open={licenceOpen}
         onOpenChange={setLicenceOpen}
-        title="Enter Licence Key"
-        description="Enter your StumpCast Studio Pro licence key to unlock all 29+ TV Looks and remove the watermark."
+        title={isLicensed ? 'Pro Broadcast Licence' : 'Activate Pro Licence'}
+        description={
+          isLicensed
+            ? 'Your Pro broadcast licence is active and verified for this machine.'
+            : 'Enter your StumpCast Pro licence key. Keys are cryptographically locked to your Machine ID.'
+        }
         actions={
           <>
             <Button variant="secondary" onClick={() => setLicenceOpen(false)}>
-              Cancel
+              Close
             </Button>
-            <Button
-              variant="primary"
-              onClick={async () => {
-                const key = licenceInput.trim();
-                if (!key) {
-                  toast({ title: 'Please enter a valid licence key', kind: 'error' });
-                  return;
-                }
-                try {
-                  const res = await fetch('/api/licence', {
-                    method: 'POST',
-                    headers: { 'content-type': 'application/json' },
-                    body: JSON.stringify({ key }),
-                  });
-                  if (res.ok) {
-                    toast({
-                      title: 'Licence key activated successfully! All Pro Looks unlocked.',
-                      kind: 'success',
-                    });
-                    setLicenceOpen(false);
-                    void qc.invalidateQueries({ queryKey: ['licence'] });
-                    void qc.invalidateQueries({ queryKey: ['looks'] });
-                  } else {
-                    const data = await res.json().catch(() => ({}));
-                    toast({ title: data.error || 'Failed to activate licence key', kind: 'error' });
+            {isLicensed ? (
+              <Button
+                variant="danger"
+                onClick={async () => {
+                  if (!window.confirm('Are you sure you want to deactivate your Pro licence on this computer?')) return;
+                  await fetch('/api/licence', { method: 'DELETE' });
+                  toast({ title: 'Licence deactivated', kind: 'info' });
+                  setLicenceOpen(false);
+                  void qc.invalidateQueries({ queryKey: ['licence'] });
+                  void qc.invalidateQueries({ queryKey: ['looks'] });
+                }}
+              >
+                Deactivate Licence
+              </Button>
+            ) : (
+              <Button
+                variant="primary"
+                onClick={async () => {
+                  const key = licenceInput.trim();
+                  if (!key) {
+                    toast({ title: 'Please enter a valid licence key', kind: 'error' });
+                    return;
                   }
-                } catch {
-                  toast({ title: 'Network error activating licence key', kind: 'error' });
-                }
-              }}
-            >
-              Activate Licence
-            </Button>
+                  try {
+                    const res = await fetch('/api/licence', {
+                      method: 'POST',
+                      headers: { 'content-type': 'application/json' },
+                      body: JSON.stringify({ key }),
+                    });
+                    const data = (await res.json().catch(() => ({}))) as { error?: string; reason?: string };
+                    if (res.ok) {
+                      toast({
+                        title: 'Licence key activated successfully! All Pro Looks unlocked.',
+                        kind: 'success',
+                      });
+                      setLicenceInput('');
+                      setLicenceOpen(false);
+                      void qc.invalidateQueries({ queryKey: ['licence'] });
+                      void qc.invalidateQueries({ queryKey: ['looks'] });
+                    } else {
+                      toast({
+                        title: data.error || 'Failed to activate licence key',
+                        description: data.reason === 'machine-mismatch' ? 'The key was generated for a different Machine ID.' : undefined,
+                        kind: 'error',
+                      });
+                    }
+                  } catch {
+                    toast({ title: 'Network error activating licence key', kind: 'error' });
+                  }
+                }}
+              >
+                Activate Licence
+              </Button>
+            )}
           </>
         }
       >
-        <div className="space-y-3">
-          <input
-            type="text"
-            value={licenceInput}
-            onChange={(e) => setLicenceInput(e.target.value)}
-            placeholder="XXXX-XXXX-XXXX-XXXX"
-            className="w-full rounded-lg border border-blue-200 bg-white px-4 py-2.5 font-mono text-sm text-slate-800 focus:border-orange-500 focus:outline-none"
-          />
-          <div className="flex items-center justify-between text-xs pt-1">
-            <span className="text-slate-500">Need a licence key?</span>
-            <a
-              href="/license-generator/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-bold text-orange-600 hover:text-orange-700 flex items-center gap-1"
-            >
-              🔑 Open License Key Generator →
-            </a>
+        <div className="space-y-4">
+          {/* Machine ID Box */}
+          <div className="rounded-lg border border-blue-200 bg-blue-50/70 p-3 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-blue-900">
+                💻 Your Machine ID (Hardware Identity)
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  if (licenceQuery.data?.machineId) {
+                    navigator.clipboard.writeText(licenceQuery.data.machineId);
+                    toast({
+                      title: 'Machine ID copied to clipboard!',
+                      description: 'Send this ID to admin to get your Pro key.',
+                      kind: 'success',
+                    });
+                  }
+                }}
+                className="rounded border border-blue-300 bg-white px-2 py-0.5 text-[11px] font-bold text-blue-700 hover:bg-blue-50 shadow-xs"
+              >
+                📋 Copy Machine ID
+              </button>
+            </div>
+            <div className="font-mono text-xs font-bold text-blue-950 bg-white px-2.5 py-1.5 rounded border border-blue-200 break-all select-all">
+              {licenceQuery.data?.machineId || 'Detecting Machine ID...'}
+            </div>
+            <p className="text-[11px] text-slate-500">
+              Each Pro key is cryptographically locked to this Machine ID. Give this ID to the admin to generate your key.
+            </p>
           </div>
+
+          {isLicensed ? (
+            <div className="rounded-lg border border-emerald-200 bg-emerald-50/60 p-3 space-y-1.5 text-xs">
+              <div className="flex items-center gap-2">
+                <span className="size-2 rounded-full bg-emerald-500" />
+                <span className="font-bold text-emerald-900">Pro Licence Active &amp; Verified</span>
+              </div>
+              <p className="text-slate-600">
+                Channel: <strong className="text-slate-900">{licenceQuery.data?.payload?.channel ?? 'Active Studio'}</strong> · Plan: <strong className="uppercase text-slate-900">{licenceQuery.data?.payload?.plan ?? 'PRO'}</strong>
+              </p>
+              <p className="text-slate-600">
+                Expires: {licenceQuery.data?.payload?.exp ? new Date(licenceQuery.data.payload.exp * 1000).toLocaleDateString() : 'Lifetime (Never Expires)'}
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold uppercase tracking-wider text-slate-700 block">
+                Enter Pro Key
+              </label>
+              <input
+                type="text"
+                value={licenceInput}
+                onChange={(e) => setLicenceInput(e.target.value)}
+                placeholder="Paste SC1.eyJ2Ijox... licence key here"
+                className="w-full rounded-lg border border-blue-200 bg-white px-3.5 py-2 font-mono text-xs text-slate-800 focus:border-orange-500 focus:outline-none"
+              />
+              <div className="flex items-center justify-between text-xs pt-1">
+                <a
+                  href={`https://wa.me/?text=${encodeURIComponent(
+                    `Hi StumpCast, here is my Computer Machine ID for Pro License:\n${licenceQuery.data?.machineId || ''}`,
+                  )}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-bold text-emerald-600 hover:text-emerald-700 flex items-center gap-1"
+                >
+                  💬 Send Machine ID on WhatsApp →
+                </a>
+              </div>
+            </div>
+          )}
         </div>
       </Dialog>
 

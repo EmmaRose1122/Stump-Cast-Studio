@@ -5,324 +5,622 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>StumpCast Studio</title>
 <style>
+  /* StumpCast Studio splash. Offline only: no web fonts, no images, no network.
+     Everything is inline SVG + system fonts so it renders identically from file:// in the exe. */
+  :root {
+    --ink: #050a14;          /* near-black navy */
+    --ink-2: #0a1424;
+    --panel: rgba(255, 255, 255, 0.035);
+    --hairline: rgba(232, 180, 76, 0.22);
+    --gold: #e8b44c;
+    --gold-hi: #f7d489;
+    --gold-dim: rgba(232, 180, 76, 0.55);
+    --text: #eaf1f8;
+    --muted: rgba(234, 241, 248, 0.5);
+    --faint: rgba(234, 241, 248, 0.3);
+    --live: #e5484d;
+    --display: 'Bahnschrift SemiBold Condensed', 'Bahnschrift', 'Arial Narrow',
+      'Helvetica Neue Condensed', 'Roboto Condensed', 'Liberation Sans Narrow',
+      Impact, 'Segoe UI', system-ui, sans-serif;
+    --body: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  }
+
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
+  html, body { height: 100%; }
+
   body {
-    width: 100vw;
-    height: 100vh;
-    background: #060c16;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    font-family: -apple-system, 'Segoe UI', system-ui, sans-serif;
+    background:
+      radial-gradient(120% 90% at 12% -10%, #10203a 0%, transparent 55%),
+      radial-gradient(100% 80% at 100% 110%, #0b1830 0%, transparent 60%),
+      var(--ink);
+    color: var(--text);
+    font-family: var(--body);
     overflow: hidden;
     user-select: none;
     -webkit-user-select: none;
+    /* Flex column: the artwork band is the only flexible row, so the top of the
+       artwork can never be clipped — the band shrinks instead. */
+    display: flex;
+    flex-direction: column;
+    padding: 26px 30px 20px;
   }
 
-  /* Animated background radial glows */
+  /* Broadcast scanlines + vignette, kept whisper-quiet. */
   body::before {
     content: '';
     position: fixed;
     inset: 0;
-    background:
-      radial-gradient(ellipse 60% 40% at 50% 60%, rgba(25, 211, 197, 0.08) 0%, transparent 70%),
-      radial-gradient(ellipse 80% 50% at 20% 20%, rgba(30, 80, 200, 0.06) 0%, transparent 60%),
-      radial-gradient(ellipse 60% 40% at 80% 80%, rgba(200, 50, 100, 0.04) 0%, transparent 60%);
-    animation: bgPulse 4s ease-in-out infinite alternate;
-    pointer-events: none;
-  }
-
-  @keyframes bgPulse {
-    0% { opacity: 0.6; }
-    100% { opacity: 1; }
-  }
-
-  /* Scanline overlay for broadcast feel */
-  body::after {
-    content: '';
-    position: fixed;
-    inset: 0;
     background: repeating-linear-gradient(
-      0deg,
-      transparent,
-      transparent 2px,
-      rgba(0, 0, 0, 0.03) 2px,
-      rgba(0, 0, 0, 0.03) 4px
+      to bottom,
+      rgba(255, 255, 255, 0.022) 0 1px,
+      transparent 1px 3px
     );
     pointer-events: none;
   }
 
-  .container {
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(115% 100% at 50% 45%, transparent 55%, rgba(0, 0, 0, 0.55) 100%);
+    pointer-events: none;
+  }
+
+  /* Corner glow that breathes behind the emblem. */
+  .ambience {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(38% 46% at 18% 26%, rgba(232, 180, 76, 0.12) 0%, transparent 70%),
+      radial-gradient(46% 40% at 88% 82%, rgba(38, 84, 158, 0.14) 0%, transparent 72%);
+    animation: breathe 6s ease-in-out infinite alternate;
+  }
+
+  @keyframes breathe {
+    from { opacity: 0.55; }
+    to   { opacity: 1; }
+  }
+
+  /* ---- header: emblem + wordmark + on-air pill ---- */
+  .masthead {
     position: relative;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    animation: rise 0.5s ease-out both;
+  }
+
+  /* Artwork band. aspect-ratio keeps the emblem square, object-fit/preserveAspectRatio
+     keep the whole drawing visible — never cover, never crop. */
+  .artwork {
+    flex: 0 0 auto;
+    position: relative;
+    width: 78px;
+    height: 78px;
+    aspect-ratio: 1 / 1;
+  }
+
+  .artwork svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    filter: drop-shadow(0 0 16px rgba(232, 180, 76, 0.35));
+  }
+
+  .artwork::after {
+    content: '';
+    position: absolute;
+    inset: -18%;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(232, 180, 76, 0.22) 0%, transparent 65%);
+    animation: pulse 2.6s ease-in-out infinite alternate;
+    pointer-events: none;
+  }
+
+  @keyframes pulse {
+    from { opacity: 0.45; transform: scale(0.94); }
+    to   { opacity: 1; transform: scale(1.06); }
+  }
+
+  .ident {
     display: flex;
     flex-direction: column;
-    align-items: center;
-    gap: 0;
-    animation: fadeInUp 0.6s ease-out both;
+    gap: 5px;
+    min-width: 0;
   }
 
-  @keyframes fadeInUp {
-    from { opacity: 0; transform: translateY(20px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-
-  /* Stump icon SVG */
-  .logo-wrap {
-    position: relative;
-    width: 120px;
-    height: 120px;
-    margin-bottom: 28px;
-  }
-
-  .logo-glow {
-    position: absolute;
-    inset: -20px;
-    background: radial-gradient(circle, rgba(25, 211, 197, 0.25) 0%, transparent 65%);
-    animation: glowPulse 2s ease-in-out infinite alternate;
-    border-radius: 50%;
-  }
-
-  @keyframes glowPulse {
-    0%  { opacity: 0.5; transform: scale(0.95); }
-    100% { opacity: 1;  transform: scale(1.05); }
-  }
-
-  .logo-svg {
-    position: relative;
-    width: 120px;
-    height: 120px;
-    filter: drop-shadow(0 0 18px rgba(25, 211, 197, 0.7));
-    animation: logoEntry 0.8s cubic-bezier(0.34,1.56,0.64,1) 0.2s both;
-  }
-
-  @keyframes logoEntry {
-    from { opacity: 0; transform: scale(0.5); }
-    to   { opacity: 1; transform: scale(1); }
-  }
-
-  .app-name {
-    font-size: 32px;
-    font-weight: 800;
-    letter-spacing: -0.5px;
-    color: #ffffff;
-    line-height: 1;
-    animation: fadeInUp 0.6s ease-out 0.3s both;
-  }
-
-  .app-name span {
-    color: #19D3C5;
-  }
-
-  .tagline {
-    margin-top: 8px;
-    font-size: 12px;
-    font-weight: 500;
-    letter-spacing: 3px;
+  .wordmark {
+    font-family: var(--display);
+    font-stretch: condensed;
+    font-weight: 700;
+    font-size: 34px;
+    line-height: 0.95;
+    letter-spacing: 1.5px;
     text-transform: uppercase;
-    color: rgba(255,255,255,0.35);
-    animation: fadeInUp 0.6s ease-out 0.45s both;
+    color: var(--text);
+    white-space: nowrap;
   }
 
-  /* Live broadcast badge */
-  .live-badge {
+  .wordmark em {
+    font-style: normal;
+    color: var(--gold);
+  }
+
+  .studio {
+    font-family: var(--display);
+    font-stretch: condensed;
+    font-weight: 400;
+    font-size: 15px;
+    letter-spacing: 7px;
+    text-transform: uppercase;
+    color: var(--gold-dim);
+    line-height: 1;
+  }
+
+  .onair {
+    margin-left: auto;
+    align-self: flex-start;
     display: flex;
     align-items: center;
-    gap: 6px;
-    margin-top: 18px;
-    padding: 4px 12px;
-    border-radius: 20px;
-    background: rgba(220, 38, 38, 0.15);
-    border: 1px solid rgba(220, 38, 38, 0.35);
-    animation: fadeInUp 0.6s ease-out 0.55s both;
+    gap: 7px;
+    padding: 5px 11px 5px 9px;
+    border: 1px solid rgba(229, 72, 77, 0.4);
+    border-radius: 3px;
+    background: rgba(229, 72, 77, 0.1);
   }
 
-  .live-dot {
+  .onair .dot {
     width: 7px;
     height: 7px;
     border-radius: 50%;
-    background: #ef4444;
-    animation: blink 1.1s ease-in-out infinite;
+    background: var(--live);
+    box-shadow: 0 0 10px rgba(229, 72, 77, 0.9);
+    animation: blink 1.15s steps(1, end) infinite;
   }
 
   @keyframes blink {
-    0%, 100% { opacity: 1; }
-    50%       { opacity: 0.2; }
+    0%, 55%  { opacity: 1; }
+    56%, 100% { opacity: 0.25; }
   }
 
-  .live-text {
-    font-size: 10px;
+  .onair span {
+    font-family: var(--display);
+    font-stretch: condensed;
+    font-size: 11px;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: #ff9aa0;
+  }
+
+  /* ---- ruler: gold hairline with broadcast ticks ---- */
+  .ruler {
+    position: relative;
+    margin: 18px 0 0;
+    height: 9px;
+    flex: 0 0 auto;
+    animation: rise 0.5s ease-out 0.08s both;
+  }
+
+  .ruler::before {
+    content: '';
+    position: absolute;
+    left: 0; right: 0; top: 0;
+    height: 1px;
+    background: linear-gradient(90deg, var(--gold) 0%, rgba(232, 180, 76, 0.25) 55%, transparent 100%);
+  }
+
+  .ruler::after {
+    content: '';
+    position: absolute;
+    left: 0; right: 0; top: 1px;
+    height: 8px;
+    background: repeating-linear-gradient(
+      to right,
+      rgba(232, 180, 76, 0.32) 0 1px,
+      transparent 1px 26px
+    );
+    -webkit-mask-image: linear-gradient(90deg, #000 0%, transparent 78%);
+            mask-image: linear-gradient(90deg, #000 0%, transparent 78%);
+  }
+
+  .tagline {
+    margin-top: 14px;
+    font-family: var(--display);
+    font-stretch: condensed;
+    font-size: 11.5px;
+    letter-spacing: 3.6px;
+    text-transform: uppercase;
+    color: var(--muted);
+    animation: rise 0.5s ease-out 0.14s both;
+  }
+
+  /* ---- update chip (hidden until the main process reports a newer build) ---- */
+  .update {
+    display: none;
+    align-items: center;
+    gap: 9px;
+    margin-top: 16px;
+    padding: 8px 12px;
+    border: 1px solid rgba(232, 180, 76, 0.4);
+    border-radius: 4px;
+    background: linear-gradient(90deg, rgba(232, 180, 76, 0.16), rgba(232, 180, 76, 0.04));
+    animation: rise 0.4s ease-out both;
+  }
+
+  .update.is-on { display: flex; }
+
+  .update .spark {
+    width: 9px;
+    height: 9px;
+    flex: 0 0 auto;
+    border-radius: 50%;
+    background: conic-gradient(from 0deg, var(--gold-hi), rgba(232, 180, 76, 0.15), var(--gold-hi));
+    animation: spin 1.4s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .update strong {
+    font-family: var(--display);
+    font-stretch: condensed;
     font-weight: 700;
+    font-size: 12.5px;
+    letter-spacing: 1.8px;
+    text-transform: uppercase;
+    color: var(--gold-hi);
+  }
+
+  .update small {
+    margin-left: auto;
+    font-family: var(--display);
+    font-stretch: condensed;
+    font-size: 10.5px;
     letter-spacing: 2px;
     text-transform: uppercase;
-    color: #f87171;
+    color: var(--gold-dim);
   }
 
-  /* Progress bar area */
-  .progress-area {
-    margin-top: 52px;
-    width: 280px;
+  /* ---- status + progress, floating in the space between the ident and the footer ---- */
+  .boot {
+    flex: 1 1 auto;
+    min-height: 0;
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    animation: fadeInUp 0.6s ease-out 0.6s both;
+    justify-content: center;
+    gap: 11px;
+    animation: rise 0.5s ease-out 0.2s both;
   }
 
-  .progress-track {
-    height: 3px;
-    background: rgba(255,255,255,0.07);
+  .statusline {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+  }
+
+  .status {
+    font-family: var(--display);
+    font-stretch: condensed;
+    font-size: 13.5px;
+    letter-spacing: 2.2px;
+    text-transform: uppercase;
+    color: var(--text);
+    transition: opacity 0.25s ease;
+  }
+
+  .status.is-ready { color: var(--gold-hi); }
+
+  .percent {
+    margin-left: auto;
+    font-family: var(--display);
+    font-stretch: condensed;
+    font-size: 12px;
+    letter-spacing: 1px;
+    color: var(--faint);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .track {
+    position: relative;
+    height: 4px;
     border-radius: 2px;
+    background: rgba(255, 255, 255, 0.07);
     overflow: hidden;
   }
 
-  .progress-bar {
-    height: 100%;
-    border-radius: 2px;
-    background: linear-gradient(90deg, #19D3C5, #3b82f6, #19D3C5);
-    background-size: 200% 100%;
-    animation: progressSweep 2.5s ease-in-out infinite;
+  .fill {
+    position: absolute;
+    inset: 0 auto 0 0;
     width: 0%;
-    transition: width 0.4s ease;
+    border-radius: 2px;
+    background: linear-gradient(90deg, #8a5f16, var(--gold) 55%, var(--gold-hi));
+    box-shadow: 0 0 14px rgba(232, 180, 76, 0.45);
+    transition: width 0.45s cubic-bezier(0.22, 0.61, 0.36, 1);
   }
 
-  @keyframes progressSweep {
-    0%   { background-position: 200% 0; }
-    100% { background-position: -200% 0; }
+  /* sheen travelling along the filled part while booting */
+  .fill::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.5), transparent);
+    transform: translateX(-100%);
+    animation: sweep 1.5s ease-in-out infinite;
   }
 
-  .status-text {
-    font-size: 11px;
-    font-weight: 500;
-    letter-spacing: 0.5px;
-    color: rgba(255,255,255,0.3);
-    text-align: center;
-    min-height: 16px;
-    transition: opacity 0.3s ease;
+  @keyframes sweep {
+    to { transform: translateX(100%); }
   }
 
-  /* Version tag */
+  .track.is-done .fill::after { animation: none; opacity: 0; }
+
+  .steps {
+    display: flex;
+    justify-content: space-between;
+    font-family: var(--display);
+    font-stretch: condensed;
+    font-size: 9px;
+    letter-spacing: 1.6px;
+    text-transform: uppercase;
+    color: rgba(234, 241, 248, 0.22);
+  }
+
+  .steps b { font-weight: 400; transition: color 0.3s ease; }
+  .steps b.on { color: var(--gold-dim); }
+
+  /* ---- footer: the live version line ---- */
+  .footer {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    animation: rise 0.5s ease-out 0.26s both;
+  }
+
   .version {
-    position: fixed;
-    bottom: 20px;
-    right: 24px;
+    font-family: var(--display);
+    font-stretch: condensed;
+    font-size: 12.5px;
+    letter-spacing: 1.6px;
+    color: var(--gold);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .note {
+    font-family: var(--display);
+    font-stretch: condensed;
     font-size: 10px;
-    color: rgba(255,255,255,0.15);
-    letter-spacing: 1px;
+    letter-spacing: 1.8px;
+    text-transform: uppercase;
+    color: var(--faint);
   }
 
-  /* Signal arcs decoration */
-  .signal-arcs {
-    position: fixed;
-    top: -60px;
-    right: -60px;
-    width: 300px;
-    height: 300px;
-    opacity: 0.06;
-    animation: rotateSlow 20s linear infinite;
+  .copyright {
+    margin-left: auto;
+    font-family: var(--display);
+    font-stretch: condensed;
+    font-size: 9.5px;
+    letter-spacing: 2.2px;
+    text-transform: uppercase;
+    color: rgba(234, 241, 248, 0.18);
   }
 
-  @keyframes rotateSlow {
-    from { transform: rotate(0deg); }
-    to   { transform: rotate(360deg); }
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  body.is-leaving { animation: fadeOut 0.32s ease-in forwards; }
+
+  @keyframes fadeOut {
+    to { opacity: 0; transform: scale(0.985); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
   }
 </style>
 </head>
 <body>
 
-<!-- Decorative rotating arcs -->
-<svg class="signal-arcs" viewBox="0 0 300 300" fill="none">
-  <circle cx="150" cy="150" r="60"  stroke="#19D3C5" stroke-width="2" stroke-dasharray="8 6"/>
-  <circle cx="150" cy="150" r="100" stroke="#19D3C5" stroke-width="1.5" stroke-dasharray="5 8"/>
-  <circle cx="150" cy="150" r="140" stroke="#19D3C5" stroke-width="1" stroke-dasharray="4 10"/>
-</svg>
+<div class="ambience"></div>
 
-<div class="container">
-  <div class="logo-wrap">
-    <div class="logo-glow"></div>
-    <svg class="logo-svg" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <!-- Background circle -->
-      <circle cx="60" cy="60" r="58" fill="#0d1117" stroke="rgba(25,211,197,0.2)" stroke-width="1.5"/>
-      <!-- Cricket stumps -->
-      <rect x="28" y="42" width="10" height="44" rx="3" fill="#19D3C5"/>
-      <rect x="55" y="38" width="10" height="48" rx="3" fill="#19D3C5"/>
-      <rect x="82" y="42" width="10" height="44" rx="3" fill="#19D3C5"/>
-      <!-- Bails -->
-      <rect x="24" y="38" width="18" height="5" rx="2.5" fill="#19D3C5" opacity="0.85"/>
-      <rect x="51" y="34" width="18" height="5" rx="2.5" fill="#19D3C5" opacity="0.85"/>
-      <rect x="78" y="38" width="18" height="5" rx="2.5" fill="#19D3C5" opacity="0.85"/>
-      <!-- Broadcast signal arcs -->
-      <path d="M47 26 Q60 16 73 26" stroke="#19D3C5" stroke-width="2.5" stroke-linecap="round" fill="none" opacity="0.9"/>
-      <path d="M40 20 Q60 7 80 20" stroke="#19D3C5" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.55"/>
+<div class="masthead">
+  <!-- Emblem: viewBox + preserveAspectRatio="xMidYMid meet" == object-fit: contain.
+       The full artwork is always drawn, at any window size, with no cropping. -->
+  <div class="artwork">
+    <svg viewBox="0 0 120 120" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="StumpCast emblem">
+      <defs>
+        <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#f7d489"/>
+          <stop offset="100%" stop-color="#c08a2e"/>
+        </linearGradient>
+      </defs>
+      <circle cx="60" cy="60" r="57" fill="#0a1424" stroke="rgba(232,180,76,0.35)" stroke-width="1.5"/>
+      <circle cx="60" cy="60" r="50" fill="none" stroke="rgba(232,180,76,0.12)" stroke-width="1"/>
+      <!-- stumps -->
+      <rect x="30" y="52" width="9" height="38" rx="3" fill="url(#gold)"/>
+      <rect x="55" y="48" width="9" height="42" rx="3" fill="url(#gold)"/>
+      <rect x="80" y="52" width="9" height="38" rx="3" fill="url(#gold)"/>
+      <!-- bails -->
+      <rect x="27" y="46" width="17" height="4.5" rx="2.2" fill="url(#gold)" opacity="0.9"/>
+      <rect x="52" y="42" width="17" height="4.5" rx="2.2" fill="url(#gold)" opacity="0.9"/>
+      <rect x="77" y="46" width="17" height="4.5" rx="2.2" fill="url(#gold)" opacity="0.9"/>
+      <!-- broadcast waves, fully inside the viewBox so nothing is cut -->
+      <path d="M46 30 Q60 19 74 30" fill="none" stroke="#e8b44c" stroke-width="3" stroke-linecap="round"/>
+      <path d="M38 24 Q60 8 82 24" fill="none" stroke="#e8b44c" stroke-width="2.2" stroke-linecap="round" opacity="0.6"/>
+      <path d="M31 19 Q60 -1 89 19" fill="none" stroke="#e8b44c" stroke-width="1.6" stroke-linecap="round" opacity="0.28"/>
+      <circle cx="60" cy="97" r="2.4" fill="#e5484d"/>
     </svg>
   </div>
 
-  <div class="app-name">Stump<span>Cast</span> Studio</div>
-  <div class="tagline">Live Cricket Broadcast Producer</div>
-
-  <div class="live-badge">
-    <div class="live-dot"></div>
-    <span class="live-text">On Air Ready</span>
+  <div class="ident">
+    <div class="wordmark">Stump<em>Cast</em></div>
+    <div class="studio">Studio</div>
   </div>
 
-  <div class="progress-area">
-    <div class="progress-track">
-      <div class="progress-bar" id="progressBar"></div>
-    </div>
-    <div class="status-text" id="statusText">Initializing broadcast engine…</div>
+  <div class="onair">
+    <div class="dot"></div>
+    <span>On Air</span>
   </div>
 </div>
 
-<div class="version" id="appVersion">v1.0.7</div>
+<div class="ruler"></div>
+<div class="tagline">Live cricket broadcast producer</div>
+
+<div class="update" id="updateChip" data-state="">
+  <div class="spark"></div>
+  <strong id="updateText">Update available</strong>
+  <small id="updateState">Installing</small>
+</div>
+
+<div class="boot">
+  <div class="statusline">
+    <div class="status" id="statusText">Starting studio</div>
+    <div class="percent" id="percentText">0%</div>
+  </div>
+  <div class="track" id="progressTrack">
+    <div class="fill" id="progressFill"></div>
+  </div>
+  <div class="steps" id="stepMarks">
+    <b>Engine</b><b>Graphics</b><b>Overlay</b><b>Studio</b>
+  </div>
+</div>
+
+<div class="footer">
+  <!-- No version literal: the main process pushes the running version at runtime. -->
+  <div class="version" id="appVersion" data-version-source="pending">Version —</div>
+  <div class="note" id="versionNote">Reading running build</div>
+  <div class="copyright">StumpCast</div>
+</div>
 
 <script>
-  // Dynamically reflect current version from URL params or runtime setter
-  try {
-    const params = new URLSearchParams(window.location.search);
-    const v = params.get('v');
-    if (v) {
-      const verEl = document.getElementById('appVersion') || document.querySelector('.version');
-      if (verEl) verEl.textContent = v.startsWith('v') ? v : `v${v}`;
+  (function () {
+    var els = {
+      version: document.getElementById('appVersion'),
+      note: document.getElementById('versionNote'),
+      status: document.getElementById('statusText'),
+      percent: document.getElementById('percentText'),
+      fill: document.getElementById('progressFill'),
+      track: document.getElementById('progressTrack'),
+      marks: document.getElementById('stepMarks').children,
+      chip: document.getElementById('updateChip'),
+      chipText: document.getElementById('updateText'),
+      chipState: document.getElementById('updateState'),
+    };
+
+    var state = { version: '', source: '', update: '', updateState: '', percent: 0, remote: false };
+
+    // ---- version: always a value handed over at runtime, never a literal in this file ----
+    function setVersion(value, source) {
+      if (!value) return;
+      state.version = String(value).replace(/^v/i, '');
+      state.source = source || 'runtime';
+      els.version.textContent = 'v' + state.version;
+      els.version.setAttribute('data-version-source', state.source);
+      els.note.textContent = 'Running build';
+      els.note.setAttribute('data-version-source', state.source);
     }
-  } catch {}
 
-  window.setSplashVersion = function(v) {
-    if (!v) return;
-    const verEl = document.getElementById('appVersion') || document.querySelector('.version');
-    if (verEl) verEl.textContent = v.startsWith('v') ? v : `v${v}`;
-  };
-
-  const bar = document.getElementById('progressBar');
-  const txt = document.getElementById('statusText');
-
-  const steps = [
-    [8,  'Starting broadcast server…'],
-    [20, 'Loading match engine…'],
-    [38, 'Registering WebSocket hub…'],
-    [55, 'Preparing overlay graphics…'],
-    [72, 'Loading card catalog…'],
-    [85, 'Connecting OBS pipeline…'],
-    [95, 'Almost ready…'],
-  ];
-
-  let i = 0;
-  function tick() {
-    if (i < steps.length) {
-      const [pct, msg] = steps[i++];
-      bar.style.width = pct + '%';
-      txt.textContent = msg;
-      setTimeout(tick, 600 + Math.random() * 400);
+    function setUpdate(info) {
+      var version = info && (info.version || (typeof info === 'string' ? info : ''));
+      if (!version) return;
+      state.update = String(version).replace(/^v/i, '');
+      state.updateState = (info && info.state) || 'available';
+      els.chip.classList.add('is-on');
+      els.chip.setAttribute('data-state', state.updateState);
+      els.chipText.textContent = 'Update v' + state.update + ' available';
+      els.chipState.textContent =
+        state.updateState === 'downloaded' ? 'Installs on quit' : 'Installing';
+      els.version.textContent = 'v' + (state.version || '—') + ' → v' + state.update;
+      setStatus(state.updateState === 'downloaded'
+        ? 'Update v' + state.update + ' downloaded'
+        : 'Update v' + state.update + ' available — installing', null);
     }
-  }
-  tick();
 
-  // IPC from main process to update progress
-  if (window.__stumpcast?.onSplashProgress) {
-    window.__stumpcast.onSplashProgress((pct, msg) => {
-      bar.style.width = pct + '%';
-      if (msg) txt.textContent = msg;
-    });
-  }
+    // ---- status + progress ----
+    function setStatus(message, percent) {
+      if (typeof percent === 'number') {
+        var next = Math.max(0, Math.min(100, percent));
+        // The bar only walks forward (100 always wins), so a late real event cannot look like a regression.
+        if (next !== 100) next = Math.max(next, state.percent);
+        state.percent = next;
+        els.fill.style.width = next + '%';
+        els.percent.textContent = Math.round(next) + '%';
+      }
+      if (message) {
+        var done = /ready$/i.test(message);
+        var shown = done ? message : message + '…';
+        if (shown !== els.status.textContent) {
+          els.status.style.opacity = '0';
+          setTimeout(function () {
+            els.status.textContent = shown;
+            els.status.style.opacity = '1';
+          }, 120);
+        }
+        if (done) els.status.classList.add('is-ready');
+      }
+      // The four stage labels light up with the bar, not with the wording.
+      var stage = state.percent >= 92 ? 3 : state.percent >= 62 ? 2 : state.percent >= 32 ? 1 : 0;
+      for (var i = 0; i < els.marks.length; i++) {
+        els.marks[i].classList.toggle('on', i <= stage);
+      }
+      if (percent === 100) {
+        els.track.classList.add('is-done');
+        // main closes this window ~600 ms after it says Ready; fade out inside that window.
+        setTimeout(function () { document.body.classList.add('is-leaving'); }, 260);
+      }
+    }
+
+    var api = window.stumpcast;
+    if (api) {
+      if (api.getVersion) api.getVersion().then(function (v) { setVersion(v, 'electron app.getVersion()'); }).catch(function () {});
+      if (api.onSplashVersion) api.onSplashVersion(function (payload) {
+        setVersion(payload && payload.version, (payload && payload.source) || 'runtime');
+      });
+      if (api.onSplashStatus) api.onSplashStatus(function (payload) {
+        if (!payload) return;
+        state.remote = true;
+        setStatus(payload.message, typeof payload.percent === 'number' ? payload.percent : null);
+      });
+      if (api.onSplashUpdate) api.onSplashUpdate(setUpdate);
+    }
+
+    // Query string fallback (?v=...) so the line is filled even before IPC lands.
+    try {
+      var q = new URLSearchParams(window.location.search);
+      if (q.get('v')) setVersion(q.get('v'), 'startup query');
+    } catch (e) {}
+
+    // Optimistic local timeline; a real status push from main stops it. Steps slow down towards
+    // the end so a slow boot never sits on "Almost ready" claiming to be finished.
+    var timeline = [
+      [12, 'Starting studio'],
+      [30, 'Loading broadcast engine'],
+      [48, 'Preparing overlay graphics'],
+      [66, 'Connecting to overlay'],
+      [78, 'Loading card catalog'],
+      [88, 'Almost ready'],
+    ];
+    var step = 0;
+    function tick() {
+      if (state.remote || step >= timeline.length) return;
+      setStatus(timeline[step][1], timeline[step][0]);
+      step++;
+      setTimeout(tick, 700 + step * 340 + Math.random() * 400);
+    }
+    setTimeout(tick, 320);
+
+    // Public hooks used by the main process (executeJavaScript) and by manual checks.
+    window.setSplashVersion = setVersion;
+    window.setSplashStatus = setStatus;
+    window.setSplashUpdate = setUpdate;
+    window.__splashState = function () { return state; };
+  })();
 </script>
 </body>
 </html>

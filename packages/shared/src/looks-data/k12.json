@@ -37,5 +37,11 @@
     "entrance": "pop",
     "easing": "back.out(1.5)",
     "durationMs": 460
-  }
+  },
+  "tags": [
+    "pop entrances",
+    "scores at the bottom",
+    "arrow score bar",
+    "photo badges on the right"
+  ]
 }

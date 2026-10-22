@@ -61,3 +61,13 @@ export const ballChip = (b: BallEvent): BallChip => {
 };
 
 export const pct = (n: number): string => `${Math.round(n * 100)}%`;
+
+/** Strike rate, or an em dash before a batter has faced a ball (never a fabricated 0.0). */
+export const strikeRate = (runs: number, balls: number): string =>
+  balls > 0 ? ((runs / balls) * 100).toFixed(1) : '—';
+
+/** Economy rate off the bowler's part-overs; an em dash until they have bowled one. */
+export const economyRate = (runs: number, overs: number, balls: number): string => {
+  const o = overs + balls / 6;
+  return o > 0 ? (runs / o).toFixed(2) : '—';
+};

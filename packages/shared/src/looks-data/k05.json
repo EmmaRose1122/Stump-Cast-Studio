@@ -37,5 +37,11 @@
     "entrance": "blinds",
     "easing": "power2.out",
     "durationMs": 460
-  }
+  },
+  "tags": [
+    "blinds entrances",
+    "scores on top",
+    "floating score cards",
+    "photo badges on the right"
+  ]
 }

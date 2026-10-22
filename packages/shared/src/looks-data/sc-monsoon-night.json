@@ -37,5 +37,11 @@
     "entrance": "blur",
     "easing": "power3.out",
     "durationMs": 560
-  }
+  },
+  "tags": [
+    "blur entrances",
+    "scores at the bottom",
+    "glass score bar",
+    "mirrored player cards"
+  ]
 }

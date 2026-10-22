@@ -50,6 +50,7 @@ export const soundsApi = {
     return fetch('/api/sounds', { method: 'POST', body: form }).then((r) => read<SoundSlot>(r));
   },
   samples: () => send('POST', '/api/sounds/samples').then((r) => read<SoundOverview>(r)),
+  preset: (id: string) => send('POST', `/api/sounds/preset/${encodeURIComponent(id)}`).then((r) => read<SoundOverview>(r)),
   update: (id: string, patch: Partial<Pick<SoundSlot, 'title' | 'includeInLoop' | 'volume'>>) =>
     send('PUT', `/api/sounds/${encodeURIComponent(id)}`, patch).then((r) => read<SoundSlot>(r)),
   remove: (id: string) =>

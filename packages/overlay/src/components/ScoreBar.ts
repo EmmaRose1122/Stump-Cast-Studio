@@ -23,7 +23,8 @@ export class ScoreBar extends OverlayComponent {
     | 'scoreInline'
     | 'oversInline'
     | 'crr'
-    | 'rrr',
+    | 'rrr'
+    | 'wkt',
     HTMLElement
   >;
 
@@ -58,6 +59,7 @@ export class ScoreBar extends OverlayComponent {
         <span class="sb-situation"></span>
         <span class="sb-chip sb-crr"></span>
         <span class="sb-chip sb-rrr"></span>
+        <span class="sb-chip sb-wkt"></span>
         <span class="sb-brand-pill"><span class="sb-brand-dot"></span>STUMPCAST STUDIO</span>
       </div>
       <div class="sb-team sb-bowl">
@@ -87,6 +89,7 @@ export class ScoreBar extends OverlayComponent {
       needVal: q('.sb-need-val'),
       crr: q('.sb-crr'),
       rrr: q('.sb-rrr'),
+      wkt: q('.sb-wkt'),
     };
     return root;
   }
@@ -167,5 +170,11 @@ export class ScoreBar extends OverlayComponent {
     const showRrr = s.rrr !== undefined && s.status !== 'result';
     this.e.rrr.textContent = showRrr ? `RRR ${s.rrr!.toFixed(2)}` : '';
     this.e.rrr.hidden = !showRrr;
+    // The wicket that just fell stays on the bar until the next one: it is what the commentator
+    // is talking about and what the viewer is looking for.
+    const w = s.lastWicket;
+    const showWkt = w !== undefined && s.status !== 'result';
+    this.e.wkt.textContent = showWkt ? `OUT ${w.name.toUpperCase()} ${w.runs}(${w.balls})` : '';
+    this.e.wkt.hidden = !showWkt;
   }
 }

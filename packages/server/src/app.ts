@@ -55,13 +55,14 @@ import { OBSLink } from './obs/OBSLink';
 import { registerObsRoutes } from './obs/routes';
 import { WsHub, type Audience } from './ws/hub';
 import { signLicenceToken, verifyLicenceToken, type LicencePayload } from './licence/licence';
+import { getMachineId, getFormattedMachineId } from './licence/machineId';
 
 const SETTINGS_KEY = 'app';
 /** SecretStore name for the Gemini key used by AI commentary (and, later, image generation). */
 const GEMINI_KEY = 'gemini_api_key';
 const OPENAI_KEY = 'openai_api_key';
 const CRICKET_KEY = 'cricket_api_key';
-export const APP_VERSION = '1.0.7';
+export const APP_VERSION = '1.0.8';
 
 /** One engine tick waiting on the broadcast delay, with the commentary already written for it. */
 interface PendingRelease {
@@ -701,6 +702,13 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
 
   // ---- sounds (B9) ---------------------------------------------------------------------
   const sounds = new SoundService(db, config.dataDir);
+  if (!process.env.VITEST) {
+    try {
+      sounds.seedCrowdSounds();
+    } catch {
+      /* non-fatal fallback */
+    }
+  }
   sound.auto = registerSoundRoutes(fastify, {
     sounds,
     hub,
@@ -753,10 +761,11 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
   });
 
   // ---- looks (B11) & licence --------------------------------------------------------
+  const hostMachineId = getMachineId();
   const isLicensed = () => {
     if (config.licensed) return true;
     const row = db.select().from(schema.licence).get();
-    return Boolean(row?.token && verifyLicenceToken(row.token).valid);
+    return Boolean(row?.token && verifyLicenceToken(row.token, undefined, undefined, undefined, hostMachineId).valid);
   };
   const looks = new LookService(db, isLicensed);
   const activeLookId = () => loadSettings().theme;
@@ -819,28 +828,39 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
       channel: z.string().min(1).max(100),
       plan: z.enum(['monthly', 'yearly', 'lifetime']),
       days: z.number().int().min(1).max(36500).optional(),
+      mid: z.string().optional(),
     }).safeParse(req.body);
     if (!body.success) return reply.code(400).send({ error: 'Invalid licence request' });
 
-    const { channel, plan, days: reqDays } = body.data;
+    const { channel, plan, days: reqDays, mid } = body.data;
     const iat = Math.floor(Date.now() / 1000);
     const defaultDays = plan === 'monthly' ? 31 : 366;
     const days = reqDays ?? defaultDays;
 
-    const payload: LicencePayload = plan === 'lifetime'
-      ? { v: 1, channel, plan, iat }
-      : { v: 1, channel, plan, iat, exp: iat + days * 86400 };
+    const payload: LicencePayload = {
+      v: 1,
+      channel,
+      plan,
+      iat,
+      ...(mid ? { mid } : {}),
+      ...(plan === 'lifetime' ? {} : { exp: iat + days * 86400 }),
+    };
 
     const token = signLicenceToken(payload, privateKeyHex);
-    return { token, channel, plan, days, expiresAt: payload.exp ? payload.exp * 1000 : null };
+    return { token, channel, plan, days, mid: payload.mid ?? null, expiresAt: payload.exp ? payload.exp * 1000 : null };
   });
 
   fastify.get('/api/licence', async () => {
     const row = db.select().from(schema.licence).get();
+    const check = row?.token ? verifyLicenceToken(row.token, undefined, undefined, undefined, hostMachineId) : null;
     return {
       licensed: isLicensed(),
       token: row?.token ?? null,
       checkedAt: row?.checkedAt ?? null,
+      machineId: getFormattedMachineId(),
+      rawMachineId: hostMachineId,
+      payload: check?.valid ? check.payload : null,
+      error: check && !check.valid ? check.reason : null,
     };
   });
   fastify.post('/api/licence', async (req, reply) => {
@@ -857,9 +877,15 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
     if (!key || key.length < 4) {
       return reply.code(400).send({ error: 'Please enter a valid licence key' });
     }
-    const check = verifyLicenceToken(key);
+    const check = verifyLicenceToken(key, undefined, undefined, undefined, hostMachineId);
     if (!check.valid) {
-      return reply.code(400).send({ error: `Licence key rejected (${check.reason})` });
+      if (check.reason === 'machine-mismatch') {
+        return reply.code(400).send({
+          error: 'This licence key is locked to another computer (Machine ID mismatch). Please check your Machine ID or request a key for this computer.',
+          reason: 'machine-mismatch',
+        });
+      }
+      return reply.code(400).send({ error: `Licence key rejected (${check.reason})`, reason: check.reason });
     }
     const existing = db.select().from(schema.licence).get();
     const now = Math.floor(Date.now() / 1000);
@@ -874,7 +900,7 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
         .run();
     }
     hub.broadcast('licence', 'updated', { licensed: true, token: key });
-    return { ok: true, licensed: true, token: key };
+    return { ok: true, licensed: true, token: key, payload: check.payload };
   });
   fastify.delete('/api/licence', async () => {
     db.delete(schema.licence).run();

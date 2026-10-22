@@ -6,6 +6,7 @@ import { SelectorConfigSchema, type SelectorConfig } from '../adapters/config';
 import type { SelectorBundle } from '@stumpcast/shared';
 import { TAP_MARKER, isTapMessage, type ContentMessage, type TapConfigEnvelope } from '../messages';
 import { createPipeline } from './pipeline';
+import { attachPictures } from './pictures';
 
 const DEBOUNCE_MS = 1000;
 type Site = 'cricbuzz' | 'crex';
@@ -95,6 +96,9 @@ const start = async () => {
       getUrl: () => location.href,
       send: (msg: ContentMessage) => {
         if (msg.type === 'score-update') {
+          // Last chance to look at the live DOM: the crests and faces the page is showing right now
+          // travel with the score, so a new team or batter is on air with its picture.
+          attachPictures(msg.update, document, location.href);
           console.debug('[StumpCast] Streamed score update:', msg.update.fields.status || msg.update.matchId);
         }
         // Rejection is meaningful: the pipeline retries the update instead of losing the ball.

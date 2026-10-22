@@ -31,6 +31,14 @@ const signature = (u: RawUpdate): string =>
   JSON.stringify({ id: u.matchId, f: u.fields, c: u.confidence });
 
 /**
+ * A squads page carries no score, so it can never reach the confidence bar — but the line-up on it
+ * is real information about a match the studio already has. The server treats an update like this
+ * as a patch (it cannot move a score), so it is worth shipping even though it is not a score.
+ */
+const carriesSquad = (u: RawUpdate): boolean =>
+  u.fields.teams.some((t) => (t.squad?.length ?? 0) > 0);
+
+/**
  * Runs the adapter on demand, drops duplicates, rate-limits and reports degradation.
  * `trigger()` is cheap to call often (tap response, DOM mutation).
  */
@@ -104,7 +112,7 @@ export const createPipeline = (opts: PipelineOptions) => {
       return; // adapters should not throw; never let it reach the page
     }
 
-    if (update.confidence < MIN_CONFIDENCE) {
+    if (update.confidence < MIN_CONFIDENCE && !carriesSquad(update)) {
       if (!degraded) {
         degraded = true; // report once per degraded episode, not on every mutation
         sendQuiet({

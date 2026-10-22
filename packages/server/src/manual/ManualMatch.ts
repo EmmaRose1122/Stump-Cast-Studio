@@ -505,7 +505,13 @@ export class ManualMatch {
         toss: this.toss
           ? `${names[this.toss.winner]} won the toss and chose to ${this.toss.decision}`
           : undefined,
-        teams: this.setup.teams.map((t) => ({ name: t.name, short: t.short })),
+        teams: this.setup.teams.map((t, i) => ({
+          name: t.name,
+          short: t.short,
+          // The operator named this squad, so the overlay can show a real Playing XI instead of
+          // the "not announced" placeholder a bare score feed has to fall back to.
+          players: (this.teams[i] ?? []).map((p) => p.name),
+        })),
         innings: inningsOut,
         batters: [...batterOut(c.striker, true), ...batterOut(c.nonStriker, false)],
         bowler:

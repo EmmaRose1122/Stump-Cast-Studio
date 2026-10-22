@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import clsx from 'clsx';
 import { useEffect, useState } from 'react';
 import { DEFAULT_DIRECTOR_RULES, type DirectorRule, type DirectorTrigger } from '@stumpcast/shared';
-import { api } from '../lib/api';
+import { api, useServerOrigin } from '../lib/api';
 import {
   ALL_CARDS,
   LAYOUTS,
@@ -13,6 +13,7 @@ import {
   validateRule,
 } from '../lib/graphics';
 import { ProLooksModal } from '../shell/ProLooksModal';
+import { LookPreview } from '../shell/LookPreview';
 import { useAdmin } from '../store';
 import { Button, Card, Dialog, Select, Slider, Switch } from '../ui';
 
@@ -24,6 +25,7 @@ interface LookRow {
   locked: boolean;
   active: boolean;
   swatches: string[];
+  tags?: string[];
 }
 
 const errText = (e: unknown) => (e instanceof Error ? e.message : 'Something went wrong');
@@ -1121,6 +1123,7 @@ const DirectorSection = () => {
 const LooksSection = () => {
   const qc = useQueryClient();
   const toast = useAdmin((s) => s.toast);
+  const origin = useServerOrigin();
   const [upgrade, setUpgrade] = useState(false);
   const [keyInput, setKeyInput] = useState('');
   const [isActivating, setIsActivating] = useState(false);
@@ -1155,33 +1158,51 @@ const LooksSection = () => {
     <Card title="Looks">
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {list.map((l) => (
-          <button
+          <div
             key={l.id}
-            type="button"
-            aria-label={`${l.name}${l.locked ? ' (locked, Pro)' : ''}${l.active ? ' (active)' : ''}`}
-            aria-pressed={l.active}
-            onClick={() => (l.locked ? setUpgrade(true) : activate.mutate(l.id))}
             className={clsx(
-              'rounded-[10px] border p-3 text-left',
+              'overflow-hidden rounded-[10px] border',
               l.active ? 'border-teal bg-surface-2' : 'border-border',
             )}
           >
-            <span className="flex items-center justify-between gap-2">
-              <span className="font-semibold">{l.name}</span>
-              <span className="text-xs text-muted">
-                {l.locked ? '🔒 Pro' : l.plan === 'pro' ? 'Pro' : 'Free'}
+            <LookPreview id={l.id} origin={origin} />
+            <button
+              type="button"
+              aria-label={`${l.name}${l.locked ? ' (locked, Pro)' : ''}${l.active ? ' (active)' : ''}`}
+              aria-pressed={l.active}
+              onClick={() => (l.locked ? setUpgrade(true) : activate.mutate(l.id))}
+              className="w-full p-3 text-left"
+            >
+              <span className="flex items-center justify-between gap-2">
+                <span className="font-semibold">{l.name}</span>
+                <span className="text-xs text-muted">
+                  {l.locked ? '🔒 Pro' : l.plan === 'pro' ? 'Pro' : 'Free'}
+                </span>
               </span>
-            </span>
-            <span className="mt-2 flex gap-1" aria-hidden>
-              {l.swatches.map((c) => (
-                <span
-                  key={c}
-                  className="size-5 rounded-full border border-border"
-                  style={{ background: c }}
-                />
-              ))}
-            </span>
-          </button>
+              {/* What this look actually changes, straight from the look's own fields. */}
+              {l.tags && l.tags.length > 0 && (
+                <span className="mt-2 flex flex-wrap gap-1">
+                  {l.tags.map((t) => (
+                    <span
+                      key={t}
+                      className="rounded-full border border-border px-1.5 py-0.5 text-[10px] text-muted"
+                    >
+                      {t}
+                    </span>
+                  ))}
+                </span>
+              )}
+              <span className="mt-2 flex gap-1" aria-hidden>
+                {l.swatches.map((c) => (
+                  <span
+                    key={c}
+                    className="size-5 rounded-full border border-border"
+                    style={{ background: c }}
+                  />
+                ))}
+              </span>
+            </button>
+          </div>
         ))}
       </div>
       <Dialog

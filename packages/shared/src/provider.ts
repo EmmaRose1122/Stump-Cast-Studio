@@ -1,11 +1,12 @@
 import { z } from 'zod';
+import { SquadPlayerSchema } from './team';
 
 /** Sites the extension has adapters for. */
 export const SourceSiteSchema = z.enum(['cricbuzz', 'crex']);
 export type SourceSite = z.infer<typeof SourceSiteSchema>;
 
 /** Where a RawUpdate came from: a scraped site adapter or the built-in manual scorer. */
-export const RawSourceSchema = z.enum(['cricbuzz', 'crex', 'manual', 'api']);
+export const RawSourceSchema = z.enum(['cricbuzz', 'crex', 'manual', 'api', 'multi-page-fetch']);
 export type RawSource = z.infer<typeof RawSourceSchema>;
 
 const oversField = z.object({
@@ -41,6 +42,18 @@ export const RawUpdateSchema = z.object({
            * team is what files its crest in the asset store.
            */
           logoUrl: z.string().url().optional(),
+          /**
+           * The announced line-up, as names. A source that lists eleven players gives the overlay
+           * a squad card to show; one that does not leaves the scene saying so rather than
+           * inventing a team.
+           */
+          players: z.array(z.string().min(1).max(60)).max(30).optional(),
+          /**
+           * The same eleven with the role, the captain/keeper markers and the photo the page shows.
+           * `players` is what the overlay reads; this is what the studio needs to prepare a cutout
+           * for every name before the player walks out.
+           */
+          squad: z.array(SquadPlayerSchema).max(30).optional(),
         }),
       )
       .max(2)
@@ -98,6 +111,8 @@ export const RawUpdateSchema = z.object({
     /** Sources that know the format (the manual scorer) say so instead of guessing from text. */
     format: z.enum(['T20', 'ODI', 'TEST', 'OTHER']).optional(),
     oversLimit: z.number().int().positive().optional(),
+    /** Multi-page fetch results from extension (live, scorecard, squads, etc.) */
+    multiPageData: z.array(z.unknown()).optional(),
   }),
   /** Names of expected fields the adapter could not find. */
   missing: z.array(z.string()).default([]),

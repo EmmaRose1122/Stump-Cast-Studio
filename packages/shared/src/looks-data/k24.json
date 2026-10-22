@@ -37,5 +37,11 @@
     "entrance": "zoom",
     "easing": "back.out(1.4)",
     "durationMs": 480
-  }
+  },
+  "tags": [
+    "zoom entrances",
+    "scores on top",
+    "flat score bar",
+    "photo badges on the right"
+  ]
 }

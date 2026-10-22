@@ -37,5 +37,11 @@
     "entrance": "stretch",
     "easing": "power3.out",
     "durationMs": 500
-  }
+  },
+  "tags": [
+    "stretch entrances",
+    "scores at the bottom",
+    "slanted score bar",
+    "cut-out player photos"
+  ]
 }

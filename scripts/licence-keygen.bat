@@ -6,11 +6,23 @@ REM  The signing key stays in .secrets on THIS machine and must never be copied 
 
 cd /d "%~dp0.."
 
+REM Ensure System32, Windows, and standard node paths are present in local PATH
+set "PATH=%SystemRoot%\System32;%SystemRoot%;%SystemRoot%\System32\Wbem;%SystemRoot%\System32\WindowsPowerShell\v1.0\;C:\Program Files\nodejs;C:\Program Files (x86)\nodejs;%LOCALAPPDATA%\Programs\nodejs;%APPDATA%\npm;%PATH%"
+
+set "NODE_CMD=node"
 where node >nul 2>nul
 if errorlevel 1 (
-  echo Node.js is not on PATH. Install Node 20 or newer, then open this file again.
-  pause
-  exit /b 1
+  if exist "C:\Program Files\nodejs\node.exe" (
+    set "NODE_CMD=C:\Program Files\nodejs\node.exe"
+  ) else if exist "C:\Program Files (x86)\nodejs\node.exe" (
+    set "NODE_CMD=C:\Program Files (x86)\nodejs\node.exe"
+  ) else if exist "%LOCALAPPDATA%\Programs\nodejs\node.exe" (
+    set "NODE_CMD=%LOCALAPPDATA%\Programs\nodejs\node.exe"
+  ) else (
+    echo Node.js is not on PATH. Install Node 20 or newer, then open this file again.
+    pause
+    exit /b 1
+  )
 )
 
 :menu
@@ -34,7 +46,7 @@ goto menu
 
 :init
 echo.
-node scripts\licence-keygen.mjs --init
+"%NODE_CMD%" scripts\licence-keygen.mjs --init
 echo.
 pause
 goto menu
@@ -57,7 +69,7 @@ if defined days set "daysopt=--days %days%"
 echo.
 REM  The token goes to a file on its own so it can be put on the clipboard without the
 REM  explanatory lines; the summary is printed straight to the screen.
-node scripts\licence-keygen.mjs --channel "%chan%" --plan "%plan%" %daysopt% 1>"%TEMP%\sc-licence.key"
+"%NODE_CMD%" scripts\licence-keygen.mjs --channel "%chan%" --plan "%plan%" %daysopt% 1>"%TEMP%\sc-licence.key"
 if errorlevel 1 goto issuefail
 type "%TEMP%\sc-licence.key" | clip
 echo.
@@ -80,7 +92,7 @@ set "token="
 set /p token= Paste a licence key to check:
 if not defined token (echo Nothing pasted.& goto menu)
 echo.
-node scripts\licence-keygen.mjs --verify "%token%"
+"%NODE_CMD%" scripts\licence-keygen.mjs --verify "%token%"
 echo.
 pause
 goto menu

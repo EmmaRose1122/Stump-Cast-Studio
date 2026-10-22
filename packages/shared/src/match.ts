@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { BallEventSchema } from './ball';
+import { BallEventSchema, WicketSchema } from './ball';
 import { TeamSchema } from './team';
 
 export const MatchFormatSchema = z.enum(['T20', 'ODI', 'TEST', 'OTHER']);
@@ -122,6 +122,38 @@ export const MatchStateSchema = z.object({
     .object({ fours: z.number().int().min(0), sixes: z.number().int().min(0) })
     .optional(),
   ballsObserved: z.number().int().min(0).optional(),
+  /**
+   * Extras given away this innings, split by type. The score already includes them; this is the
+   * breakdown a scorecard line (`7 (b 0, lb 3, w 4, nb 0, p 0)`) needs and a feed never sends.
+   */
+  extras: z
+    .object({
+      wide: z.number().int().min(0),
+      noball: z.number().int().min(0),
+      bye: z.number().int().min(0),
+      legbye: z.number().int().min(0),
+      penalty: z.number().int().min(0),
+    })
+    .optional(),
+  /**
+   * The wicket the commentary is still talking about. A broadcast that never shows who just fell
+   * looks like a scoreboard that forgot to update, so the last dismissal stays on the bar until
+   * the next one. Figures are the best the feed showed for that batter before they got out.
+   */
+  lastWicket: z
+    .object({
+      name: z.string().min(1),
+      runs: z.number().int().min(0),
+      balls: z.number().int().min(0),
+      /** Only when the feed said how; ball-by-ball tokens usually do not. */
+      kind: WicketSchema.shape.kind.optional(),
+      /** Team score and delivery when it fell. */
+      teamRuns: z.number().int().min(0),
+      wkts: z.number().int().min(0).max(10),
+      over: z.number().int().min(0),
+      ball: z.number().int().min(1),
+    })
+    .optional(),
   /**
    * The feed only publishes the pair at the crease and the bowler running in, so these are the
    * best figures seen anywhere in the match. Absent when the snapshots carried no player rows.

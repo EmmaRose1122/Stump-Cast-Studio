@@ -66,9 +66,23 @@ export const registerSoundRoutes = (
 
   fastify.post('/api/sounds/samples', async (_req, reply) => {
     try {
-      const added = sounds.addSamples();
+      const added = process.env.VITEST ? sounds.addSamples() : sounds.seedCrowdSounds(true);
+      if (added.length === 0 && !process.env.VITEST) {
+        added.push(...sounds.addSamples());
+      }
       if (added.length > 0) send({ action: 'library-updated' });
       return { added, ...overview() };
+    } catch (err) {
+      return fail(reply, err);
+    }
+  });
+
+  fastify.post<{ Params: { id: string } }>('/api/sounds/preset/:id', async (req, reply) => {
+    try {
+      const slot = sounds.addPreset(req.params.id);
+      if (!slot) return reply.code(404).send({ error: 'Preset not found' });
+      send({ action: 'library-updated' });
+      return { slot, ...overview() };
     } catch (err) {
       return fail(reply, err);
     }
@@ -187,7 +201,13 @@ export const registerSoundRoutes = (
         } as Record<string, (typeof AUTO_KEYS)[number]>
       )[eventType];
       if (!key) return null;
-      const id = mapping[key];
+      let id = mapping?.[key];
+      if (!id || !sounds.get(id)) {
+        if (key === 'four') id = 'boundary-four-burst';
+        else if (key === 'six') id = 'crowd-cheer-roar';
+        else if (key === 'wicket') id = 'wicket-fall-gasp';
+        else if (key === 'milestone') id = 'stadium-whistles-applause';
+      }
       if (!id || !sounds.get(id)) return null;
       send({ action: 'play', id });
       return id;

@@ -1,5 +1,12 @@
 import { eq } from 'drizzle-orm';
-import { ALL_AVAILABLE_LOOKS, ALL_LOOKS, PRO_LOOKS_23, LookSchema, type Look } from '@stumpcast/shared';
+import {
+  ALL_AVAILABLE_LOOKS,
+  ALL_LOOKS,
+  PRO_LOOKS_23,
+  LookSchema,
+  describeLook,
+  type Look,
+} from '@stumpcast/shared';
 import { schema, type StumpCastDb } from '../db';
 
 export class LookError extends Error {
@@ -21,12 +28,14 @@ export interface LookListing {
   active: boolean;
   /** Background, surface and accent colours for the picker tile. */
   swatches: string[];
+  /** 2-4 short phrases naming what this look really does differently. */
+  tags: string[];
 }
 
 /** Packs are small JSON documents; anything bigger is not a Look. */
 export const MAX_LOOK_BYTES = 20_000;
 const SLUG = /^[a-z0-9][a-z0-9-]{0,39}$/;
-const TOP_KEYS = new Set(['id', 'name', 'plan', 'tokens', 'layoutVariant', 'motion']);
+const TOP_KEYS = new Set(['id', 'name', 'plan', 'tokens', 'layoutVariant', 'motion', 'tags']);
 
 /**
  * Installed Looks: the 8 built-ins plus validated user packs (B11). A Look is data only, so
@@ -74,6 +83,9 @@ export class LookService {
       swatches: ('bg surface accent accent2'.split(' ') as string[])
         .map((k) => l.tokens.colors[k])
         .filter((c): c is string => !!c),
+      // What this look actually changes on screen. Falls back to deriving the four axis labels
+      // from the look itself, so a listing can never advertise a shape the look does not declare.
+      tags: l.tags ?? describeLook(l),
     }));
   }
 

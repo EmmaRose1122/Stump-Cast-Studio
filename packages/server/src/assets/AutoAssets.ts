@@ -12,6 +12,9 @@ const ALLOWED_HOSTS = [
   /\.crex\.live$/i,
   /\.cricbuzz\.com$/i,
   /\.cricketeams\.com$/i,
+  /\.cbzone\.com$/i,     // Cricbuzz images
+  /\.cricbuzz\-meta\.com$/i, // Cricbuzz meta/images
+  /\.akamaized\.net\/cFancode/i, // Cricbuzz player photos via cFancode
 ];
 
 const allowed = (url: string | undefined): url is string => {
@@ -93,6 +96,15 @@ export class AutoAssets {
     const pictures = new Map<string, string>();
     for (const b of f.batters ?? []) if (allowed(b.imageUrl)) pictures.set(b.name.toLowerCase(), b.imageUrl);
     if (allowed(f.bowler?.imageUrl) && f.bowler) pictures.set(f.bowler.name.toLowerCase(), f.bowler.imageUrl);
+
+    // The line-up is the one place a whole XI's photos arrive at once: a squads page shows a face
+    // next to every name, so all eleven are filed under the id the overlay already asks for.
+    for (const scraped of f.teams) {
+      for (const p of scraped.squad ?? []) {
+        if (!allowed(p.imageUrl)) continue;
+        out.push({ type: 'player', id: assetIdFor('player', { name: p.name }), url: p.imageUrl });
+      }
+    }
 
     const seen = new Set<string>();
     for (const p of [...(state.batters ?? []), state.bowler]) {

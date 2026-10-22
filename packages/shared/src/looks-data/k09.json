@@ -37,5 +37,11 @@
     "entrance": "flip",
     "easing": "power2.out",
     "durationMs": 500
-  }
+  },
+  "tags": [
+    "flip entrances",
+    "scores at the bottom",
+    "flat score bar",
+    "mirrored player cards"
+  ]
 }

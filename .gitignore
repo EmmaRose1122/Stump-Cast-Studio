@@ -11,4 +11,7 @@ release
 packages/desktop/build/stage*
 err.txt
 out.txt
+.qoder
+*.tmp
+*.tmp.*
 images/How to Make a Cricket Scoreboard in OBS with CSS _ Full Tutorial 2025.mp4

@@ -1,6 +1,7 @@
 import type { MatchState } from '@stumpcast/shared';
 import { assetUrl, attachImage } from '../assets';
 import { OverlayComponent } from '../component';
+import { economyRate, strikeRate } from '../format';
 
 const initials = (name: string) =>
   name
@@ -9,6 +10,9 @@ const initials = (name: string) =>
     .join('')
     .slice(0, 2)
     .toUpperCase();
+
+/** The feed carries `—` for a crease the umpires have not filled yet. */
+const isPlaceholder = (name: string): boolean => !name || name === '—';
 
 interface CardRefs {
   el: HTMLElement;
@@ -68,10 +72,11 @@ export class BatterCards extends OverlayComponent {
     s.batters.forEach((b, i) => {
       const c = this.cards[i]!;
       c.el.classList.toggle('pc-strike', b.onStrike);
+      c.el.hidden = isPlaceholder(b.name);
       setPhoto(c, b.playerId, b.name);
       c.name.textContent = `${b.name}${b.onStrike ? ' *' : ''}`;
       c.main.textContent = `${b.runs} (${b.balls})`;
-      c.sub.textContent = `${b.fours}x4  ${b.sixes}x6`;
+      c.sub.textContent = `SR ${strikeRate(b.runs, b.balls)}  ${b.fours}×4 ${b.sixes}×6`;
     });
   }
 }
@@ -91,9 +96,10 @@ export class BowlerCard extends OverlayComponent {
   update(s: MatchState): void {
     const b = s.bowler;
     const c = this.card;
+    c.el.hidden = isPlaceholder(b.name);
     setPhoto(c, b.playerId, b.name);
     c.name.textContent = b.name;
     c.main.textContent = `${b.wkts}-${b.runs}`;
-    c.sub.textContent = `${b.overs}.${b.balls} ov  ${b.maidens}m`;
+    c.sub.textContent = `ECON ${economyRate(b.runs, b.overs, b.balls)}  ${b.overs}.${b.balls} ov`;
   }
 }

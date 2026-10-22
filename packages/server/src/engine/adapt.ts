@@ -7,6 +7,7 @@ import {
   type MatchState,
   type MatchStatus,
   type RawUpdate,
+  type SquadPlayer,
   type Team,
 } from '@stumpcast/shared';
 
@@ -17,8 +18,19 @@ const PLACEHOLDER = '—';
  * A scraped name becomes a canonical team. Unknown sides keep a name-derived id but get no crest
  * code, because a near-miss code can point at a real flag of a different country.
  */
-const teamFor = (name: string, index: number, scrapedShort?: string): Team => {
+const teamFor = (
+  name: string,
+  index: number,
+  scrapedShort?: string,
+  players?: string[],
+  squad?: SquadPlayer[],
+): Team => {
   const known = resolveTeam(scrapedShort) ?? resolveTeam(name);
+  const squadRows = squad && squad.length > 0 ? squad : undefined;
+  // The names the overlay shows and the rows the studio prepares cutouts from come from the same
+  // scrape, so a squad always wins over the bare list: it carries the same names plus the roles.
+  const squadNames = squadRows?.map((p) => p.name);
+  const squadOf = squadRows ? { squad: squadRows, players: squadNames } : {};
   if (known) {
     return {
       id: `team-${known.code}`,
@@ -26,6 +38,7 @@ const teamFor = (name: string, index: number, scrapedShort?: string): Team => {
       short: known.code.toUpperCase(),
       color: known.colors[0],
       logoAssetId: `team-${known.code}`,
+      ...(squadRows ? squadOf : players && players.length > 0 ? { players } : {}),
     };
   }
   return {
@@ -37,6 +50,7 @@ const teamFor = (name: string, index: number, scrapedShort?: string): Team => {
         .slice(0, 3)
         .toUpperCase() || `T${index + 1}`,
     color: PALETTE[index % 2]!,
+    ...(squadRows ? squadOf : players && players.length > 0 ? { players } : {}),
   };
 };
 
@@ -161,8 +175,8 @@ export const rawToBaseState = (raw: RawUpdate, updatedAt: string): MatchState =>
     }
   }
   const teams: [Team, Team] = [
-    teamFor(names[0] ?? 'Team A', 0, f.teams[0]?.short),
-    teamFor(names[1] ?? 'Team B', 1, f.teams[1]?.short),
+    teamFor(names[0] ?? 'Team A', 0, f.teams[0]?.short, f.teams[0]?.players, f.teams[0]?.squad),
+    teamFor(names[1] ?? 'Team B', 1, f.teams[1]?.short, f.teams[1]?.players, f.teams[1]?.squad),
   ];
 
   // Scraped sides are named in two registers at once ("Pakistan" in the header, "PAK" in the
