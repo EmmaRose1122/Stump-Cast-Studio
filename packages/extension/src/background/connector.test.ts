@@ -67,6 +67,9 @@ const makeEnv = (
       remove: async (k) => {
         delete store[k];
       },
+      clear: async () => {
+        for (const key of Object.keys(store)) delete store[key];
+      },
     },
     fetch: async (url, init) => {
       fetched.push({ url, init });
@@ -254,6 +257,35 @@ describe('Connector transport', () => {
     expect(c.tabs.map((t) => t.matchId)).toEqual(['m1']);
     c.onTabRemoved(5);
     expect(c.tabs).toEqual([]);
+  });
+});
+
+describe('Connector data reset', () => {
+  it('clears saved data, tracked matches and the active connection', async () => {
+    const env = makeEnv({
+      livePort: 4000,
+      store: {
+        token: 'tok-abcdefghijklmnopqrstuvwx',
+        port: 4000,
+        trackedTabs: [],
+        customSelectors: { version: 2 },
+        readingPaused: true,
+        killed: false,
+      },
+    });
+    const c = new Connector(env.deps);
+    const socket = await connectAuthed(env, c);
+    await c.onContentMessage({ type: 'score-update', update: update('m1') }, 7);
+    expect(c.tabs).toHaveLength(1);
+
+    await c.clearData();
+
+    expect(env.store).toEqual({});
+    expect(c.paired).toBe(false);
+    expect(c.boundPort).toBeNull();
+    expect(c.tabs).toEqual([]);
+    expect(socket.readyState).toBe(3);
+    expect(env.intervals.size).toBe(0);
   });
 });
 

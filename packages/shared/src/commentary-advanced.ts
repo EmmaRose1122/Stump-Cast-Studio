@@ -102,6 +102,7 @@ export const GeneratedCommentarySchema = z.object({
 export type GeneratedCommentary = z.infer<typeof GeneratedCommentarySchema>;
 
 const COMMENTATOR_PERSONAS: CommentatorPersona[] = [
+  // Urdu (ur)
   {
     id: 'raza_male_play',
     name: 'Raza Ahmed',
@@ -162,35 +163,220 @@ const COMMENTATOR_PERSONAS: CommentatorPersona[] = [
     },
     urduVoice: { male: 'Orus', female: 'Charon' },
   },
+
+  // Hindi (hi)
+  {
+    id: 'vikram_male_play',
+    name: 'Vikram Sharma',
+    gender: 'male',
+    role: 'play_by_play',
+    voiceName: 'Kore',
+    primaryLanguage: 'hi',
+    style: {
+      excitement: 0.85,
+      technicality: 0.6,
+      conversational: 0.4,
+      catchphrases: ['शानदार!', 'क्या बात है!', 'जबरदस्त!', 'बेहतरीन शॉट!'],
+    },
+    urduVoice: { male: 'Kore', female: 'Puck' },
+  },
+  {
+    id: 'rahul_male_color',
+    name: 'Rahul Verma',
+    gender: 'male',
+    role: 'color',
+    voiceName: 'Puck',
+    primaryLanguage: 'hi',
+    style: {
+      excitement: 0.6,
+      technicality: 0.9,
+      conversational: 0.7,
+      catchphrases: ['ध्यान रहे', 'तकनीकी तौर पर', 'रणनीति यह है', 'मैदान की स्थिति'],
+    },
+    urduVoice: { male: 'Puck', female: 'Charon' },
+  },
+  {
+    id: 'ananya_female_play',
+    name: 'Ananya Patel',
+    gender: 'female',
+    role: 'play_by_play',
+    voiceName: 'Aoede',
+    primaryLanguage: 'hi',
+    style: {
+      excitement: 0.85,
+      technicality: 0.5,
+      conversational: 0.6,
+      catchphrases: ['क्या शॉट है!', 'बहुत खूब!', 'लाजवाब!', 'दिल जीत लिया!'],
+    },
+    urduVoice: { male: 'Fenrir', female: 'Aoede' },
+  },
+  {
+    id: 'priya_female_color',
+    name: 'Priya Sharma',
+    gender: 'female',
+    role: 'color',
+    voiceName: 'Charon',
+    primaryLanguage: 'hi',
+    style: {
+      excitement: 0.5,
+      technicality: 0.85,
+      conversational: 0.8,
+      catchphrases: ['देखते हैं', 'रणनीति', 'मैदान में बदलाव', 'बॉलर के लिए चुनौती'],
+    },
+    urduVoice: { male: 'Orus', female: 'Charon' },
+  },
+
+  // English (en)
+  {
+    id: 'michael_male_play',
+    name: 'Michael Vaughan',
+    gender: 'male',
+    role: 'play_by_play',
+    voiceName: 'Kore',
+    primaryLanguage: 'en',
+    style: {
+      excitement: 0.85,
+      technicality: 0.6,
+      conversational: 0.4,
+      catchphrases: ['Magnificent!', 'Shot of the day!', 'Pure class!', 'Unbelievable strike!'],
+    },
+    urduVoice: { male: 'Kore', female: 'Puck' },
+  },
+  {
+    id: 'david_male_color',
+    name: 'David Lloyd',
+    gender: 'male',
+    role: 'color',
+    voiceName: 'Puck',
+    primaryLanguage: 'en',
+    style: {
+      excitement: 0.65,
+      technicality: 0.9,
+      conversational: 0.7,
+      catchphrases: ['Start the car!', 'Tactically speaking', 'Look at that field placement', 'Under pressure here'],
+    },
+    urduVoice: { male: 'Puck', female: 'Charon' },
+  },
+  {
+    id: 'sarah_female_play',
+    name: 'Sarah Taylor',
+    gender: 'female',
+    role: 'play_by_play',
+    voiceName: 'Aoede',
+    primaryLanguage: 'en',
+    style: {
+      excitement: 0.85,
+      technicality: 0.5,
+      conversational: 0.6,
+      catchphrases: ['What a delivery!', 'Brilliant batting!', 'Sensational!', 'Absolute perfection!'],
+    },
+    urduVoice: { male: 'Fenrir', female: 'Aoede' },
+  },
+  {
+    id: 'charlotte_female_color',
+    name: 'Charlotte Edwards',
+    gender: 'female',
+    role: 'color',
+    voiceName: 'Charon',
+    primaryLanguage: 'en',
+    style: {
+      excitement: 0.5,
+      technicality: 0.85,
+      conversational: 0.8,
+      catchphrases: ['Keep an eye on this', 'Smart cricket', 'Field adjustment needed', 'Big over ahead'],
+    },
+    urduVoice: { male: 'Orus', female: 'Charon' },
+  },
 ];
 
 const COMMENTARY_PAIRS: CommentaryPair[] = [
+  // Urdu Pairs
   {
     id: 'raza_ali',
-    name: 'Raza & Ali (Classic Duo)',
+    name: 'Raza & Ali (Urdu Classic)',
     playByPlay: COMMENTATOR_PERSONAS.find((p) => p.id === 'raza_male_play')!,
     color: COMMENTATOR_PERSONAS.find((p) => p.id === 'ali_male_color')!,
     chemistry: 'professional',
   },
   {
     id: 'zara_sana',
-    name: 'Zara & Sana (Ladies\' View)',
+    name: "Zara & Sana (Urdu Ladies' View)",
     playByPlay: COMMENTATOR_PERSONAS.find((p) => p.id === 'zara_female_play')!,
     color: COMMENTATOR_PERSONAS.find((p) => p.id === 'sana_female_color')!,
     chemistry: 'friendly',
   },
   {
     id: 'raza_zara',
-    name: 'Raza & Zara (Mixed Pair)',
+    name: 'Raza & Zara (Urdu Mixed)',
     playByPlay: COMMENTATOR_PERSONAS.find((p) => p.id === 'raza_male_play')!,
     color: COMMENTATOR_PERSONAS.find((p) => p.id === 'zara_female_play')!,
     chemistry: 'banter',
   },
   {
     id: 'ali_sana',
-    name: 'Ali & Sana (Tactical Mix)',
+    name: 'Ali & Sana (Urdu Tactical)',
     playByPlay: COMMENTATOR_PERSONAS.find((p) => p.id === 'ali_male_color')!,
     color: COMMENTATOR_PERSONAS.find((p) => p.id === 'sana_female_color')!,
+    chemistry: 'professional',
+  },
+
+  // Hindi Pairs
+  {
+    id: 'vikram_rahul',
+    name: 'Vikram & Rahul (Hindi Classic)',
+    playByPlay: COMMENTATOR_PERSONAS.find((p) => p.id === 'vikram_male_play')!,
+    color: COMMENTATOR_PERSONAS.find((p) => p.id === 'rahul_male_color')!,
+    chemistry: 'professional',
+  },
+  {
+    id: 'ananya_priya',
+    name: "Ananya & Priya (Hindi Ladies' View)",
+    playByPlay: COMMENTATOR_PERSONAS.find((p) => p.id === 'ananya_female_play')!,
+    color: COMMENTATOR_PERSONAS.find((p) => p.id === 'priya_female_color')!,
+    chemistry: 'friendly',
+  },
+  {
+    id: 'vikram_ananya',
+    name: 'Vikram & Ananya (Hindi Mixed)',
+    playByPlay: COMMENTATOR_PERSONAS.find((p) => p.id === 'vikram_male_play')!,
+    color: COMMENTATOR_PERSONAS.find((p) => p.id === 'ananya_female_play')!,
+    chemistry: 'banter',
+  },
+  {
+    id: 'rahul_priya',
+    name: 'Rahul & Priya (Hindi Tactical)',
+    playByPlay: COMMENTATOR_PERSONAS.find((p) => p.id === 'rahul_male_color')!,
+    color: COMMENTATOR_PERSONAS.find((p) => p.id === 'priya_female_color')!,
+    chemistry: 'professional',
+  },
+
+  // English Pairs
+  {
+    id: 'michael_david',
+    name: 'Michael & David (English Classic)',
+    playByPlay: COMMENTATOR_PERSONAS.find((p) => p.id === 'michael_male_play')!,
+    color: COMMENTATOR_PERSONAS.find((p) => p.id === 'david_male_color')!,
+    chemistry: 'professional',
+  },
+  {
+    id: 'sarah_charlotte',
+    name: "Sarah & Charlotte (English Ladies' View)",
+    playByPlay: COMMENTATOR_PERSONAS.find((p) => p.id === 'sarah_female_play')!,
+    color: COMMENTATOR_PERSONAS.find((p) => p.id === 'charlotte_female_color')!,
+    chemistry: 'friendly',
+  },
+  {
+    id: 'michael_sarah',
+    name: 'Michael & Sarah (English Mixed)',
+    playByPlay: COMMENTATOR_PERSONAS.find((p) => p.id === 'michael_male_play')!,
+    color: COMMENTATOR_PERSONAS.find((p) => p.id === 'sarah_female_play')!,
+    chemistry: 'banter',
+  },
+  {
+    id: 'david_charlotte',
+    name: 'David & Charlotte (English Tactical)',
+    playByPlay: COMMENTATOR_PERSONAS.find((p) => p.id === 'david_male_color')!,
+    color: COMMENTATOR_PERSONAS.find((p) => p.id === 'charlotte_female_color')!,
     chemistry: 'professional',
   },
 ];
@@ -383,7 +569,8 @@ function generateFillerCommentary(
   const lines = getFillerLines(lang, context.pressureLevel);
   if (!lines.length) return null;
   let line = pickRandom(lines);
-  if (persona.style.catchphrases.length && Math.random() < 0.2) {
+  // STRICT GUARANTEE: Only append catchphrase if persona's primary language matches the target language!
+  if (persona.primaryLanguage === lang && persona.style.catchphrases.length && Math.random() < 0.2) {
     line += ' ' + pickRandom(persona.style.catchphrases);
   }
   return line;
@@ -400,16 +587,16 @@ function generateTacticalCommentary(
 
   const templates: Record<'hi' | 'ur' | 'en', string[]> = {
     ur: [
-      '{b} اور {n} اچھی طرح سینٹھ ہو چکے ہیں، اب بڑے شاٹس کا انتظار ہے۔',
+      '{b} اور {n} اچھی طرح سیٹ ہو چکے ہیں، اب بڑے شاٹس کا انتظار ہے۔',
       'کپتان {o} کو اپنی لنگتھ میں تبدیلی لانی چاہیے۔',
       'فیلڈنگ میں تبدیلی کا وقت آ گیا ہے، {b} کو روکنے کے لیے۔',
-      'اس شراکہ داری کی那些 مضبوط ہے، {r} رن {balls} بیل پر۔',
+      'اس شراکت داری کی بنیاد مضبوط ہے، {r} رن {balls} گیندوں پر۔',
     ],
     hi: [
       '{b} और {n} अच्छी तरह सेट हो चुके हैं, अब बड़े शॉट्स का इंतजार है।',
       'कप्तान {o} को अपनी लेंथ में बदलाव लाना चाहिए।',
       'फील्डिंग में बदलाव का वक्त आ गया है, {b} को रोकने के लिए।',
-      'इस साझेदारी की बुनियाद मजबूत है, {r} रन {balls} बॉल पर।',
+      'इस साझेदारी की बुनियाद मजबूत है, {r} रन {balls} गेंदों पर।',
     ],
     en: [
       '{b} and {n} are well set now, waiting for the big shots.',
@@ -426,9 +613,10 @@ function generateTacticalCommentary(
   if (!striker || !bowler) return null;
 
   const template = pickRandom(templates[lang]);
+  const fallbackNonStriker = lang === 'ur' ? 'دوسرے بلے باز' : lang === 'hi' ? 'दूसरे बल्लेबाज' : 'the non-striker';
   return template
     .replace('{b}', striker.name)
-    .replace('{n}', nonStriker?.name ?? 'the non-striker')
+    .replace('{n}', nonStriker?.name ?? fallbackNonStriker)
     .replace('{o}', bowler.name)
     .replace('{r}', String(context.partnershipRuns))
     .replace('{balls}', String(context.partnershipBalls));
@@ -441,13 +629,18 @@ function generateEventCommentary(
   lang: 'hi' | 'ur' | 'en'
 ): string {
   const p = event.payload as Record<string, unknown>;
-  const striker = state.batters.find((b) => b.onStrike)?.name ?? 'the batter';
-  const bowler = state.bowler?.name ?? 'the bowler';
+  const fallbackStriker = lang === 'ur' ? 'بلے باز' : lang === 'hi' ? 'बल्लेबाज' : 'the batter';
+  const fallbackBowler = lang === 'ur' ? 'بولر' : lang === 'hi' ? 'गेंदबाज' : 'the bowler';
+  const striker = state.batters.find((b) => b.onStrike)?.name ?? fallbackStriker;
+  const bowler = state.bowler?.name ?? fallbackBowler;
   const batter = String(p.batter ?? p.batterName ?? striker);
   const out = String(p.out ?? striker);
 
-  const excited = persona.style.excitement > 0.7;
-  const catchphrase = persona.style.catchphrases.length ? ' ' + pickRandom(persona.style.catchphrases) : '';
+  // STRICT GUARANTEE: Never leak catchphrases from another language into the selected language!
+  const catchphrase =
+    persona.primaryLanguage === lang && persona.style.catchphrases.length
+      ? ' ' + pickRandom(persona.style.catchphrases)
+      : '';
 
   const templates: Record<'hi' | 'ur' | 'en', Record<string, string[]>> = {
     ur: {
@@ -612,21 +805,24 @@ export class AdvancedCommentaryEngine {
   }
 
   private selectSpeaker(eventType?: string): CommentatorPersona {
+    const lang = this.config.language;
     const pairId = this.config.selectedPair;
     const pair = pairId ? getPairById(pairId) : null;
 
-    if (pair) {
+    // Use selected pair only if its commentators match the configured language!
+    if (pair && pair.playByPlay.primaryLanguage === lang) {
       if (eventType === 'WICKET' || eventType === 'SIX' || eventType === 'FOUR') {
         return Math.random() < 0.5 ? pair.playByPlay : pair.color;
       }
       return pair.playByPlay;
     }
 
-    const personas = getPersonas().filter((p) => p.primaryLanguage === this.config.language);
-    if (!personas.length) return getPersonas()[0]!;
+    // Filter personas strictly matching the target language
+    const personas = getPersonas().filter((p) => p.primaryLanguage === lang);
+    const pool = personas.length ? personas : getPersonas().filter((p) => p.primaryLanguage === 'ur');
 
-    const available = personas.filter((p) => p.id !== this.lastSpeakerId);
-    const speaker = pickRandom(available.length ? available : personas);
+    const available = pool.filter((p) => p.id !== this.lastSpeakerId);
+    const speaker = pickRandom(available.length ? available : pool);
     this.lastSpeakerId = speaker.id;
     return speaker;
   }

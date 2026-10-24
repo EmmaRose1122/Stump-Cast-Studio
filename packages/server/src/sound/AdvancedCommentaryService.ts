@@ -9,7 +9,7 @@ import {
   COMMENTARY_PAIRS,
 } from '@stumpcast/shared';
 import type { EngineEvent, MatchState } from '@stumpcast/shared';
-import { CommentaryTts, type TtsOptions } from './tts';
+import { CommentaryTts, type TtsOptions, type TtsEngine } from './tts';
 
 const MAX_HISTORY = 50;
 const MIN_BALL_GAP_MS = 5_000;
@@ -92,7 +92,7 @@ export class AdvancedCommentaryService {
     return this.engine.getPairById(id);
   }
 
-  async getEngine(lang: 'hi' | 'ur' | 'en' = 'hi'): Promise<'gemini' | 'xtts' | 'system' | 'none'> {
+  async getEngine(lang: 'hi' | 'ur' | 'en' = 'hi'): Promise<TtsEngine> {
     return this.tts.engine(lang);
   }
 

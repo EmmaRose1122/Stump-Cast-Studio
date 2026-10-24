@@ -221,7 +221,7 @@ export const SoundsPage = () => {
           lang?: 'hi' | 'ur' | 'en';
         }>;
         ai?: { enabled: boolean; active: boolean; hasKey: boolean };
-        tts?: { engine: 'gemini' | 'xtts' | 'system' | 'none'; lastError: string | null };
+        tts?: { engine: 'xtts' | 'gemini' | 'cloud' | 'system' | 'none'; lastError: string | null };
         personas?: Array<{
           id: string;
           name: string;
@@ -1297,9 +1297,17 @@ export const SoundsPage = () => {
             <label className="text-xs font-semibold text-muted">Commentary language</label>
             <select
               value={commConfig?.language ?? 'hi'}
-              onChange={(e) =>
-                updateCommConfig.mutate({ language: e.target.value as 'hi' | 'ur' | 'en' })
-              }
+              onChange={(e) => {
+                const lang = e.target.value as 'hi' | 'ur' | 'en';
+                updateCommConfig.mutate({ language: lang });
+                if (lang === 'hi') {
+                  setTestVoiceText('यह टेस्ट आवाज है, आपकी लाइव कमेंट्री ऐसी सुनाई देगी।');
+                } else if (lang === 'en') {
+                  setTestVoiceText('This is a test voice, your live broadcast commentary will sound like this.');
+                } else {
+                  setTestVoiceText('یہ ٹیسٹ آواز ہے، آپ کی کمنٹری کی آواز ایسی لگے گی۔');
+                }
+              }}
               className="w-full rounded-lg border border-border bg-white px-2 py-1.5 text-xs font-semibold"
             >
               <option value="hi">हिन्दी (Hindi — Devanagari)</option>
@@ -1312,7 +1320,7 @@ export const SoundsPage = () => {
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs font-semibold text-muted">Voice (audio out)</label>
+            <label className="text-xs font-semibold text-muted">Voice (Audio Engine)</label>
             <p
               className={`rounded-lg px-2 py-1.5 text-xs font-semibold ${
                 commQuery.data?.tts?.engine === 'none'
@@ -1320,28 +1328,36 @@ export const SoundsPage = () => {
                   : 'bg-emerald-50 text-emerald-700'
               }`}
             >
-              {commQuery.data?.tts?.engine === 'gemini'
-                ? 'Gemini voice — Urdu, Hindi, English'
-                : commQuery.data?.tts?.engine === 'system'
-                  ? 'This PC\'s voice — English only'
-                  : 'No voice installed — captions only'}
+              {commQuery.data?.tts?.engine === 'xtts'
+                ? '🤗 Hugging Face XTTS (Priority 1) — Live'
+                : commQuery.data?.tts?.engine === 'gemini'
+                  ? '✨ Gemini Voice (Priority 2) — Live'
+                  : commQuery.data?.tts?.engine === 'cloud'
+                    ? '☁️ High-Definition Cloud Voice — Live'
+                    : commQuery.data?.tts?.engine === 'system'
+                      ? "🖥️ This PC's Voice"
+                      : 'No voice installed — captions only'}
             </p>
             <p className="text-[10px] text-muted">
-              {commQuery.data?.tts?.engine === 'none'
-                ? 'OBS has no speech engine of its own and this PC has no voice for this script. Add a Gemini key below to get a real voice in Urdu.'
-                : 'Audio is rendered on this machine and played by the overlay.'}
+              {commQuery.data?.tts?.engine === 'xtts'
+                ? 'Hugging Face XTTS is set as Priority 1 for voice rendering.'
+                : commQuery.data?.tts?.engine === 'gemini'
+                  ? 'Gemini TTS (Priority 2) is rendering voices for the live broadcast.'
+                  : commQuery.data?.tts?.engine === 'cloud'
+                    ? 'High-Definition Cloud voice is active — commentary will always speak smoothly.'
+                    : 'Audio is rendered on this machine and played by the overlay.'}
             </p>
             {commQuery.data?.tts?.lastError && (
               // The engine is configured but a line still came back silent: say why instead of
               // leaving the operator to guess between a bad key, a quota and no network.
               <p className="rounded-lg bg-amber-50 px-2 py-1.5 text-[10px] font-semibold text-amber-800">
-                Last line not spoken: {commQuery.data.tts.lastError}
+                Voice notice: {commQuery.data.tts.lastError}
               </p>
             )}
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs font-semibold text-muted">AI narration (Gemini)</label>
+            <label className="text-xs font-semibold text-muted">AI Commentary Writer (Gemini)</label>
             <label className="flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer">
               <input
                 type="checkbox"
@@ -1361,7 +1377,7 @@ export const SoundsPage = () => {
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs font-semibold text-muted">Gemini API key</label>
+            <label className="text-xs font-semibold text-muted">Gemini API Key (Priority 2 Engine)</label>
             <div className="flex gap-2">
               <input
                 type="password"
@@ -1397,7 +1413,7 @@ export const SoundsPage = () => {
               )}
             </div>
             <p className="text-[10px] text-muted">
-              Stored encrypted in this app&apos;s data folder and sent only to Google.
+              Stored encrypted on this PC. Used for AI narration and Gemini voice synthesis.
             </p>
           </div>
         </div>
@@ -1560,11 +1576,13 @@ export const SoundsPage = () => {
                 className="w-full max-w-md rounded-lg border border-border bg-white px-2 py-1.5 text-xs font-semibold"
               >
                 <option value="">Single Commentator (Auto)</option>
-                {commQuery.data?.pairs?.map((pair) => (
-                  <option key={pair.id} value={pair.id}>
-                    {pair.name} — {pair.playByPlay.name} & {pair.color.name} ({pair.chemistry})
-                  </option>
-                ))}
+                {commQuery.data?.pairs
+                  ?.filter((pair) => !commConfig?.language || pair.playByPlay.primaryLanguage === commConfig.language)
+                  .map((pair) => (
+                    <option key={pair.id} value={pair.id}>
+                      {pair.name} — {pair.playByPlay.name} & {pair.color.name} ({pair.chemistry})
+                    </option>
+                  ))}
               </select>
               <p className="text-[10px] text-muted">
                 Duo mode alternates between play-by-play and color commentator for natural conversation.
@@ -1624,13 +1642,15 @@ export const SoundsPage = () => {
           {/* Voice Assignment Per Persona */}
           <div className="mt-6 border-t border-purple-100 pt-4">
             <span className="text-xs font-bold text-muted uppercase tracking-wider">
-              Voice Assignment Per Persona (Urdu Optimized)
+              Voice Assignment Per Persona ({commConfig?.language === 'hi' ? 'Hindi' : commConfig?.language === 'en' ? 'English' : 'Urdu'} Personas)
             </span>
             <p className="text-[10px] text-slate-500 mt-1">
-              Each persona gets its own voice. Gemini voices: <strong>Male:</strong> Kore, Puck, Fenrir, Orus | <strong>Female:</strong> Aoede, Charon, Zephyr, Leda
+              Select specific voice personalities for your live commentators. Gemini voices: <strong>Male:</strong> Kore, Puck, Fenrir, Orus | <strong>Female:</strong> Aoede, Charon, Zephyr, Leda
             </p>
             <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {commQuery.data?.personas?.map((persona) => (
+              {commQuery.data?.personas
+                ?.filter((p) => !commConfig?.language || p.primaryLanguage === commConfig.language)
+                .map((persona) => (
                 <div key={persona.id} className="rounded-xl border border-purple-100 bg-[#fafaff] p-3">
                   <div className="flex items-center gap-2 mb-2">
                     <span className="flex size-6 items-center justify-center rounded-lg bg-purple-100 text-xs font-bold text-purple-700">
@@ -1721,17 +1741,17 @@ export const SoundsPage = () => {
             </div>
           </div>
 
-          {/* XTTS-v2 Fallback Configuration */}
+          {/* Hugging Face (Priority 1) Voice Engine Configuration */}
           <div className="mt-6 border-t border-purple-100 pt-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-2">
                 <span className="text-xl">🤗</span>
                 <div>
                   <h4 className="font-heading text-xs font-bold uppercase tracking-wider text-purple-950">
-                    Hugging Face XTTS-v2 Fallback
+                    Hugging Face (Priority 1 Voice Engine)
                   </h4>
                   <p className="text-[10px] text-slate-500">
-                    High-quality multilingual TTS when Gemini is unavailable or for voice cloning.
+                    Primary TTS voice engine for live broadcast commentary (takes top priority). Add token for XTTS voice synthesis.
                   </p>
                 </div>
               </div>

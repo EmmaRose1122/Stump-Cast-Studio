@@ -101,11 +101,13 @@ describe('ApiProvider', () => {
       now: () => 1000000,
     });
 
-    provider.subscribe('m101', () => {});
+    const received: unknown[] = [];
+    provider.subscribe('m101', (raw) => received.push(raw));
     await provider.pollNow();
     const secondUpdate = await provider.pollNow();
     expect(secondUpdate?.fields.innings[0]?.runs).toBe(145);
     expect(callCount).toBe(2);
+    expect(received).toHaveLength(1);
 
     provider.destroy();
   });
@@ -187,6 +189,96 @@ describe('ApiProvider', () => {
     const mockCount = mockFetch.mock.calls.length;
     await provider.pollNow();
     expect(mockFetch.mock.calls.length).toBe(mockCount);
+
+    provider.destroy();
+  });
+
+  it('honors Retry-After instead of polling again after the fixed fallback', async () => {
+    let nowTime = 1000000;
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 429,
+      headers: new Headers({ 'retry-after': '30' }),
+      json: async () => ({}),
+    });
+    const secrets = new SecretStore({ dataDir: './data/test-secrets' });
+    secrets.setSecret('cricket_api_key', 'test_key_123');
+    const provider = new ApiProvider({
+      vendorAdapter: new CricketDataApiVendor(),
+      secretStore: secrets,
+      fetchFn: mockFetch as unknown as typeof fetch,
+      now: () => nowTime,
+    });
+
+    provider.subscribe('m101', () => {});
+    await provider.pollNow();
+    nowTime += 15000;
+    await provider.pollNow();
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    nowTime += 15000;
+    await provider.pollNow();
+    expect(mockFetch).toHaveBeenCalledTimes(2);
+
+    provider.destroy();
+  });
+
+  it('coalesces concurrent polls for the same match', async () => {
+    let resolveFetch: ((value: unknown) => void) | undefined;
+    const mockFetch = vi.fn().mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveFetch = resolve;
+        }),
+    );
+    const secrets = new SecretStore({ dataDir: './data/test-secrets' });
+    secrets.setSecret('cricket_api_key', 'test_key_123');
+    const provider = new ApiProvider({
+      vendorAdapter: new CricketDataApiVendor(),
+      secretStore: secrets,
+      fetchFn: mockFetch as unknown as typeof fetch,
+    });
+
+    provider.subscribe('m101', () => {});
+    const first = provider.pollNow();
+    const second = provider.pollNow();
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    resolveFetch?.({
+      ok: true,
+      status: 200,
+      headers: new Headers(),
+      json: async () => sampleMatchPayload,
+    });
+    const [a, b] = await Promise.all([first, second]);
+    expect(a?.matchId).toBe('m101');
+    expect(b?.matchId).toBe('m101');
+
+    provider.destroy();
+  });
+
+  it('caches and coalesces match-list requests for 30 seconds', async () => {
+    let nowTime = 1000000;
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: new Headers(),
+      json: async () => ({ data: [{ id: 'm101', name: 'India vs Pakistan', teams: ['India', 'Pakistan'] }] }),
+    });
+    const secrets = new SecretStore({ dataDir: './data/test-secrets' });
+    secrets.setSecret('cricket_api_key', 'test_key_123');
+    const provider = new ApiProvider({
+      vendorAdapter: new CricketDataApiVendor(),
+      secretStore: secrets,
+      fetchFn: mockFetch as unknown as typeof fetch,
+      now: () => nowTime,
+    });
+
+    const [first, second] = await Promise.all([provider.listMatches(), provider.listMatches()]);
+    expect(first).toEqual(second);
+    await provider.listMatches();
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    nowTime += 30001;
+    await provider.listMatches();
+    expect(mockFetch).toHaveBeenCalledTimes(2);
 
     provider.destroy();
   });

@@ -225,7 +225,7 @@
       <div class="header">
         <div class="brand-title">
           <span>StumpCast Studio</span>
-          <span class="badge-brand">v1.0.1</span>
+          <span id="extension-version" class="badge-brand"></span>
         </div>
         <p class="header-sub">Live Cricket Broadcast Scraper & Real-Time Ingestion</p>
       </div>
@@ -277,6 +277,18 @@
             No live Cricbuzz or Crex tabs detected yet. Open a Cricbuzz live score match in another tab!
           </p>
         </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">
+          <span>Extension Data</span>
+        </div>
+        <p style="color: var(--text-sub); font-size: 13px; margin: 0 0 12px 0; line-height: 1.5;">
+          Remove saved match tabs, cached selectors, pairing and reading settings. Open browser tabs and Studio match data will not be deleted.
+        </p>
+        <button id="clear-data" type="button" class="btn btn-danger" style="width: 100%; padding: 12px 20px;">
+          Clear Extension Data
+        </button>
       </div>
 
       <!-- Quick Match Launchers & Testing Card -->

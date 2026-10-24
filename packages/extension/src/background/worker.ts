@@ -39,6 +39,9 @@ const connector = new Connector({
     async remove(key) {
       await chrome.storage.local.remove(key);
     },
+    async clear() {
+      await chrome.storage.local.clear();
+    },
   },
   fetch: (url, init) => fetch(url, init),
   createSocket: (url) => new WebSocket(url) as unknown as SocketLike,
@@ -88,6 +91,23 @@ chrome.runtime.onMessage.addListener((msg: unknown, sender, sendResponse) => {
   }
   if (m.type === 'detect-ports') {
     void connector.detectActivePorts().then((ports) => sendResponse({ ports }));
+    return true;
+  }
+  if (m.type === 'clear-data') {
+    void connector
+      .clearData()
+      .then(async () => {
+        const tabs = await chrome.tabs.query({});
+        await Promise.all(
+          tabs.map((tab) =>
+            tab.id == null
+              ? Promise.resolve()
+              : chrome.tabs.sendMessage(tab.id, { type: 'data-cleared' }).catch(() => undefined),
+          ),
+        );
+        sendResponse({ ok: true });
+      })
+      .catch((err) => sendResponse({ ok: false, error: String(err) }));
     return true;
   }
   if (m.type === 'status') {

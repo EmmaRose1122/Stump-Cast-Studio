@@ -199,6 +199,16 @@ const start = async () => {
     }
   };
 
+  chrome.runtime.onMessage.addListener((msg: unknown) => {
+    if ((msg as { type?: string })?.type !== 'data-cleared') return;
+    applyBundle(null);
+    applyPauseState(false);
+    const cand = getCandidateForUrl(location.href);
+    if (cand) applyCandidate(cand);
+    pipeline?.clearTaps();
+    pipeline?.reset();
+  });
+
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area === 'local') {
       if (changes.readingPaused) {

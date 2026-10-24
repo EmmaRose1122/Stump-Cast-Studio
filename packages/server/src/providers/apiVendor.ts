@@ -8,6 +8,13 @@ export interface ApiVendorAdapter {
   mapPayload(rawVendorPayload: unknown, matchId: string, now?: number): RawUpdate;
 }
 
+const httpError = (res: Response, message: string): Error => {
+  const err = new Error(message) as Error & { status: number; retryAfter?: string };
+  err.status = res.status;
+  err.retryAfter = res.headers.get('retry-after') ?? undefined;
+  return err;
+};
+
 /**
  * Standard Cricket Data API vendor adapter.
  * Supports official JSON fixtures and live endpoints.
@@ -22,7 +29,7 @@ export class CricketDataApiVendor implements ApiVendorAdapter {
 
   async listMatches(apiKey: string, fetchFn: typeof fetch = fetch): Promise<MatchSummary[]> {
     const res = await fetchFn(`${this.baseUrl}/matches?apikey=${encodeURIComponent(apiKey)}`);
-    if (!res.ok) throw new Error(`Vendor API listMatches failed: ${res.status}`);
+    if (!res.ok) throw httpError(res, `Vendor API listMatches failed: ${res.status}`);
     const json = (await res.json()) as { data?: Array<Record<string, unknown>> };
     const list = json.data ?? [];
     return list.map((m) => {
@@ -57,11 +64,7 @@ export class CricketDataApiVendor implements ApiVendorAdapter {
     if (res.status === 304) {
       return { data: null, etag };
     }
-    if (!res.ok) {
-      const err = new Error(`Vendor HTTP Error ${res.status}`);
-      (err as unknown as { status: number }).status = res.status;
-      throw err;
-    }
+    if (!res.ok) throw httpError(res, `Vendor HTTP Error ${res.status}`);
 
     const nextEtag = res.headers.get('etag') ?? undefined;
     const json = await res.json();

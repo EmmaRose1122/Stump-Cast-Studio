@@ -169,7 +169,65 @@ describe('CommentaryTts', () => {
     expect(tts.lastError()).toContain("this PC's voice");
   });
 
+  it('prioritizes Hugging Face XTTS over Gemini when both keys are stored', async () => {
+    const fetchFn = vi.fn(async (url: string) => {
+      if (url.includes('huggingface.co')) {
+        return {
+          ok: true,
+          status: 200,
+          arrayBuffer: async () => wavOf(pcm(1000), 24_000),
+        } as unknown as Response;
+      }
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          candidates: [{ content: { parts: [{ inlineData: { data: pcm(500).toString('base64') } }] } }],
+        }),
+      } as unknown as Response;
+    }) as unknown as typeof fetch;
+
+    const tts = make({
+      getApiKey: () => 'gemini-key',
+      xttsToken: () => 'hf-token',
+      fetchFn,
+    });
+
+    expect(await tts.engine('ur')).toBe('xtts');
+    tts.register('x1', 'چھکا!', 'ur');
+    const wav = await tts.wav('x1');
+    expect(wav).not.toBeNull();
+    // Only Hugging Face should have been queried, Gemini was skipped
+    expect(fetchFn).toHaveBeenCalledTimes(1);
+    expect((fetchFn as unknown as { mock: { calls: [string][] } }).mock.calls[0]![0]).toContain('huggingface.co');
+  });
+
+  it('falls back to cloud voice when external AI keys are unavailable or fail', async () => {
+    const fetchFn = vi.fn(async (url: string) => {
+      if (url.includes('translate.google.com')) {
+        return {
+          ok: true,
+          status: 200,
+          arrayBuffer: async () => Buffer.alloc(1024, 0x55),
+        } as unknown as Response;
+      }
+      return { ok: false, status: 429, text: async () => 'Quota exceeded' } as unknown as Response;
+    }) as unknown as typeof fetch;
+
+    const tts = make({
+      getApiKey: () => 'rate-limited-key',
+      fetchFn,
+      cloudFallback: true,
+    });
+
+    tts.register('c1', 'شاندار چوکا!', 'ur');
+    const audio = await tts.wav('c1');
+    expect(audio).not.toBeNull();
+    expect(audio?.length).toBe(1024);
+    expect(tts.lastError()).toContain('spoken with cloud voice');
+  });
+
   it('answers null for a line nobody registered', async () => {
     expect(await make().wav('nope')).toBeNull();
   });
-});
+});

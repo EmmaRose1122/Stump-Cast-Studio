@@ -8,6 +8,18 @@ import type {
 import type { ApiVendorAdapter } from './apiVendor';
 import { SecretStore } from './SecretStore';
 
+const MATCH_LIST_CACHE_MS = 30_000;
+const DEFAULT_RATE_LIMIT_MS = 15_000;
+const MAX_RATE_LIMIT_MS = 5 * 60_000;
+
+const retryAfterMs = (value: unknown, now: number): number | null => {
+  if (typeof value !== 'string' || !value.trim()) return null;
+  const seconds = Number(value);
+  const delay = Number.isFinite(seconds) ? seconds * 1000 : Date.parse(value) - now;
+  if (!Number.isFinite(delay)) return null;
+  return Math.max(0, Math.min(delay, MAX_RATE_LIMIT_MS));
+};
+
 export interface ApiProviderOptions {
   vendorAdapter: ApiVendorAdapter;
   secretStore?: SecretStore;
@@ -32,6 +44,9 @@ export class ApiProvider implements MatchProvider {
   private subscribers = new Map<string, Set<(raw: unknown) => void>>();
   private latestSnapshots = new Map<string, RawUpdate>();
   private etags = new Map<string, string>();
+  private matchesCache: { key: string; at: number; matches: MatchSummary[] } | null = null;
+  private matchesInFlight: Promise<MatchSummary[]> | null = null;
+  private pollInFlight: { matchId: string; request: Promise<RawUpdate | null> } | null = null;
 
   private pollTimer: ReturnType<typeof setTimeout> | null = null;
   private consecutiveFailures = 0;
@@ -57,6 +72,8 @@ export class ApiProvider implements MatchProvider {
   setApiKey(key: string): void {
     this.secrets.setSecret(this.apiKeyName, key.trim());
     this.consecutiveFailures = 0;
+    this.rateLimitedUntil = 0;
+    this.matchesCache = null;
     if (this.activeMatchId) {
       this.schedulePoll(0);
     }
@@ -65,10 +82,27 @@ export class ApiProvider implements MatchProvider {
   async listMatches(): Promise<MatchSummary[]> {
     const key = this.getApiKey();
     if (!key) return [];
+    if (this.now() < this.rateLimitedUntil) return this.matchesCache?.matches ?? [];
+    if (this.matchesCache?.key === key && this.now() - this.matchesCache.at < MATCH_LIST_CACHE_MS) {
+      return this.matchesCache.matches;
+    }
+    if (this.matchesInFlight) return this.matchesInFlight;
+
+    const request = this.vendor
+      .listMatches(key, this.fetchFn)
+      .then((matches) => {
+        this.matchesCache = { key, at: this.now(), matches };
+        return matches;
+      })
+      .catch((err: unknown) => {
+        this.recordFailure(err);
+        return this.matchesCache?.matches ?? [];
+      });
+    this.matchesInFlight = request;
     try {
-      return await this.vendor.listMatches(key, this.fetchFn);
-    } catch {
-      return [];
+      return await request;
+    } finally {
+      if (this.matchesInFlight === request) this.matchesInFlight = null;
     }
   }
 
@@ -143,8 +177,20 @@ export class ApiProvider implements MatchProvider {
   }
 
   async pollNow(): Promise<RawUpdate | null> {
-    if (!this.activeMatchId || this.isDestroyed) return null;
     const matchId = this.activeMatchId;
+    if (!matchId || this.isDestroyed) return null;
+    if (this.pollInFlight?.matchId === matchId) return this.pollInFlight.request;
+
+    const request = this.performPoll(matchId);
+    this.pollInFlight = { matchId, request };
+    try {
+      return await request;
+    } finally {
+      if (this.pollInFlight?.request === request) this.pollInFlight = null;
+    }
+  }
+
+  private async performPoll(matchId: string): Promise<RawUpdate | null> {
     const key = this.getApiKey();
     if (!key) {
       this.consecutiveFailures++;
@@ -168,30 +214,28 @@ export class ApiProvider implements MatchProvider {
 
       let update: RawUpdate | null;
       if (res.data === null) {
-        // 304 Not Modified
         update = this.latestSnapshots.get(matchId) ?? null;
         if (!update) return null;
       } else {
         update = this.vendor.mapPayload(res.data, matchId, this.lastSuccessAt);
         this.latestSnapshots.set(matchId, update);
-      }
-
-      const subs = this.subscribers.get(matchId);
-      if (subs) {
-        for (const cb of subs) {
-          cb(update);
-        }
+        for (const cb of this.subscribers.get(matchId) ?? []) cb(update);
       }
       return update;
     } catch (err: unknown) {
-      this.consecutiveFailures++;
-      const status = (err as { status?: number }).status;
-      if (status === 429) {
-        this.rateLimitedUntil = this.now() + 15000;
-      } else if (status === 401 || status === 403) {
-        this.consecutiveFailures = 5; // Mark down immediately on auth failure
-      }
+      this.recordFailure(err);
       return null;
+    }
+  }
+
+  private recordFailure(err: unknown): void {
+    this.consecutiveFailures++;
+    const { status, retryAfter } = err as { status?: number; retryAfter?: string };
+    if (status === 429) {
+      const delay = retryAfterMs(retryAfter, this.now()) ?? DEFAULT_RATE_LIMIT_MS;
+      this.rateLimitedUntil = Math.max(this.rateLimitedUntil, this.now() + delay);
+    } else if (status === 401 || status === 403) {
+      this.consecutiveFailures = 5;
     }
   }
 
@@ -203,12 +247,13 @@ export class ApiProvider implements MatchProvider {
       this.pollTimer = null;
     }
 
-    const wait =
+    const backoff =
       delayMs !== undefined
         ? delayMs
         : this.consecutiveFailures > 0
           ? Math.min(this.pollIntervalLive * Math.pow(2, this.consecutiveFailures), 60000)
           : this.pollIntervalLive;
+    const wait = Math.max(backoff, this.rateLimitedUntil - this.now());
 
     this.pollTimer = setTimeout(async () => {
       if (generation !== this.pollGeneration) return;

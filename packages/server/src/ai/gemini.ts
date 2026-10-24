@@ -108,9 +108,16 @@ export class GeminiCommentator {
       s.partnership ? `partnership ${s.partnership.runs} from ${s.partnership.balls}` : '',
     ].filter(Boolean);
 
+    const commentatorRole =
+      req.lang === 'ur'
+        ? 'You are an Urdu cricket radio commentator on a live broadcast.'
+        : req.lang === 'hi'
+        ? 'You are a Hindi cricket radio commentator on a live broadcast.'
+        : 'You are an English cricket radio commentator on a live broadcast.';
+
     return [
-      `You are the Hindi/Urdu radio commentator on a live ${s.format} cricket broadcast.`,
-      `Reply in ${LANGUAGE_NAME[req.lang]} only. ${SCRIPT_NOTE[req.lang]}`,
+      `${commentatorRole} on this ${s.format} match.`,
+      `Reply strictly in ${LANGUAGE_NAME[req.lang]} only. Do not mix any words or script from other languages. ${SCRIPT_NOTE[req.lang]}`,
       `Just happened: ${req.moment}.`,
       `Match facts: ${facts.join('; ')}.`,
       'Write ONE sentence of natural spoken commentary, 6 to 18 words, that a real commentator',

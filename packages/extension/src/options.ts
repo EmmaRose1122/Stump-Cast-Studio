@@ -9,6 +9,8 @@ interface StatusReply {
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
+$('extension-version').textContent = `v${chrome.runtime.getManifest().version}`;
+
 let autoPairAttempted = false;
 
 const renderStatus = (s: StatusReply | undefined) => {
@@ -194,6 +196,37 @@ $('unpair').addEventListener('click', () => {
       refresh();
     })
     .catch(() => undefined);
+});
+
+$('clear-data').addEventListener('click', () => {
+  if (!window.confirm('Clear all saved extension data? Open browser tabs and Studio match data will not be deleted.')) {
+    return;
+  }
+
+  const btn = $<HTMLButtonElement>('clear-data');
+  const msg = $('message');
+  btn.disabled = true;
+  btn.textContent = 'Clearing…';
+  msg.className = 'message';
+  msg.textContent = 'Removing saved extension data…';
+
+  chrome.runtime
+    .sendMessage({ type: 'clear-data' })
+    .then((r: { ok?: boolean }) => {
+      if (!r?.ok) throw new Error('Clear failed');
+      autoPairAttempted = false;
+      msg.className = 'message success';
+      msg.textContent = 'Extension data cleared. Open matches will be read afresh.';
+      refresh();
+    })
+    .catch(() => {
+      msg.className = 'message error';
+      msg.textContent = 'Could not clear extension data. Reload the extension and try again.';
+    })
+    .finally(() => {
+      btn.disabled = false;
+      btn.textContent = 'Clear Extension Data';
+    });
 });
 
 refresh();

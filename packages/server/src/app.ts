@@ -485,6 +485,7 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
     cacheDir: config.dataDir,
     voice: () => 'Kore',
     xttsToken: () => secrets.getSecret('xtts_token') ?? process.env.HUGGINGFACE_TOKEN ?? null,
+    cloudFallback: true,
   };
 
   const advancedCommentary = new AdvancedCommentaryService(
@@ -1212,8 +1213,10 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
     if (!wav) {
       return reply.code(404).send({ error: 'No voice available', reason: tts.lastError() });
     }
+    const isMp3 = (wav[0] === 0x49 && wav[1] === 0x44 && wav[2] === 0x33) || (wav[0] === 0xff && (wav[1]! & 0xe0) === 0xe0);
+    const contentType = isMp3 ? 'audio/mpeg' : 'audio/wav';
     return reply
-      .header('content-type', 'audio/wav')
+      .header('content-type', contentType)
       .header('cache-control', 'public, max-age=86400')
       .send(wav);
   });
@@ -1225,8 +1228,10 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
     if (!wav) {
       return reply.code(404).send({ error: 'No voice for this line', reason: tts.lastError() });
     }
+    const isMp3 = (wav[0] === 0x49 && wav[1] === 0x44 && wav[2] === 0x33) || (wav[0] === 0xff && (wav[1]! & 0xe0) === 0xe0);
+    const contentType = isMp3 ? 'audio/mpeg' : 'audio/wav';
     return reply
-      .header('content-type', 'audio/wav')
+      .header('content-type', contentType)
       .header('cache-control', 'public, max-age=86400')
       .send(wav);
   });

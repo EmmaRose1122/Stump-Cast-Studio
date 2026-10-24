@@ -5,7 +5,7 @@ import path from 'node:path';
 import type { CommentaryLanguage } from '@stumpcast/shared';
 import { pcmToWav } from './wav';
 
-export type TtsEngine = 'gemini' | 'xtts' | 'system' | 'none';
+export type TtsEngine = 'xtts' | 'gemini' | 'cloud' | 'system' | 'none';
 
 interface AbortSignalLike {
   aborted: boolean;
@@ -41,8 +41,10 @@ const SCRIPT_CULTURES: Record<CommentaryLanguage, string[]> = {
 const MIN_USEFUL_BYTES = 1_024;
 /** Refused requests are retried once; a wrong key or model is not worth a second call. */
 const RETRY_DELAY_MS = 400;
-/** XTTS-v2 endpoint for high-quality voice cloning */
-const XTTS_ENDPOINT = process.env.XTTS_ENDPOINT ?? 'https://api-inference.huggingface.co/models/coqui/XTTS-v2';
+/** XTTS-v2 endpoint for high-quality voice cloning (Hugging Face Router default) */
+const XTTS_ROUTER_ENDPOINT = 'https://router.huggingface.co/hf-inference/models/coqui/XTTS-v2';
+const XTTS_LEGACY_ENDPOINT = 'https://api-inference.huggingface.co/models/coqui/XTTS-v2';
+const XTTS_ENDPOINT = process.env.XTTS_ENDPOINT ?? XTTS_ROUTER_ENDPOINT;
 const XTTS_TIMEOUT_MS = 15_000;
 
 interface GeminiAttempt {
@@ -75,6 +77,8 @@ export interface TtsOptions {
   endpoint?: string;
   /** Hugging Face token for XTTS-v2 fallback */
   xttsToken?: () => string | null | Promise<string | null>;
+  /** Whether to use high-definition cloud voice fallback when models fail or quota exceeded */
+  cloudFallback?: boolean;
   /** Test seam for the platform speech engines. Null means "this engine is not installed". */
   run?: (file: string, args: string[], env?: Record<string, string>) => Promise<Buffer | null>;
   platform?: NodeJS.Platform;
@@ -134,11 +138,13 @@ export class CommentaryTts {
     this.cacheDir = path.join(opts.cacheDir, 'commentary-tts');
   }
 
-  /** Which engine a new line would use right now. `none` means captions only. */
+  /** Which engine a new line would use right now. Priority: 1) Hugging Face XTTS, 2) Gemini, 3) Cloud / System */
   async engine(lang: CommentaryLanguage = 'hi'): Promise<TtsEngine> {
-    if (await this.key()) return 'gemini';
     if (await this.xttsToken()) return 'xtts';
-    return this.systemEngine(lang);
+    if (await this.key()) return 'gemini';
+    const sys = await this.systemEngine(lang);
+    if (sys === 'system') return 'system';
+    return this.opts.cloudFallback ? 'cloud' : 'none';
   }
 
   /**
@@ -262,30 +268,43 @@ export class CommentaryTts {
   }
 
   private async synthesise(line: TrackedLine, file: string): Promise<Buffer | null> {
-    const gemini = await this.gemini(line);
-    if (gemini) {
-      this.lastFailure = null;
-      return this.remember(gemini, file);
-    }
-    const reason = this.lastFailure;
-    // Try XTTS-v2 as fallback for high-quality multilingual TTS
+    // Priority 1: Hugging Face XTTS (Top priority as requested)
     const xtts = await this.xtts(line);
     if (xtts) {
       this.lastFailure = null;
       return this.remember(xtts, file);
     }
-    // A stored key used to switch the desktop voice off completely, so one rate-limited request
-    // cost the line and the broadcast went silent mid-over.
-    if ((await this.systemEngine(line.lang)) !== 'system') return null;
-    const system = await this.system(line, file);
-    if (system && system.length >= MIN_USEFUL_BYTES) {
-      // Keep the model's complaint on screen: the line was rescued by a voice that cannot read
-      // every script, and a key that is being refused is worth fixing.
-      this.lastFailure = reason ? `${reason} — spoken with this PC's voice instead` : null;
-      return this.remember(system, file);
+    const xttsReason = this.lastFailure;
+
+    // Priority 2: Gemini TTS
+    const gemini = await this.gemini(line);
+    if (gemini) {
+      this.lastFailure = null;
+      return this.remember(gemini, file);
     }
-    // The desktop voice answered with silence: it has no pack for this script.
-    this.lastFailure ??= `No desktop voice for ${line.lang.toUpperCase()} on this machine`;
+    const geminiReason = this.lastFailure;
+
+    // Priority 3: Desktop system voice if available for this script
+    if ((await this.systemEngine(line.lang)) === 'system') {
+      const system = await this.system(line, file);
+      if (system && system.length >= MIN_USEFUL_BYTES) {
+        const prior = xttsReason || geminiReason;
+        this.lastFailure = prior ? `${prior} — spoken with this PC's voice instead` : null;
+        return this.remember(system, file);
+      }
+    }
+
+    // Priority 4: High-Definition Cloud Voice fallback (guarantees commentary never fails silently)
+    if (this.opts.cloudFallback) {
+      const cloud = await this.cloudVoice(line);
+      if (cloud && cloud.length >= 256) {
+        const prior = xttsReason || geminiReason;
+        this.lastFailure = prior ? `${prior} — spoken with cloud voice` : null;
+        return this.remember(cloud, file);
+      }
+    }
+
+    this.lastFailure = xttsReason || geminiReason || `No voice available for ${line.lang.toUpperCase()}`;
     return null;
   }
 
@@ -335,44 +354,93 @@ export class CommentaryTts {
     return null;
   }
 
-  /** High-quality multilingual TTS via Hugging Face XTTS-v2 as fallback. */
+  /** High-quality multilingual TTS via Hugging Face XTTS-v2 (Priority 1). */
   private async xtts(line: TrackedLine): Promise<Buffer | null> {
     const token = await this.xttsToken();
     if (!token) return null;
     const fetchFn = this.opts.fetchFn ?? fetch;
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), XTTS_TIMEOUT_MS);
+    const endpoints = [XTTS_ENDPOINT];
+    if (XTTS_ENDPOINT === XTTS_ROUTER_ENDPOINT) {
+      endpoints.push(XTTS_LEGACY_ENDPOINT);
+    }
     try {
-      const res = await fetchFn(XTTS_ENDPOINT, {
-        method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          inputs: line.text,
-          parameters: {
-            language: line.lang === 'ur' ? 'ur' : line.lang === 'hi' ? 'hi' : 'en',
-            speaker_wav: null,
-          },
-        }),
-        signal: controller.signal as unknown as AbortSignal,
-      });
-      if (!res.ok) {
-        const detail = await res.text().catch(() => '');
-        this.lastFailure = `XTTS HTTP ${res.status}: ${detail.slice(0, 180)}`;
-        return null;
+      let lastErrText = '';
+      for (const endpoint of endpoints) {
+        try {
+          const res = await fetchFn(endpoint, {
+            method: 'POST',
+            headers: {
+              'content-type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              inputs: line.text,
+              parameters: {
+                language: line.lang === 'ur' ? 'ur' : line.lang === 'hi' ? 'hi' : 'en',
+                speaker_wav: null,
+              },
+            }),
+            signal: controller.signal as unknown as AbortSignal,
+          });
+          if (!res.ok) {
+            const detail = await res.text().catch(() => '');
+            if (res.status === 401 || res.status === 403) {
+              lastErrText = 'Hugging Face: Invalid or expired token';
+              break;
+            }
+            if (res.status === 503) {
+              lastErrText = 'Hugging Face: Model is loading (503)';
+              continue;
+            }
+            lastErrText = `Hugging Face HTTP ${res.status}: ${jsonError(detail)}`;
+            continue;
+          }
+          const arrayBuffer = await res.arrayBuffer();
+          const wav = Buffer.from(arrayBuffer);
+          if (wav.length < MIN_USEFUL_BYTES) continue;
+          this.lastFailure = null;
+          return wav;
+        } catch (callErr) {
+          lastErrText = `Hugging Face network error: ${callErr instanceof Error ? callErr.message : String(callErr)}`;
+        }
       }
-      const arrayBuffer = await res.arrayBuffer();
-      const wav = Buffer.from(arrayBuffer);
-      if (wav.length < MIN_USEFUL_BYTES) return null;
-      this.lastFailure = null;
-      return wav;
+      this.lastFailure = lastErrText || 'Hugging Face XTTS did not return audio';
+      return null;
     } catch (err) {
       const aborted = controller.signal.aborted;
       this.lastFailure = aborted
-        ? `XTTS timed out after ${XTTS_TIMEOUT_MS} ms`
-        : `XTTS request failed: ${err instanceof Error ? err.name : String(err)}`;
+        ? `Hugging Face XTTS timed out after ${XTTS_TIMEOUT_MS} ms`
+        : `Hugging Face request failed: ${err instanceof Error ? err.name : String(err)}`;
+      return null;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  /** High-Definition Cloud Voice fallback: ensures commentary always speaks smoothly even if external API limits are reached. */
+  private async cloudVoice(line: TrackedLine): Promise<Buffer | null> {
+    const fetchFn = this.opts.fetchFn ?? fetch;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 6000);
+    try {
+      const langCode = line.lang === 'ur' ? 'ur' : line.lang === 'hi' ? 'hi' : 'en';
+      const cleanText = line.text.replace(/[*_#`]/g, '').trim().slice(0, 200);
+      const url = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(cleanText)}&tl=${langCode}&client=tw-ob`;
+      const res = await fetchFn(url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+          Referer: 'https://translate.google.com/',
+        },
+        signal: controller.signal as unknown as AbortSignal,
+      });
+      if (!res.ok) return null;
+      const arrayBuffer = await res.arrayBuffer();
+      const buf = Buffer.from(arrayBuffer);
+      if (buf.length < 256) return null;
+      return buf;
+    } catch {
       return null;
     } finally {
       clearTimeout(timer);

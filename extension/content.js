@@ -7859,6 +7859,7 @@
     context: CommentaryContextSchema
   });
   var COMMENTATOR_PERSONAS = [
+    // Urdu (ur)
     {
       id: "raza_male_play",
       name: "Raza Ahmed",
@@ -7918,35 +7919,216 @@
         catchphrases: ["\u062F\u06CC\u06A9\u06BE\u062A\u06D2 \u06C1\u06CC\u06BA", "\u0627\u0633\u062A\u0631\u0627\u062A\u0698\u06CC", "\u0645\u06CC\u062F\u0627\u0646 \u0645\u06CC\u06BA \u062A\u0628\u062F\u06CC\u0644\u06CC", "\u0628\u0648\u0644\u0631 \u06A9\u06D2 \u0644\u06CC\u06D2 \u0686\u06CC\u0644\u0646\u062C"]
       },
       urduVoice: { male: "Orus", female: "Charon" }
+    },
+    // Hindi (hi)
+    {
+      id: "vikram_male_play",
+      name: "Vikram Sharma",
+      gender: "male",
+      role: "play_by_play",
+      voiceName: "Kore",
+      primaryLanguage: "hi",
+      style: {
+        excitement: 0.85,
+        technicality: 0.6,
+        conversational: 0.4,
+        catchphrases: ["\u0936\u093E\u0928\u0926\u093E\u0930!", "\u0915\u094D\u092F\u093E \u092C\u093E\u0924 \u0939\u0948!", "\u091C\u092C\u0930\u0926\u0938\u094D\u0924!", "\u092C\u0947\u0939\u0924\u0930\u0940\u0928 \u0936\u0949\u091F!"]
+      },
+      urduVoice: { male: "Kore", female: "Puck" }
+    },
+    {
+      id: "rahul_male_color",
+      name: "Rahul Verma",
+      gender: "male",
+      role: "color",
+      voiceName: "Puck",
+      primaryLanguage: "hi",
+      style: {
+        excitement: 0.6,
+        technicality: 0.9,
+        conversational: 0.7,
+        catchphrases: ["\u0927\u094D\u092F\u093E\u0928 \u0930\u0939\u0947", "\u0924\u0915\u0928\u0940\u0915\u0940 \u0924\u094C\u0930 \u092A\u0930", "\u0930\u0923\u0928\u0940\u0924\u093F \u092F\u0939 \u0939\u0948", "\u092E\u0948\u0926\u093E\u0928 \u0915\u0940 \u0938\u094D\u0925\u093F\u0924\u093F"]
+      },
+      urduVoice: { male: "Puck", female: "Charon" }
+    },
+    {
+      id: "ananya_female_play",
+      name: "Ananya Patel",
+      gender: "female",
+      role: "play_by_play",
+      voiceName: "Aoede",
+      primaryLanguage: "hi",
+      style: {
+        excitement: 0.85,
+        technicality: 0.5,
+        conversational: 0.6,
+        catchphrases: ["\u0915\u094D\u092F\u093E \u0936\u0949\u091F \u0939\u0948!", "\u092C\u0939\u0941\u0924 \u0916\u0942\u092C!", "\u0932\u093E\u091C\u0935\u093E\u092C!", "\u0926\u093F\u0932 \u091C\u0940\u0924 \u0932\u093F\u092F\u093E!"]
+      },
+      urduVoice: { male: "Fenrir", female: "Aoede" }
+    },
+    {
+      id: "priya_female_color",
+      name: "Priya Sharma",
+      gender: "female",
+      role: "color",
+      voiceName: "Charon",
+      primaryLanguage: "hi",
+      style: {
+        excitement: 0.5,
+        technicality: 0.85,
+        conversational: 0.8,
+        catchphrases: ["\u0926\u0947\u0916\u0924\u0947 \u0939\u0948\u0902", "\u0930\u0923\u0928\u0940\u0924\u093F", "\u092E\u0948\u0926\u093E\u0928 \u092E\u0947\u0902 \u092C\u0926\u0932\u093E\u0935", "\u092C\u0949\u0932\u0930 \u0915\u0947 \u0932\u093F\u090F \u091A\u0941\u0928\u094C\u0924\u0940"]
+      },
+      urduVoice: { male: "Orus", female: "Charon" }
+    },
+    // English (en)
+    {
+      id: "michael_male_play",
+      name: "Michael Vaughan",
+      gender: "male",
+      role: "play_by_play",
+      voiceName: "Kore",
+      primaryLanguage: "en",
+      style: {
+        excitement: 0.85,
+        technicality: 0.6,
+        conversational: 0.4,
+        catchphrases: ["Magnificent!", "Shot of the day!", "Pure class!", "Unbelievable strike!"]
+      },
+      urduVoice: { male: "Kore", female: "Puck" }
+    },
+    {
+      id: "david_male_color",
+      name: "David Lloyd",
+      gender: "male",
+      role: "color",
+      voiceName: "Puck",
+      primaryLanguage: "en",
+      style: {
+        excitement: 0.65,
+        technicality: 0.9,
+        conversational: 0.7,
+        catchphrases: ["Start the car!", "Tactically speaking", "Look at that field placement", "Under pressure here"]
+      },
+      urduVoice: { male: "Puck", female: "Charon" }
+    },
+    {
+      id: "sarah_female_play",
+      name: "Sarah Taylor",
+      gender: "female",
+      role: "play_by_play",
+      voiceName: "Aoede",
+      primaryLanguage: "en",
+      style: {
+        excitement: 0.85,
+        technicality: 0.5,
+        conversational: 0.6,
+        catchphrases: ["What a delivery!", "Brilliant batting!", "Sensational!", "Absolute perfection!"]
+      },
+      urduVoice: { male: "Fenrir", female: "Aoede" }
+    },
+    {
+      id: "charlotte_female_color",
+      name: "Charlotte Edwards",
+      gender: "female",
+      role: "color",
+      voiceName: "Charon",
+      primaryLanguage: "en",
+      style: {
+        excitement: 0.5,
+        technicality: 0.85,
+        conversational: 0.8,
+        catchphrases: ["Keep an eye on this", "Smart cricket", "Field adjustment needed", "Big over ahead"]
+      },
+      urduVoice: { male: "Orus", female: "Charon" }
     }
   ];
   var COMMENTARY_PAIRS = [
+    // Urdu Pairs
     {
       id: "raza_ali",
-      name: "Raza & Ali (Classic Duo)",
+      name: "Raza & Ali (Urdu Classic)",
       playByPlay: COMMENTATOR_PERSONAS.find((p) => p.id === "raza_male_play"),
       color: COMMENTATOR_PERSONAS.find((p) => p.id === "ali_male_color"),
       chemistry: "professional"
     },
     {
       id: "zara_sana",
-      name: "Zara & Sana (Ladies' View)",
+      name: "Zara & Sana (Urdu Ladies' View)",
       playByPlay: COMMENTATOR_PERSONAS.find((p) => p.id === "zara_female_play"),
       color: COMMENTATOR_PERSONAS.find((p) => p.id === "sana_female_color"),
       chemistry: "friendly"
     },
     {
       id: "raza_zara",
-      name: "Raza & Zara (Mixed Pair)",
+      name: "Raza & Zara (Urdu Mixed)",
       playByPlay: COMMENTATOR_PERSONAS.find((p) => p.id === "raza_male_play"),
       color: COMMENTATOR_PERSONAS.find((p) => p.id === "zara_female_play"),
       chemistry: "banter"
     },
     {
       id: "ali_sana",
-      name: "Ali & Sana (Tactical Mix)",
+      name: "Ali & Sana (Urdu Tactical)",
       playByPlay: COMMENTATOR_PERSONAS.find((p) => p.id === "ali_male_color"),
       color: COMMENTATOR_PERSONAS.find((p) => p.id === "sana_female_color"),
+      chemistry: "professional"
+    },
+    // Hindi Pairs
+    {
+      id: "vikram_rahul",
+      name: "Vikram & Rahul (Hindi Classic)",
+      playByPlay: COMMENTATOR_PERSONAS.find((p) => p.id === "vikram_male_play"),
+      color: COMMENTATOR_PERSONAS.find((p) => p.id === "rahul_male_color"),
+      chemistry: "professional"
+    },
+    {
+      id: "ananya_priya",
+      name: "Ananya & Priya (Hindi Ladies' View)",
+      playByPlay: COMMENTATOR_PERSONAS.find((p) => p.id === "ananya_female_play"),
+      color: COMMENTATOR_PERSONAS.find((p) => p.id === "priya_female_color"),
+      chemistry: "friendly"
+    },
+    {
+      id: "vikram_ananya",
+      name: "Vikram & Ananya (Hindi Mixed)",
+      playByPlay: COMMENTATOR_PERSONAS.find((p) => p.id === "vikram_male_play"),
+      color: COMMENTATOR_PERSONAS.find((p) => p.id === "ananya_female_play"),
+      chemistry: "banter"
+    },
+    {
+      id: "rahul_priya",
+      name: "Rahul & Priya (Hindi Tactical)",
+      playByPlay: COMMENTATOR_PERSONAS.find((p) => p.id === "rahul_male_color"),
+      color: COMMENTATOR_PERSONAS.find((p) => p.id === "priya_female_color"),
+      chemistry: "professional"
+    },
+    // English Pairs
+    {
+      id: "michael_david",
+      name: "Michael & David (English Classic)",
+      playByPlay: COMMENTATOR_PERSONAS.find((p) => p.id === "michael_male_play"),
+      color: COMMENTATOR_PERSONAS.find((p) => p.id === "david_male_color"),
+      chemistry: "professional"
+    },
+    {
+      id: "sarah_charlotte",
+      name: "Sarah & Charlotte (English Ladies' View)",
+      playByPlay: COMMENTATOR_PERSONAS.find((p) => p.id === "sarah_female_play"),
+      color: COMMENTATOR_PERSONAS.find((p) => p.id === "charlotte_female_color"),
+      chemistry: "friendly"
+    },
+    {
+      id: "michael_sarah",
+      name: "Michael & Sarah (English Mixed)",
+      playByPlay: COMMENTATOR_PERSONAS.find((p) => p.id === "michael_male_play"),
+      color: COMMENTATOR_PERSONAS.find((p) => p.id === "sarah_female_play"),
+      chemistry: "banter"
+    },
+    {
+      id: "david_charlotte",
+      name: "David & Charlotte (English Tactical)",
+      playByPlay: COMMENTATOR_PERSONAS.find((p) => p.id === "david_male_color"),
+      color: COMMENTATOR_PERSONAS.find((p) => p.id === "charlotte_female_color"),
       chemistry: "professional"
     }
   ];
@@ -9397,6 +9579,15 @@
         startObserving();
       }
     };
+    chrome.runtime.onMessage.addListener((msg) => {
+      if (msg?.type !== "data-cleared") return;
+      applyBundle(null);
+      applyPauseState(false);
+      const cand = getCandidateForUrl(location.href);
+      if (cand) applyCandidate(cand);
+      pipeline?.clearTaps();
+      pipeline?.reset();
+    });
     chrome.storage.onChanged.addListener((changes, area) => {
       if (area === "local") {
         if (changes.readingPaused) {

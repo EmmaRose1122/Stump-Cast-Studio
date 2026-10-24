@@ -49,6 +49,7 @@ export interface ConnectorDeps {
     get(key: string): Promise<unknown>;
     set(key: string, value: unknown): Promise<void>;
     remove(key: string): Promise<void>;
+    clear(): Promise<void>;
   };
   fetch: (url: string, init?: RequestInit) => Promise<Response>;
   createSocket(url: string): SocketLike;
@@ -217,6 +218,24 @@ export class Connector {
     if (!this.killed) {
       void this.autoPair();
     }
+  }
+
+  async clearData(): Promise<void> {
+    await this.pairInFlight;
+    this.teardown(true);
+    this.token = null;
+    this.port = null;
+    this.killed = false;
+    this.started = false;
+    this.activeSelectorsVersion = null;
+    this.tracked.clear();
+    this.lastDiscoveryAt = null;
+    this.lastPairFailureAt = null;
+    this.peerTokens.clear();
+    this.peerPorts = [];
+    this.peerProbeAt = null;
+    this.backoff = BACKOFF_START_MS;
+    await this.deps.storage.clear();
   }
 
   // ---- messages from content scripts ------------------------------------------------------
