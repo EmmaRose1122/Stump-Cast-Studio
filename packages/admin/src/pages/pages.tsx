@@ -1,9 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { Settings } from '@stumpcast/shared';
+import { slug, whatsappUrl, type Settings, type Team } from '@stumpcast/shared';
 import clsx from 'clsx';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { api, keysApi, selectorsApi } from '../lib/api';
+import { assetsApi } from '../lib/assetsApi';
+import { rosterFromTeam, type RosterPlayer } from '../lib/squadRoster';
+import { PlayerAvatar, TeamCrest } from '../lib/teamCrests';
 import { ProLooksModal } from '../shell/ProLooksModal';
 import { useAdmin } from '../store';
 import { Button, Card, Dialog } from '../ui';
@@ -41,8 +44,104 @@ export const SettingsPage = () => {
   const [cardScale, setCardScale] = useState(1.45);
   const [sideCardScale, setSideCardScale] = useState(1.0);
   const [cardWidth, setCardWidth] = useState<'narrow' | 'normal' | 'wide'>('wide');
-  const [selectedModel, setSelectedModel] = useState('gemini-2.5-flash');
   const [showProLooks, setShowProLooks] = useState(false);
+  /** Players whose photo the operator picked to save, by name. */
+  const [pickedPlayers, setPickedPlayers] = useState<Set<string>>(new Set());
+  const [savingPhotos, setSavingPhotos] = useState(false);
+
+  // The squad panel below shows the on-stream match's real line-up, so the operator can see which
+  // players still have no picture anywhere and save the photo the score site publishes.
+  const matches = useQuery({ queryKey: ['matches'], queryFn: api.matches, refetchInterval: 5000 });
+  const onStreamMatch =
+    matches.data?.find((m) => m.id === settings.data?.onStreamMatchId) ?? matches.data?.[0];
+  const savedPlayerIds = useQuery({
+    queryKey: ['assets', 'settings-player-ids'],
+    queryFn: async () => {
+      const first = await assetsApi.list({ type: 'player', pageSize: 200, page: 1 });
+      const pages = Math.ceil(first.total / 200);
+      const rest =
+        pages > 1
+          ? await Promise.all(
+              Array.from({ length: pages - 1 }, (_, i) =>
+                assetsApi.list({ type: 'player', pageSize: 200, page: i + 2 }),
+              ),
+            )
+          : [];
+      return new Set([first, ...rest].flatMap((p) => p.items).map((a) => a.id.toLowerCase()));
+    },
+  });
+  const hasSavedAsset = (name: string): boolean => {
+    const s = slug(name);
+    const ids = savedPlayerIds.data;
+    return Boolean(ids?.has(s) || ids?.has(`player-${s}`));
+  };
+  /** A tile is ready when it can paint a face: a saved asset, or the photo the site published. */
+  const playerReady = (p: RosterPlayer): boolean => Boolean(p.imageUrl) || hasSavedAsset(p.name);
+
+  const panelTeams: Team[] = onStreamMatch?.teams ?? [];
+  const rosterOf = (team: Team): RosterPlayer[] => rosterFromTeam(team, undefined, undefined).players;
+  const panelPlayers = panelTeams.flatMap((t) => rosterOf(t));
+  const allMissing = panelPlayers.filter((p) => !playerReady(p));
+  const pickedWithoutPhoto = panelPlayers.filter((p) => pickedPlayers.has(p.name) && !p.imageUrl).length;
+
+  const togglePick = (name: string) =>
+    setPickedPlayers((prev) => {
+      const next = new Set(prev);
+      if (next.has(name)) next.delete(name);
+      else next.add(name);
+      return next;
+    });
+
+  const pickMissingIn = (team: Team) =>
+    setPickedPlayers((prev) => {
+      const next = new Set(prev);
+      for (const p of rosterOf(team)) if (!playerReady(p)) next.add(p.name);
+      return next;
+    });
+
+  /**
+   * Saves the published photo for every picked player. There is no image generator in this build,
+   * and inventing a face for a real cricketer is worse than leaving the tile empty — so a player
+   * the site has no picture of is reported, not fabricated.
+   */
+  const savePickedPhotos = async () => {
+    const targets = panelPlayers.filter((p) => pickedPlayers.has(p.name));
+    const withPhoto = targets.filter((p): p is RosterPlayer & { imageUrl: string } => Boolean(p.imageUrl));
+    const skipped = targets.length - withPhoto.length;
+    if (withPhoto.length === 0) {
+      toast({
+        title: 'Nothing to save',
+        description: `${skipped} selected player(s) have no photo on the score site — upload one instead.`,
+        kind: 'info',
+      });
+      return;
+    }
+    setSavingPhotos(true);
+    let saved = 0;
+    let failed = 0;
+    for (const player of withPhoto) {
+      try {
+        await assetsApi.importUrl({
+          type: 'player',
+          name: player.name,
+          url: player.imageUrl,
+          rights: true,
+        });
+        saved++;
+      } catch {
+        failed++;
+      }
+    }
+    setSavingPhotos(false);
+    setPickedPlayers(new Set());
+    void qc.invalidateQueries({ queryKey: ['assets'] });
+    void qc.invalidateQueries({ queryKey: ['missing'] });
+    toast({
+      title: failed ? `Saved ${saved}, ${failed} failed` : `Saved ${saved} player photo${saved === 1 ? '' : 's'}`,
+      description: skipped ? `${skipped} skipped — the site has no photo for them.` : undefined,
+      kind: failed ? 'error' : 'success',
+    });
+  };
   const [keyModalOpen, setKeyModalOpen] = useState(false);
   const [activeKeyTab, setActiveKeyTab] = useState<'gemini' | 'cricket' | 'openai'>('gemini');
   const [geminiKeyInput, setGeminiKeyInput] = useState('');
@@ -285,7 +384,7 @@ export const SettingsPage = () => {
             SEE PRO LOOKS
           </button>
           <a
-            href="https://wa.me/?text=Hi%20StumpCast%2C%20I%20want%20a%20Pro%20Look"
+            href={whatsappUrl('Hi StumpCast, I want a Pro Look')}
             target="_blank"
             rel="noreferrer"
             className="rounded-lg border border-blue-200 bg-white px-3.5 py-1.5 text-xs font-bold text-blue-700 transition hover:bg-blue-50 shadow-xs"
@@ -373,9 +472,9 @@ export const SettingsPage = () => {
                 📋 Copy Machine ID
               </button>
               <a
-                href={`https://wa.me/?text=${encodeURIComponent(
+                href={whatsappUrl(
                   `Hi StumpCast, here is my Computer Machine ID for Pro License:\n${machineId || ''}`,
-                )}`}
+                )}
                 target="_blank"
                 rel="noreferrer"
                 className="rounded-lg border border-emerald-300 bg-emerald-50 px-3.5 py-1.5 text-xs font-bold text-emerald-800 hover:bg-emerald-100 transition shadow-xs flex items-center gap-1.5"
@@ -512,7 +611,7 @@ export const SettingsPage = () => {
                     void qc.invalidateQueries({ queryKey: ['app-update'] });
                   } else {
                     toast({
-                      title: `StumpCast Studio is running the latest version (v${data.currentVersion ?? '1.0.7'})`,
+                      title: `StumpCast Studio is running the latest version (v${data.currentVersion ?? '—'})`,
                       kind: 'info',
                     });
                   }
@@ -843,14 +942,15 @@ export const SettingsPage = () => {
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="font-heading text-sm font-bold uppercase tracking-wider text-blue-950">
-                  AI IMAGE GENERATOR
+                  SQUAD PHOTOS &amp; TEAM LOGOS
                 </h2>
-                <span className="rounded bg-orange-100 px-1.5 py-0.2 text-[9px] font-bold text-orange-700 uppercase">
-                  BETA
+                <span className="rounded bg-emerald-100 px-1.5 py-0.2 text-[9px] font-bold text-emerald-700 uppercase">
+                  LIVE DATA
                 </span>
               </div>
               <p className="text-xs text-slate-500">
-                Generate player portraits &amp; team logos using Gemini Imagen 3 or OpenAI DALL-E 3. Images are saved to disk and appear live on the overlay instantly.
+                Saves the photo each player&apos;s score page publishes, so every lower third has a real
+                face. Players the site has no picture of are left for you to upload — nothing is invented.
               </p>
             </div>
           </div>
@@ -867,159 +967,118 @@ export const SettingsPage = () => {
           </button>
         </div>
 
-        {/* AI Model Selection */}
-        <div>
-          <div className="flex items-center justify-between text-xs text-slate-500 mb-2">
-            <span className="font-bold uppercase tracking-wider">AI GENERATION MODEL:</span>
-            <span className="text-blue-600 font-semibold">Free / Low quota</span>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-            {[
-              { id: 'gemini-2.5-flash', provider: 'GEMINI', name: 'Gemini 2.5 Flash', tag: 'Key required', rec: true },
-              { id: 'gemini-3.1-flash', provider: 'GEMINI', name: 'Gemini 3.1 Flash', tag: 'Key required' },
-              { id: 'gemini-3-pro', provider: 'GEMINI', name: 'Gemini 3 Pro', tag: 'Key required' },
-              { id: 'dalle-3', provider: 'OPENAI', name: 'DALL-E 3', tag: 'Key required' },
-              { id: 'dalle-2', provider: 'OPENAI', name: 'DALL-E 2', tag: 'Key required' },
-            ].map((m) => (
-              <button
-                key={m.id}
-                onClick={() => setSelectedModel(m.id)}
-                className={clsx(
-                  'rounded-xl border p-3 text-left transition shadow-xs',
-                  selectedModel === m.id
-                    ? 'border-orange-500 bg-orange-50/50 shadow-sm'
-                    : 'border-blue-200 bg-white hover:border-orange-300',
-                )}
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase">{m.provider}</span>
-                  <span className="size-2 rounded-full bg-orange-400" />
-                </div>
-                <h4 className="mt-1 font-heading text-xs font-bold text-slate-800 truncate">{m.name}</h4>
-                <p className="text-[10px] text-slate-500 mt-0.5">{m.tag}</p>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Gemini recommendation notice */}
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-blue-200 bg-blue-50/60 p-3 text-xs">
-          <p className="text-blue-900">
-            <span className="font-bold text-blue-950">Gemini 2.5 Flash:</span> Fast, broadcast-quality portraits &amp; badges via Google AI Studio API key. (Recommended)
-          </p>
-          <button
-            onClick={() => {
-              setActiveKeyTab('gemini');
-              setKeyModalOpen(true);
-            }}
-            className={clsx(
-              'flex items-center gap-1 rounded-lg px-3 py-1 font-bold text-white uppercase transition shadow-xs',
-              aiKeys.data?.gemini?.hasKey
-                ? 'bg-emerald-600 hover:bg-emerald-700'
-                : 'bg-orange-500 hover:bg-orange-600',
-            )}
-          >
-            <span>{aiKeys.data?.gemini?.hasKey ? '✓' : '⚠️'}</span>{' '}
-            {aiKeys.data?.gemini?.hasKey ? 'Gemini Key Active' : 'Configure Gemini Key'}
-          </button>
-        </div>
-
-        {/* ON-PITCH PLAYERS & TEAMS */}
+        {/* ON-PITCH PLAYERS & TEAMS — real line-up, real photos */}
         <div className="border-t border-blue-100 pt-4">
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-600">
               🏟️ ON-PITCH PLAYERS &amp; TEAMS
             </span>
-            <span className="text-xs font-bold text-emerald-600 uppercase">2/2 READY</span>
-          </div>
-
-          <div className="flex gap-4">
-            <div className="flex items-center gap-3 rounded-xl border border-blue-200 bg-white p-3 shadow-xs">
-              <span className="text-2xl">🇿🇦</span>
-              <div>
-                <span className="text-xs font-bold text-slate-900 block">South Africa</span>
-                <span className="text-[10px] text-blue-700 font-semibold">[RSA] team</span>
-              </div>
-              <span className="size-2 rounded-full bg-emerald-500 ml-2" />
-            </div>
-
-            <div className="flex items-center gap-3 rounded-xl border border-blue-200 bg-white p-3 shadow-xs">
-              <span className="text-2xl">🇦🇺</span>
-              <div>
-                <span className="text-xs font-bold text-slate-900 block">Australia</span>
-                <span className="text-[10px] text-blue-700 font-semibold">[AUS] team</span>
-              </div>
-              <span className="size-2 rounded-full bg-emerald-500 ml-2" />
-            </div>
-          </div>
-        </div>
-
-        {/* Squad Selection Blocks */}
-        <div className="border-t border-blue-100 pt-4">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-900">
-              👥 RSA (RSA) 11 squad members
+            <span className="text-[11px] font-semibold text-slate-500">
+              {onStreamMatch ? onStreamMatch.title : 'No match on stream'}
             </span>
-            <button className="text-xs text-blue-600 font-semibold hover:underline">
-              + select missing (3)
-            </button>
           </div>
-          <div className="flex gap-2 overflow-x-auto pb-2">
-            {['RSA Badge', 'Aiden Markram', 'Ryan Rickelton', 'David Bedingham', 'Temba Bavuma', 'Tristan Stubbs', 'Wiaan Mulder', 'Kyle Verreynne'].map((p, i) => (
-              <div key={p} className="flex flex-col items-center justify-center rounded-xl border border-blue-200 bg-white p-2 min-w-[80px] shadow-xs">
-                <div className="relative">
-                  <span className="text-lg">👤</span>
-                  <span className={clsx('absolute -top-1 -right-1 size-2 rounded-full', i % 3 === 0 ? 'bg-orange-400' : 'bg-emerald-500')} />
+          {panelTeams.length === 0 && (
+            <p className="text-[11px] text-slate-500">
+              No line-up has been scraped for this match yet. Open its squads page once so the
+              extension can read it.
+            </p>
+          )}
+          {panelTeams.map((team) => {
+            const roster = rosterOf(team);
+            const missing = roster.filter((p) => !playerReady(p));
+            return (
+              <div key={team.id} className="mb-4 last:mb-0">
+                <div className="flex items-center gap-3 mb-2">
+                  <TeamCrest team={team} className="size-8 rounded" />
+                  <span className="text-xs font-bold text-slate-900">{team.name}</span>
+                  <span className="text-[10px] font-semibold text-blue-700">[{team.short}] team</span>
                 </div>
-                <span className="text-[10px] font-bold text-slate-800 mt-1 text-center truncate w-full">{p}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="border-t border-blue-100 pt-4">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-900">
-              👥 AUS (AUS) 11 squad members
-            </span>
-            <button className="text-xs text-blue-600 font-semibold hover:underline">
-              + select missing (5)
-            </button>
-          </div>
-          <div className="flex gap-2 overflow-x-auto pb-2">
-            {['AUS Badge', 'Travis Head', 'Nic Maddinson', 'Marnus Labuschagne', 'Steven Smith', 'Matt Renshaw', 'Alex Carey', 'Beau Webster'].map((p, i) => (
-              <div key={p} className="flex flex-col items-center justify-center rounded-xl border border-blue-200 bg-white p-2 min-w-[80px] shadow-xs">
-                <div className="relative">
-                  <span className="text-lg">👤</span>
-                  <span className={clsx('absolute -top-1 -right-1 size-2 rounded-full', i % 2 === 0 ? 'bg-orange-400' : 'bg-emerald-500')} />
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                    👥 {team.short} ({team.short}) {roster.length} squad members
+                  </span>
+                  <button
+                    type="button"
+                    disabled={missing.length === 0}
+                    onClick={() => pickMissingIn(team)}
+                    className="text-xs font-semibold text-blue-600 hover:underline disabled:text-slate-400 disabled:no-underline"
+                  >
+                    + select missing ({missing.length})
+                  </button>
                 </div>
-                <span className="text-[10px] font-bold text-slate-800 mt-1 text-center truncate w-full">{p}</span>
+                <div className="flex gap-2 overflow-x-auto pb-2">
+                  {roster.map((p) => {
+                    const picked = pickedPlayers.has(p.name);
+                    const ready = playerReady(p);
+                    return (
+                      <button
+                        key={p.name}
+                        type="button"
+                        onClick={() => togglePick(p.name)}
+                        title={ready ? p.name + ' — photo available' : p.name + ' — no photo yet'}
+                        className={clsx(
+                          'flex w-[84px] shrink-0 flex-col items-center rounded-xl border bg-white p-2 shadow-xs transition',
+                          picked
+                            ? 'border-orange-500 ring-2 ring-orange-300'
+                            : 'border-blue-200 hover:border-orange-300',
+                        )}
+                      >
+                        <div className="relative flex size-10 items-center justify-center rounded-lg border border-blue-200 bg-blue-50/40 p-0.5">
+                          <PlayerAvatar
+                            name={p.name}
+                            srcs={[p.imageUrl, '/assets/players/' + slug(p.name) + '.webp']}
+                            className="max-h-full max-w-full"
+                          />
+                          <span
+                            className={clsx(
+                              'absolute -right-1 -top-1 size-2.5 rounded-full border border-white',
+                              ready ? 'bg-emerald-500' : 'bg-orange-400',
+                            )}
+                          />
+                        </div>
+                        <span className="mt-1 w-full truncate text-center text-[10px] font-bold text-slate-800">
+                          {p.name}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-            ))}
-          </div>
+            );
+          })}
         </div>
 
         {/* Action Buttons */}
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-blue-100 pt-4">
           <span className="text-[11px] text-slate-500">
-            AI cutout generation is not wired up in this build, so these stay disabled rather
-            than reporting a save that never happened.
+            {pickedPlayers.size === 0
+              ? 'Pick players to save their published photo to disk for OBS.'
+              : pickedPlayers.size +
+                ' selected' +
+                (pickedWithoutPhoto
+                  ? ' · ' + pickedWithoutPhoto + ' have no published photo and will be skipped'
+                  : '') +
+                '.'}
           </span>
           <div className="flex gap-2">
             <button
-              disabled
-              title="No server endpoint for cutout selection yet"
-              className="rounded-lg border border-blue-200 bg-slate-50 px-4 py-2 text-xs font-bold uppercase text-slate-400 shadow-xs"
+              type="button"
+              disabled={allMissing.length === 0}
+              onClick={() => setPickedPlayers(new Set(allMissing.map((p) => p.name)))}
+              className="rounded-lg border border-blue-200 bg-white px-4 py-2 text-xs font-bold uppercase text-blue-700 hover:bg-blue-50 disabled:text-slate-400 shadow-xs"
             >
               SELECT ALL MISSING
             </button>
             <button
-              disabled
-              title="No image-generation endpoint yet"
-              className="flex items-center gap-1.5 rounded-lg bg-slate-200 px-5 py-2 text-xs font-bold uppercase tracking-wider text-slate-500 shadow-sm"
+              type="button"
+              disabled={pickedPlayers.size === 0 || savingPhotos}
+              onClick={() => void savePickedPhotos()}
+              className="flex items-center gap-1.5 rounded-lg bg-orange-500 px-5 py-2 text-xs font-bold uppercase tracking-wider text-white hover:bg-orange-600 disabled:bg-slate-200 disabled:text-slate-500 shadow-sm"
             >
-              <span>🎨</span> GENERATE SELECTED
+              <span>⬇</span>{' '}
+              {savingPhotos
+                ? 'Saving…'
+                : 'SAVE ' + (pickedPlayers.size || '') + (pickedPlayers.size === 1 ? ' PHOTO' : ' PHOTOS')}
             </button>
           </div>
         </div>

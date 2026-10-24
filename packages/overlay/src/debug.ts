@@ -15,6 +15,7 @@ export interface OverlayParams {
   /** Design QA page: every card against the fixtures. */
   gallery: boolean;
   resolution?: boolean;
+  commMute?: boolean;
 }
 
 export const parseParams = (search: string): OverlayParams => {
@@ -40,6 +41,10 @@ export const parseParams = (search: string): OverlayParams => {
   };
   if (p.has('resolution')) {
     res.resolution = p.get('resolution') === '1' || p.get('resolution') === 'true';
+  }
+  if (p.has('commMute') || p.has('mute')) {
+    const val = p.get('commMute') ?? p.get('mute');
+    res.commMute = val === '1' || val === 'true';
   }
   return res;
 };

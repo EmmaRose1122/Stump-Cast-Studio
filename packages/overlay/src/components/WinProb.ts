@@ -62,6 +62,9 @@ export class WinProb extends OverlayComponent {
     this.e.b.textContent = bowl.short;
     this.e.fillA.style.width = `${(pBat * 100).toFixed(1)}%`;
     this.e.fillA.style.background = bat.color;
+    if (this.e.fillA.parentElement) {
+      this.e.fillA.parentElement.style.background = bowl.color;
+    }
     const pctBat = Math.round(pBat * 100);
     // One number, not two: rounding both halves independently can put 101% on air.
     const pctBowl = 100 - pctBat;

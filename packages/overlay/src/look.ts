@@ -27,6 +27,8 @@ export const applyLook = (look: Look, root: HTMLElement = document.documentEleme
   root.dataset.look = look.id;
   root.dataset.scorePosition = look.layoutVariant.scorePosition;
   root.dataset.playerCard = look.layoutVariant.playerCardStyle;
+  root.dataset.middleLayout = look.layoutVariant.middleLayout;
+  root.dataset.playerOrder = look.layoutVariant.playerOrder;
   root.dataset.scoreBar = look.tokens.scoreBarShape;
   root.dataset.boundary = look.layoutVariant.boundaryStyle;
   root.dataset.entrance = look.motion.entrance;

@@ -3,6 +3,7 @@ import clsx from 'clsx';
 import { useEffect, useRef, useState } from 'react';
 import { api, ApiError, keysApi } from '../lib/api';
 import { monitor, listOutputDevices } from '../lib/monitor';
+import type { SoundSlot } from '@stumpcast/shared';
 import { soundsApi, type SoundOverview } from '../lib/sounds';
 import { useAdmin } from '../store';
 import { Button, Dialog } from '../ui';
@@ -28,38 +29,59 @@ type CommPatch = Partial<{
 const CROWD_SOUND_MAP: Record<string, string> = {
   cheer: '/assets/sounds/crowd-cheer-roar.mp3',
   roar: '/assets/sounds/crowd-cheer-roar.mp3',
+  'crowd-cheer-roar': '/assets/sounds/crowd-cheer-roar.mp3',
   clap: '/assets/sounds/crowd-chants-claps.mp3',
   chants: '/assets/sounds/crowd-chants-claps.mp3',
+  'crowd-chants-claps': '/assets/sounds/crowd-chants-claps.mp3',
   four: '/assets/sounds/boundary-four-burst.mp3',
+  'boundary-four-burst': '/assets/sounds/boundary-four-burst.mp3',
   six: '/assets/sounds/crowd-cheer-roar.mp3',
   wicket: '/assets/sounds/wicket-fall-gasp.mp3',
+  'wicket-fall-gasp': '/assets/sounds/wicket-fall-gasp.mp3',
   murmur: '/assets/sounds/stadium-murmur.mp3',
+  'stadium-murmur': '/assets/sounds/stadium-murmur.mp3',
   whistle: '/assets/sounds/stadium-whistles-applause.mp3',
+  'stadium-whistles-applause': '/assets/sounds/stadium-whistles-applause.mp3',
+};
+
+export const resolveAudioUrl = (typeOrUrl: string): string => {
+  if (!typeOrUrl) return '';
+  const lower = typeOrUrl.toLowerCase().trim();
+  if (CROWD_SOUND_MAP[lower]) return CROWD_SOUND_MAP[lower];
+  if (lower.startsWith('/') || lower.startsWith('http://') || lower.startsWith('https://')) {
+    return lower;
+  }
+  if (lower.startsWith('sounds/')) {
+    return `/assets/${lower}`;
+  }
+  if (lower.includes('/') || lower.includes('.')) {
+    return `/assets/${lower}`;
+  }
+  return `/assets/sounds/${lower}.mp3`;
 };
 
 /** Play audio locally in the operator's headphones using real audio assets or Web Audio API synthesis */
-const playLocalAudio = (typeOrUrl: string, gainLevel: number) => {
+const playLocalAudio = (typeOrUrl: string, gainLevel: number): HTMLAudioElement | null => {
   try {
-    const mapped = CROWD_SOUND_MAP[typeOrUrl.toLowerCase()];
-    const resolvedUrl =
-      mapped ||
-      (typeOrUrl.includes('/') || typeOrUrl.includes('.')
-        ? typeOrUrl.startsWith('/')
-          ? typeOrUrl
-          : `/assets/${typeOrUrl}`
-        : null);
-
+    const resolvedUrl = resolveAudioUrl(typeOrUrl);
     if (resolvedUrl) {
       const audio = new Audio(resolvedUrl);
-      audio.volume = Math.max(0, Math.min(1, gainLevel));
-      audio.play().catch(() => undefined);
-      return;
+      const safeGain = Number.isFinite(gainLevel) ? Math.max(0, Math.min(1, gainLevel)) : 0.8;
+      audio.volume = safeGain;
+      audio.play().catch((err) => {
+        console.warn('Audio playback error for:', resolvedUrl, err);
+      });
+      return audio;
     }
+  } catch (err) {
+    console.warn('playLocalAudio exception:', err);
+  }
 
+  try {
     const AudioCtx =
       window.AudioContext ||
       (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-    if (!AudioCtx) return;
+    if (!AudioCtx) return null;
     const ctx = new AudioCtx();
     const now = ctx.currentTime;
     const masterGain = ctx.createGain();
@@ -139,6 +161,7 @@ const playLocalAudio = (typeOrUrl: string, gainLevel: number) => {
   } catch {
     // web audio unavailable
   }
+  return null;
 };
 
 export const SoundsPage = () => {
@@ -330,12 +353,6 @@ export const SoundsPage = () => {
       setCustomCommentary('');
       void qc.invalidateQueries({ queryKey: ['commentary'] });
       toast({ title: '🎙️ Commentary broadcast live!', description: vars.text, kind: 'success' });
-      if (headphoneMonitor && typeof window !== 'undefined' && 'speechSynthesis' in window) {
-        const u = new SpeechSynthesisUtterance(vars.text);
-        u.volume = commQuery.data?.config?.volume ?? 1;
-        u.rate = commQuery.data?.config?.rate ?? 1.05;
-        window.speechSynthesis.speak(u);
-      }
     },
     onError,
   });
@@ -402,6 +419,318 @@ export const SoundsPage = () => {
   const loopCount = slots.filter((s) => s.includeInLoop).length;
   const isLoopRunning = Boolean(data?.loopRunning);
 
+  // Active Loop & One-Shot Audio Elements ref for Stadium Crowd Audio Station
+  const loopAudiosRef = useRef<Map<string, HTMLAudioElement>>(new Map());
+  const activeOneShotsRef = useRef<Set<HTMLAudioElement>>(new Set());
+  // Off by default: the station monitor used to start itself, so merely opening this page with a
+  // loop running pulled every ambient mp3 without a click — which is what a download manager
+  // intercepted as a "Save As" dialog. It is now an explicit opt-in.
+  const [stationMonitor, setStationMonitor] = useState(false);
+
+  // Audio output device & Headphone monitor integration
+  const [outputs, setOutputs] = useState<{ id: string; label: string }[]>([]);
+  const [outputId, setOutputId] = useState<string | null>(null);
+
+  const switchMonitor = async (on: boolean) => {
+    if (!on) {
+      monitor.disable();
+      setHeadphoneMonitor(false);
+      return;
+    }
+    try {
+      if (!outputs.length) setOutputs(await listOutputDevices());
+      await monitor.enable(outputId);
+      setHeadphoneMonitor(true);
+    } catch (e) {
+      setHeadphoneMonitor(false);
+      toast({ title: 'Headphone monitor unavailable', description: errText(e), kind: 'error' });
+    }
+  };
+
+  const pickOutput = async (id: string) => {
+    setOutputId(id);
+    if (monitor.isEnabled) await monitor.setDevice(id);
+  };
+
+  /** Play track locally and track active element so Audio Monitor OFF / Stop All can silence it */
+  const playTrackAudio = (typeOrUrl: string, gainLevel: number): HTMLAudioElement | null => {
+    if (!stationMonitor) return null;
+    const audio = playLocalAudio(typeOrUrl, gainLevel);
+    if (audio) {
+      activeOneShotsRef.current.add(audio);
+      audio.onended = () => activeOneShotsRef.current.delete(audio);
+      audio.onerror = () => activeOneShotsRef.current.delete(audio);
+    }
+    return audio;
+  };
+
+  // Track individual volumes (in percent 0-100)
+  const [trackVols, setTrackVols] = useState<Record<string, number>>({});
+
+  const getTrackVol = (slot: SoundSlot): number => {
+    const val = trackVols[slot.id];
+    if (val !== undefined) {
+      return val;
+    }
+    return Math.round((slot.volume ?? 1) * 100);
+  };
+
+  const handleTrackVolChange = (id: string, newVol: number) => {
+    setTrackVols((prev) => ({ ...prev, [id]: newVol }));
+    const audio = loopAudiosRef.current.get(id);
+    if (audio) {
+      audio.volume = Math.max(0, Math.min(1, (master / 100) * (newVol / 100)));
+    }
+  };
+
+  const commitTrackVol = (slot: SoundSlot) => {
+    const vol = trackVols[slot.id];
+    if (vol === undefined) return;
+    const volFraction = Math.max(0, Math.min(1, vol / 100));
+    update.mutate({ id: slot.id, volume: volFraction });
+  };
+
+  const handleResetTrackVol = (slot: SoundSlot, targetVol = 100) => {
+    handleTrackVolChange(slot.id, targetVol);
+    update.mutate({ id: slot.id, volume: targetVol / 100 });
+  };
+
+  /** Toggle Audio Monitor ON / OFF */
+  const handleToggleAudioMonitor = async () => {
+    if (stationMonitor) {
+      // Turn OFF / MUTE immediately
+      setStationMonitor(false);
+      await switchMonitor(false);
+
+      // Stop all background loop audio elements
+      for (const audio of loopAudiosRef.current.values()) {
+        try {
+          audio.pause();
+          audio.currentTime = 0;
+        } catch {
+          /* ignore */
+        }
+      }
+      loopAudiosRef.current.clear();
+
+      // Stop all active one-shot sound effects
+      for (const audio of activeOneShotsRef.current) {
+        try {
+          audio.pause();
+          audio.currentTime = 0;
+        } catch {
+          /* ignore */
+        }
+      }
+      activeOneShotsRef.current.clear();
+
+      toast({
+        title: '🔇 Audio Monitor: MUTED',
+        description: 'Local speaker and headphone monitoring disabled',
+        kind: 'info',
+      });
+    } else {
+      // Turn ON: Enable local monitoring
+      setStationMonitor(true);
+      await switchMonitor(true);
+
+      // If loop is already running on the server, immediately resume playing locally
+      if (isLoopRunning) {
+        const loopSlots = slots.filter((s) => s.includeInLoop);
+        const activeSlots = loopSlots.length > 0 ? loopSlots : [
+          {
+            id: 'stadium-murmur',
+            title: 'Stadium Crowd Ambient (Loop)',
+            file: 'sounds/stadium-murmur.mp3',
+            includeInLoop: true,
+            volume: 0.85,
+          },
+        ];
+        for (const s of activeSlots) {
+          try {
+            const url = resolveAudioUrl(s.file);
+            let audio = loopAudiosRef.current.get(s.id);
+            if (!audio) {
+              audio = new Audio(url);
+              audio.loop = true;
+              loopAudiosRef.current.set(s.id, audio);
+            }
+            const localVol = trackVols[s.id];
+            const trackVol = (localVol !== undefined ? localVol / 100 : s.volume) ?? 1;
+            audio.volume = Math.max(0, Math.min(1, (master / 100) * trackVol));
+            audio.play().catch((err) => console.warn('Audio monitor resume error:', err));
+          } catch (e) {
+            console.warn('Error starting loop audio on monitor ON:', e);
+          }
+        }
+      }
+
+      toast({
+        title: '🔊 Audio Monitor: ON',
+        description: 'Local speaker and headphone monitoring enabled',
+        kind: 'success',
+      });
+    }
+  };
+
+  // Synchronize continuous background loop audio
+  useEffect(() => {
+    if (!isLoopRunning || !stationMonitor) {
+      for (const audio of loopAudiosRef.current.values()) {
+        try {
+          audio.pause();
+          audio.currentTime = 0;
+        } catch {
+          /* ignore */
+        }
+      }
+      loopAudiosRef.current.clear();
+      return;
+    }
+
+    const loopSlots = slots.filter((s) => s.includeInLoop);
+    // If no slots are marked for loop, fallback to the default ambient stadium murmur
+    const activeSlots = loopSlots.length > 0 ? loopSlots : [
+      {
+        id: 'stadium-murmur',
+        title: 'Stadium Crowd Ambient (Loop)',
+        file: 'sounds/stadium-murmur.mp3',
+        includeInLoop: true,
+        volume: 0.85,
+      },
+    ];
+
+    const activeIds = new Set(activeSlots.map((s) => s.id));
+    for (const [id, audio] of loopAudiosRef.current.entries()) {
+      if (!activeIds.has(id)) {
+        try {
+          audio.pause();
+        } catch {
+          /* ignore */
+        }
+        loopAudiosRef.current.delete(id);
+      }
+    }
+
+    for (const s of activeSlots) {
+      const localVol = trackVols[s.id];
+      const trackVol = (localVol !== undefined ? localVol / 100 : s.volume) ?? 1;
+      const targetVol = Math.max(0, Math.min(1, (master / 100) * trackVol));
+      let audio = loopAudiosRef.current.get(s.id);
+      if (!audio) {
+        const url = resolveAudioUrl(s.file);
+        audio = new Audio(url);
+        audio.loop = true;
+        audio.volume = targetVol;
+        loopAudiosRef.current.set(s.id, audio);
+      } else {
+        audio.volume = targetVol;
+      }
+      if (audio.paused) {
+        audio.play().catch((err) => {
+          console.warn(`Loop audio play failed for ${s.id}:`, err);
+        });
+      }
+    }
+  }, [isLoopRunning, stationMonitor, slots, master, trackVols]);
+
+  // Clean up loop and punch audio on unmount
+  useEffect(() => {
+    return () => {
+      for (const audio of loopAudiosRef.current.values()) {
+        try {
+          audio.pause();
+          audio.currentTime = 0;
+        } catch {
+          /* ignore */
+        }
+      }
+      loopAudiosRef.current.clear();
+
+      for (const audio of activeOneShotsRef.current) {
+        try {
+          audio.pause();
+          audio.currentTime = 0;
+        } catch {
+          /* ignore */
+        }
+      }
+      activeOneShotsRef.current.clear();
+      monitor.disable();
+    };
+  }, []);
+
+  const handleStopAll = () => {
+    for (const audio of loopAudiosRef.current.values()) {
+      try {
+        audio.pause();
+        audio.currentTime = 0;
+      } catch {
+        /* ignore */
+      }
+    }
+    loopAudiosRef.current.clear();
+
+    for (const audio of activeOneShotsRef.current) {
+      try {
+        audio.pause();
+        audio.currentTime = 0;
+      } catch {
+        /* ignore */
+      }
+    }
+    activeOneShotsRef.current.clear();
+
+    control.mutate(soundsApi.stopAll);
+    toast({ title: '🔴 All stadium sounds and loops muted', kind: 'info' });
+  };
+
+  const handleToggleLoop = () => {
+    if (isLoopRunning) {
+      for (const audio of loopAudiosRef.current.values()) {
+        try {
+          audio.pause();
+          audio.currentTime = 0;
+        } catch {
+          /* ignore */
+        }
+      }
+      loopAudiosRef.current.clear();
+      control.mutate(soundsApi.loopStop);
+      toast({ title: 'Stadium crowd ambient murmur stopped', kind: 'info' });
+    } else {
+      if (stationMonitor) {
+        const loopSlots = slots.filter((s) => s.includeInLoop);
+        const activeSlots = loopSlots.length > 0 ? loopSlots : [
+          {
+            id: 'stadium-murmur',
+            title: 'Stadium Crowd Ambient (Loop)',
+            file: 'sounds/stadium-murmur.mp3',
+            includeInLoop: true,
+            volume: 0.85,
+          },
+        ];
+        for (const s of activeSlots) {
+          try {
+            const url = resolveAudioUrl(s.file);
+            let audio = loopAudiosRef.current.get(s.id);
+            if (!audio) {
+              audio = new Audio(url);
+              audio.loop = true;
+              loopAudiosRef.current.set(s.id, audio);
+            }
+            audio.volume = Math.max(0, Math.min(1, (master / 100) * (s.volume ?? 1)));
+            audio.play().catch((err) => console.warn('Direct loop play error:', err));
+          } catch (e) {
+            console.warn('Error starting loop audio immediately:', e);
+          }
+        }
+      }
+      control.mutate(soundsApi.loopStart);
+      toast({ title: '🏟️ Stadium crowd ambient loop started!', kind: 'success' });
+    }
+  };
+
   // Sliders used to PUT on every input event: a one-second drag fired dozens of concurrent
   // settings writes, the last response won, and the handle snapped back mid-drag.
   const masterSaved = useRef<number | null>(null);
@@ -427,32 +756,6 @@ export const SoundsPage = () => {
     setCommDraft({});
   };
 
-  // The headphone monitor existed but was never switched on, so the `sound` channel was dropped.
-  const [outputs, setOutputs] = useState<{ id: string; label: string }[]>([]);
-  const [outputId, setOutputId] = useState<string | null>(null);
-  const switchMonitor = async (on: boolean) => {
-    if (!on) {
-      monitor.disable();
-      setHeadphoneMonitor(false);
-      return;
-    }
-    try {
-      if (!outputs.length) setOutputs(await listOutputDevices());
-      await monitor.enable(outputId);
-      // Only now is the monitor actually running. Setting this first left the switch showing
-      // "on" after enable() rejected, so the operator heard nothing and was not told why.
-      setHeadphoneMonitor(true);
-    } catch (e) {
-      setHeadphoneMonitor(false);
-      toast({ title: 'Headphone monitor unavailable', description: errText(e), kind: 'error' });
-    }
-  };
-  const pickOutput = async (id: string) => {
-    setOutputId(id);
-    if (monitor.isEnabled) await monitor.setDevice(id);
-  };
-
-  useEffect(() => () => monitor.disable(), []);
 
   const loadPreset = useMutation({
     mutationFn: (id: string) => soundsApi.preset(id),
@@ -479,19 +782,13 @@ export const SoundsPage = () => {
 
   const handleInstantCrowd = async (soundIdOrName: string) => {
     if (soundIdOrName === 'murmur') {
-      if (isLoopRunning) {
-        control.mutate(soundsApi.loopStop);
-        toast({ title: 'Stadium crowd ambient murmur stopped', kind: 'info' });
-      } else {
-        control.mutate(soundsApi.loopStart);
-        toast({ title: '🏟️ Stadium ambient murmur loop playing!', kind: 'success' });
-      }
+      handleToggleLoop();
       return;
     }
 
-    // With the monitor on, the operator already hears the track through the `sound` channel;
-    // playing it locally as well doubled it.
-    if (!headphoneMonitor) playLocalAudio(soundIdOrName, master / 100);
+    if (stationMonitor) {
+      playTrackAudio(soundIdOrName, master / 100);
+    }
 
     const norm = soundIdOrName.toLowerCase();
     const slot = slots.find((s) => {
@@ -599,7 +896,7 @@ export const SoundsPage = () => {
         </div>
 
         <button
-          onClick={() => control.mutate(soundsApi.stopAll)}
+          onClick={handleStopAll}
           className="flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-1 text-xs font-bold text-red-700 transition hover:bg-red-100 shadow-xs active:scale-95 ml-auto"
           title="Stop all currently playing crowd sounds and loops"
         >
@@ -620,8 +917,16 @@ export const SoundsPage = () => {
                 <h2 className="font-heading text-base font-bold uppercase tracking-wider text-blue-950">
                   STADIUM CROWD AUDIO STATION
                 </h2>
-                <span className="rounded-full bg-orange-100 border border-orange-300 px-2.5 py-0.5 text-[10px] font-bold text-orange-700 uppercase tracking-wider">
-                  ● LOOP ACTIVE ({loopCount} IN LOOP)
+                <span
+                  className={clsx(
+                    'rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider transition border flex items-center gap-1.5',
+                    isLoopRunning
+                      ? 'bg-emerald-100 border-emerald-300 text-emerald-800'
+                      : 'bg-slate-100 border-slate-300 text-slate-600',
+                  )}
+                >
+                  <span className={clsx('size-2 rounded-full', isLoopRunning ? 'bg-emerald-500 animate-ping' : 'bg-slate-400')} />
+                  {isLoopRunning ? `● LIVE LOOP ACTIVE (${loopCount} IN LOOP)` : `○ LOOP STOPPED (${loopCount} READY)`}
                 </span>
               </div>
               <p className="text-xs text-slate-500">
@@ -630,39 +935,57 @@ export const SoundsPage = () => {
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            <label className="flex items-center gap-2 text-xs text-muted cursor-pointer">
-              <input
-                type="checkbox"
-                checked={headphoneMonitor}
-                onChange={(e) => void switchMonitor(e.target.checked)}
+          <div className="flex items-center gap-2.5">
+            <button
+              type="button"
+              onClick={handleToggleAudioMonitor}
+              className={clsx(
+                'flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-bold transition shadow-xs active:scale-95 border cursor-pointer select-none',
+                stationMonitor
+                  ? 'bg-emerald-50 border-emerald-400 text-emerald-800 hover:bg-emerald-100 ring-1 ring-emerald-300'
+                  : 'bg-rose-50 border-rose-300 text-rose-700 hover:bg-rose-100 ring-1 ring-rose-200',
+              )}
+              title={
+                stationMonitor
+                  ? 'Click to MUTE local Audio Monitor (silences local playback)'
+                  : 'Click to UNMUTE local Audio Monitor (enables headphones/speakers)'
+              }
+            >
+              <span
+                className={clsx(
+                  'size-2.5 rounded-full transition-transform',
+                  stationMonitor ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500',
+                )}
               />
-              🎧 Monitor in Admin Headphones
-            </label>
-            {headphoneMonitor && outputs.length > 0 && (
+              <span>{stationMonitor ? '🔊 Audio Monitor: ON' : '🔇 Audio Monitor: MUTED'}</span>
+            </button>
+
+            {outputs.length > 1 && (
               <select
-                aria-label="Monitor output device"
                 value={outputId ?? ''}
                 onChange={(e) => void pickOutput(e.target.value)}
-                className="rounded-lg border border-blue-200 bg-white px-2 py-1 text-xs text-slate-700"
+                className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs font-medium text-slate-700 shadow-xs focus:outline-hidden"
+                title="Select Audio Output Device"
               >
-                <option value="">System default</option>
-                {outputs.map((o) => (
-                  <option key={o.id} value={o.id}>
-                    {o.label}
+                {outputs.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    🎧 {d.label}
                   </option>
                 ))}
               </select>
             )}
             <button
-              onClick={() => control.mutate(isLoopRunning ? soundsApi.loopStop : soundsApi.loopStart)}
-              className="rounded-lg bg-red-600/80 px-3 py-1.5 text-xs font-bold text-white transition hover:bg-red-500 flex items-center gap-1"
+              onClick={handleToggleLoop}
+              className={clsx(
+                'rounded-lg px-3.5 py-1.5 text-xs font-bold text-white transition flex items-center gap-1.5 shadow-xs',
+                isLoopRunning ? 'bg-amber-600 hover:bg-amber-700' : 'bg-emerald-600 hover:bg-emerald-700',
+              )}
             >
-              ■ {isLoopRunning ? 'STOP LOOP' : 'START LOOP'}
+              {isLoopRunning ? '■ STOP LOOP' : '▶ START LOOP'}
             </button>
             <button
-              onClick={() => control.mutate(soundsApi.stopAll)}
-              className="rounded-lg bg-rose-700/80 px-3 py-1.5 text-xs font-bold text-white transition hover:bg-rose-600 flex items-center gap-1"
+              onClick={handleStopAll}
+              className="rounded-lg bg-rose-700 px-3.5 py-1.5 text-xs font-bold text-white transition hover:bg-rose-800 flex items-center gap-1.5 shadow-xs"
             >
               ● STOP ALL
             </button>
@@ -687,7 +1010,16 @@ export const SoundsPage = () => {
               min="0"
               max="100"
               value={master}
-              onChange={(e) => setMaster(Number(e.target.value))}
+              onChange={(e) => {
+                const newVol = Number(e.target.value);
+                setMaster(newVol);
+                for (const [id, audio] of loopAudiosRef.current.entries()) {
+                  const s = slots.find((sl) => sl.id === id);
+                  const localVol = trackVols[id];
+                  const trackVol = (localVol !== undefined ? localVol / 100 : s?.volume) ?? 1;
+                  audio.volume = Math.max(0, Math.min(1, (newVol / 100) * trackVol));
+                }
+              }}
               onPointerUp={commitMaster}
               onKeyUp={commitMaster}
               onBlur={commitMaster}
@@ -708,53 +1040,119 @@ export const SoundsPage = () => {
           </div>
 
           <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
-            {slots.map((s, idx) => (
-              <div
-                key={s.id}
-                className="flex items-center justify-between rounded-xl border border-blue-100 bg-[#f8fafc] p-3 transition hover:border-orange-400 hover:shadow-xs"
-              >
-                <div className="flex items-center gap-3 min-w-0">
-                  <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-orange-100 text-xs font-bold text-orange-700">
-                    #{idx + 1}
-                  </span>
-                  <div className="min-w-0">
-                    <h4 className="text-xs font-bold text-slate-900 truncate">{s.title}</h4>
-                    <div className="flex items-center gap-2 mt-0.5 text-[10px] text-slate-500">
-                      <span className="truncate">{s.file.replace('sounds/', '')}</span>
-                      <span>•</span>
-                      <label className="flex items-center gap-1 cursor-pointer text-emerald-700 font-medium">
-                        <input
-                          type="checkbox"
-                          checked={s.includeInLoop}
-                          onChange={(e) => update.mutate({ id: s.id, includeInLoop: e.target.checked })}
-                          className="accent-emerald-600"
-                        />
-                        Include in Loop
-                      </label>
+            {slots.map((s, idx) => {
+              const vol = getTrackVol(s);
+              return (
+                <div
+                  key={s.id}
+                  className="flex flex-col gap-2.5 rounded-xl border border-blue-100 bg-[#f8fafc] p-3 transition hover:border-orange-400 hover:shadow-xs"
+                >
+                  {/* Top row: Track Info & Action buttons */}
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-orange-100 text-xs font-bold text-orange-700">
+                        #{idx + 1}
+                      </span>
+                      <div className="min-w-0">
+                        <h4 className="text-xs font-bold text-slate-900 truncate" title={s.title}>
+                          {s.title}
+                        </h4>
+                        <div className="flex items-center gap-2 mt-0.5 text-[10px] text-slate-500">
+                          <span className="truncate max-w-[120px]">{s.file.replace('sounds/', '')}</span>
+                          <span>•</span>
+                          <label className="flex items-center gap-1 cursor-pointer text-emerald-700 font-semibold select-none">
+                            <input
+                              type="checkbox"
+                              checked={s.includeInLoop}
+                              onChange={(e) => update.mutate({ id: s.id, includeInLoop: e.target.checked })}
+                              className="accent-emerald-600 cursor-pointer"
+                            />
+                            Include in Loop
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const trackVol = vol / 100;
+                          if (stationMonitor) {
+                            playTrackAudio(s.file, (master / 100) * trackVol);
+                          }
+                          void soundsApi.play(s.id).catch(onError);
+                          toast({ title: `💥 Fired crowd punch: ${s.title}`, kind: 'success' });
+                        }}
+                        className="flex items-center gap-1 rounded-lg bg-orange-500 px-2.5 py-1.5 text-xs font-bold text-white uppercase hover:bg-orange-600 transition shadow-xs active:scale-95"
+                      >
+                        💥 INSTANT
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setToDelete(s.id)}
+                        className="flex size-7 items-center justify-center rounded-lg border border-blue-200 text-slate-400 hover:border-red-400 hover:text-red-600 transition bg-white"
+                        title="Delete track"
+                      >
+                        🗑️
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Bottom row: Individual Track Volume Control */}
+                  <div className="flex items-center gap-2.5 rounded-lg border border-blue-100/80 bg-white px-2.5 py-1.5 shadow-2xs">
+                    <div className="flex items-center gap-1 shrink-0 text-[11px] font-bold text-slate-700 min-w-[85px]">
+                      <span className="text-slate-500">🎚️</span>
+                      <span>Vol:</span>
+                      <span className="font-mono text-orange-600">{vol}%</span>
+                    </div>
+
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      step="1"
+                      value={vol}
+                      onChange={(e) => handleTrackVolChange(s.id, Number(e.target.value))}
+                      onPointerUp={() => commitTrackVol(s)}
+                      onKeyUp={() => commitTrackVol(s)}
+                      onBlur={() => commitTrackVol(s)}
+                      className="h-1.5 w-full cursor-pointer appearance-none rounded-lg bg-blue-100 accent-orange-500 hover:accent-orange-600"
+                      title={`${s.title} Volume (${vol}%)`}
+                    />
+
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => handleResetTrackVol(s, 0)}
+                        className={clsx(
+                          'rounded px-1.5 py-0.5 text-[10px] font-bold border transition cursor-pointer',
+                          vol === 0
+                            ? 'bg-rose-50 border-rose-300 text-rose-600'
+                            : 'border-slate-200 text-slate-400 hover:text-rose-600 hover:border-rose-300 hover:bg-rose-50',
+                        )}
+                        title="Mute track (0%)"
+                      >
+                        🔇
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleResetTrackVol(s, 100)}
+                        className={clsx(
+                          'rounded px-1.5 py-0.5 text-[10px] font-bold border transition cursor-pointer',
+                          vol === 100
+                            ? 'bg-blue-50 border-blue-300 text-blue-700'
+                            : 'border-slate-200 text-slate-500 hover:text-blue-700 hover:border-blue-300 hover:bg-blue-50',
+                        )}
+                        title="Reset track volume to 100%"
+                      >
+                        100%
+                      </button>
                     </div>
                   </div>
                 </div>
-
-                <div className="flex items-center gap-2 shrink-0 ml-2">
-                  <button
-                    onClick={() => {
-                      if (!headphoneMonitor) playLocalAudio(s.file, master / 100);
-                      void soundsApi.play(s.id).catch(onError);
-                    }}
-                    className="flex items-center gap-1 rounded-lg bg-orange-500 px-3 py-1.5 text-xs font-bold text-white uppercase hover:bg-orange-600 transition shadow-xs"
-                  >
-                    💥 INSTANT
-                  </button>
-                  <button
-                    onClick={() => setToDelete(s.id)}
-                    className="flex size-7 items-center justify-center rounded-lg border border-blue-200 text-slate-400 hover:border-red-400 hover:text-red-600 transition bg-white"
-                    title="Delete track"
-                  >
-                    🗑️
-                  </button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
 
             {slots.length === 0 && (
               <div className="col-span-2 rounded-xl border border-dashed border-blue-200 p-6 text-center text-xs text-slate-500 bg-white">

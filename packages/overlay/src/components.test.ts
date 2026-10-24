@@ -5,6 +5,7 @@ import {
   DEFAULT_LOOK,
   FREE_LOOKS,
   PRO_LOOKS,
+  PRO_LOOKS_23,
   createBall,
   deriveStats,
   fixtures,
@@ -64,6 +65,15 @@ describe('Looks', () => {
     );
     expect(new Set(ALL_LOOKS.map((l) => l.layoutVariant.playerCardStyle))).toEqual(
       new Set(['cutout', 'badge']),
+    );
+  });
+
+  it('loads every attached Pro look with its arena panel and player arrangement', () => {
+    expect(PRO_LOOKS_23).toHaveLength(23);
+    expect(new Set(PRO_LOOKS_23.map((look) => look.id)).size).toBe(23);
+    expect(new Set(PRO_LOOKS_23.map((look) => look.layoutVariant.middleLayout)).size).toBeGreaterThan(1);
+    expect(new Set(PRO_LOOKS_23.map((look) => look.layoutVariant.playerOrder))).toEqual(
+      new Set(['striker-left', 'bowler-left', 'bowler-middle']),
     );
   });
 });

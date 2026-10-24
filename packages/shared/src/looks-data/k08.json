@@ -31,7 +31,9 @@
   "layoutVariant": {
     "scorePosition": "bottom",
     "playerCardStyle": "cutout",
-    "boundaryStyle": "banner-sweep"
+    "boundaryStyle": "banner-sweep",
+    "middleLayout": "left-stats",
+    "playerOrder": "striker-left"
   },
   "motion": {
     "entrance": "curtain",

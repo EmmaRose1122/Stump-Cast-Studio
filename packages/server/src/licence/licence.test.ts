@@ -1,6 +1,6 @@
-import { generateKeyPairSync } from 'node:crypto';
+import { createPrivateKey, generateKeyPairSync, sign } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
-import { signLicenceToken, verifyLicenceToken } from './licence';
+import { LicencePayloadSchema, verifyLicenceToken, type LicencePayload } from './licence';
 import { buildRevocationIndex } from './revoked';
 
 const keys = () => {
@@ -12,9 +12,23 @@ const keys = () => {
 };
 const NOW = 1_800_000_000;
 
+const signTestToken = (payload: LicencePayload, privateKeyHex: string): string => {
+  const payloadPart = Buffer.from(JSON.stringify(LicencePayloadSchema.parse(payload)), 'utf8').toString('base64url');
+  const privateKey = createPrivateKey({
+    key: Buffer.concat([
+      Buffer.from('302e020100300506032b657004220420', 'hex'),
+      Buffer.from(privateKeyHex, 'hex'),
+    ]),
+    format: 'der',
+    type: 'pkcs8',
+  });
+  const signature = sign(null, Buffer.from(payloadPart, 'utf8'), privateKey).toString('base64url');
+  return `SC1.${payloadPart}.${signature}`;
+};
+
 describe('licence tokens', () => {
   const { pub, priv } = keys();
-  const token = signLicenceToken({ v: 1, channel: '@mychannel', plan: 'yearly', iat: NOW, exp: NOW + 1000 }, priv);
+  const token = signTestToken({ v: 1, channel: '@mychannel', plan: 'yearly', iat: NOW, exp: NOW + 1000 }, priv);
 
   it('accepts a correctly signed token', () => {
     const r = verifyLicenceToken(token, NOW, pub);
@@ -26,7 +40,7 @@ describe('licence tokens', () => {
   });
 
   it('lifetime tokens never expire', () => {
-    const t = signLicenceToken({ v: 1, channel: 'x', plan: 'lifetime', iat: NOW }, priv);
+    const t = signTestToken({ v: 1, channel: 'x', plan: 'lifetime', iat: NOW }, priv);
     expect(verifyLicenceToken(t, NOW * 10, pub).valid).toBe(true);
   });
 
@@ -48,7 +62,7 @@ describe('licence tokens', () => {
     const byIdentity = buildRevocationIndex([{ channel: '@mychannel', iat: NOW }], 'revoked.json');
     expect(verifyLicenceToken(token, NOW, pub, byIdentity).valid).toBe(false);
 
-    const lifetime = signLicenceToken({ v: 1, channel: '@mine', plan: 'lifetime', iat: NOW }, priv);
+    const lifetime = signTestToken({ v: 1, channel: '@mine', plan: 'lifetime', iat: NOW }, priv);
     const revokedLifetime = buildRevocationIndex([{ token: lifetime }], 'revoked.json');
     expect(verifyLicenceToken(lifetime, NOW, pub, revokedLifetime)).toEqual({ valid: false, reason: 'revoked' });
     // An empty list must not gate anything: only the entry the admin clicked goes dark.
@@ -56,7 +70,7 @@ describe('licence tokens', () => {
   });
 
   it('enforces machine ID locking when token carries mid', () => {
-    const midKey = signLicenceToken(
+    const midKey = signTestToken(
       { v: 1, channel: '@locked', plan: 'yearly', iat: NOW, mid: 'SC-E3AB-A4F4-48BB-8A55' },
       priv,
     );

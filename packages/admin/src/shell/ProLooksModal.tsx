@@ -1,6 +1,6 @@
 import React from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { getLook } from '@stumpcast/shared';
+import { getLook, whatsappUrl } from '@stumpcast/shared';
 import { useAdmin } from '../store';
 import { useServerOrigin } from '../lib/api';
 import { LookPreview } from './LookPreview';
@@ -337,32 +337,38 @@ export const ProLooksModal = ({
   };
 
   const openWhatsApp = (lookBadge: string) => {
-    const text = encodeURIComponent(
-      `Hi, I want to upgrade to Pro Look ${lookBadge} in StumpCast Studio!`,
+    window.open(
+      whatsappUrl(`Hi, I want to upgrade to Pro Look ${lookBadge} in StumpCast Studio!`),
+      '_blank',
     );
-    window.open(`https://wa.me/?text=${text}`, '_blank');
   };
 
   const applyLook = async (lookId: string, badge?: string) => {
+    // A Pro look is view-only until a licence is active. The server refuses these now; refusing
+    // here too means the operator gets the key box instead of a failed request.
+    if (!isLicensed) {
+      setShowKeyInput(true);
+      toast({
+        title: 'Pro licence required',
+        description: `Look ${badge || lookId.toUpperCase()} can be previewed but not selected until a licence key is active.`,
+        kind: 'info',
+      });
+      return;
+    }
     setPreviewingId(lookId);
     try {
       const res = await fetch('/api/looks/activate', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ id: lookId, preview: !isLicensed }),
+        body: JSON.stringify({ id: lookId }),
       });
       if (res.ok) {
         setActiveLookId(lookId);
         void qc.invalidateQueries({ queryKey: ['looks'] });
         void qc.invalidateQueries({ queryKey: ['settings'] });
         toast({
-          title: isLicensed
-            ? `Look ${badge || lookId.toUpperCase()} activated live on stream!`
-            : `Look ${badge || lookId.toUpperCase()} is on your preview only`,
-          description: isLicensed
-            ? undefined
-            : 'Viewers still have the free look. A licence key puts this look on air.',
-          kind: isLicensed ? 'success' : 'info',
+          title: `Look ${badge || lookId.toUpperCase()} activated live on stream!`,
+          kind: 'success',
         });
       } else {
         const d = await res.json().catch(() => ({}));
@@ -512,10 +518,18 @@ export const ProLooksModal = ({
                       origin={origin}
                       className="rounded-lg border border-blue-200"
                     />
-                    {isActive && (
+                    {isActive && isLicensed && (
                       <span className="absolute left-1.5 top-1.5 flex items-center gap-1 rounded bg-emerald-500 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-black shadow">
                         <span className="size-1.5 rounded-full bg-black animate-ping" />
                         ON AIR
+                      </span>
+                    )}
+                    {!isLicensed && (
+                      // The render stays: seeing the look is the advertisement. Selecting it is not.
+                      <span className="absolute inset-0 flex items-center justify-center rounded-lg bg-slate-900/45">
+                        <span className="rounded-full bg-slate-900/85 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-white">
+                          🔒 Pro · view only
+                        </span>
                       </span>
                     )}
                   </div>
@@ -545,26 +559,29 @@ export const ProLooksModal = ({
 
                   {/* Action Buttons */}
                   <div className="mt-4 flex flex-col gap-1.5">
-                    <button
-                      type="button"
-                      disabled={isApplying}
-                      onClick={() => applyLook(look.id, look.badge)}
-                      className={`w-full rounded-lg py-1.5 text-xs font-bold uppercase tracking-wider transition cursor-pointer ${
-                        isActive
-                          ? 'bg-orange-500 text-white shadow-sm cursor-default'
-                          : isLicensed
-                            ? 'bg-orange-500 text-white hover:bg-orange-600 shadow-sm'
-                            : 'bg-white text-blue-900 hover:bg-blue-50 border border-blue-300'
-                      }`}
-                    >
-                      {isActive
-                        ? '✓ Active on Stream'
-                        : isApplying
-                          ? 'Applying...'
-                          : isLicensed
-                            ? '⚡ Activate on Stream'
-                            : '⚡ Preview on Stream'}
-                    </button>
+                    {isLicensed ? (
+                      <button
+                        type="button"
+                        disabled={isApplying}
+                        onClick={() => applyLook(look.id, look.badge)}
+                        className={`w-full rounded-lg py-1.5 text-xs font-bold uppercase tracking-wider transition cursor-pointer ${
+                          isActive
+                            ? 'bg-orange-500 text-white shadow-sm cursor-default'
+                            : 'bg-orange-500 text-white hover:bg-orange-600 shadow-sm'
+                        }`}
+                      >
+                        {isActive ? '✓ Active on Stream' : isApplying ? 'Applying...' : '⚡ Activate on Stream'}
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        disabled
+                        title="A Pro licence is required to select this look"
+                        className="w-full cursor-not-allowed rounded-lg border border-slate-300 bg-slate-100 py-1.5 text-xs font-bold uppercase tracking-wider text-slate-500"
+                      >
+                        🔒 Unlock to select
+                      </button>
+                    )}
                     {!isLicensed && (
                       <button
                         type="button"

@@ -304,5 +304,29 @@ describe('OverlayCommentary', () => {
       oc.speak('b');
       expect(spoken).toEqual(['a', 'b']);
     });
+
+    it('deduplicates lines with identical IDs and ignores re-broadcast echoes', () => {
+      const spoken: string[] = [];
+      const synth = {
+        speak: (u: { text: string; onend?: () => void }) => {
+          spoken.push(u.text);
+          u.onend?.();
+        },
+        cancel: () => undefined,
+        getVoices: () => [],
+      } as unknown as SpeechSynthesis;
+      const oc = new OverlayCommentary({
+        getSpeechSynthesis: () => synth,
+        createUtterance: (text: string) => ({ text, rate: 1, pitch: 1, volume: 1 }),
+      });
+
+      // Send the same line with ID 'c101' twice (e.g. preview broadcast and delay broadcast)
+      oc.handle({ id: 'c101', text: 'Great cover drive for four runs!' });
+      oc.handle({ id: 'c101', text: 'Great cover drive for four runs!' });
+
+      expect(spoken).toHaveLength(1);
+      expect(spoken[0]).toBe('Great cover drive for four runs!');
+    });
   });
 });
+

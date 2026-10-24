@@ -80,7 +80,7 @@
     ],
     dom: {
       title: {
-        selectors: ["h1.cb-nav-hdr", ".cb-nav-hdr", "h1 span.wb\\:block", "h1", "title", "h1 span:first-child"]
+        selectors: ["h1.cb-nav-hdr", ".cb-nav-hdr", "h1 span.wb\\:block", "h1 span:first-child"]
       },
       status: {
         selectors: [

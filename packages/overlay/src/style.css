@@ -1212,6 +1212,11 @@ html[data-score-position='bottom'] #stage[data-layout='arena'][data-composition]
   --arena-band-h: 116px;
   /* With the bar on top it already sits above the frame, so it claims nothing below. */
   --arena-bar-reserve: 0px;
+  /* The player band is the opposite row. With the bar on top the band sits on the floor, so its
+     height comes out of the middle; when the bar is on the floor the band is already above the
+     frame and the frame may use the space. */
+  --arena-band-top: calc(1080px - var(--arena-band-h) * var(--card-scale) - 24px);
+  --arena-band-reserve: calc(var(--arena-band-h) * var(--card-scale) + 12px);
   /* The rails are 380px wide at 48px in, scaled by sideCardScale from their outer edges. Whatever
      is left between them is the most the video window may cover, or it paints over the rail panels
      (measured: at cardScale 1.5 an unscaled 980px frame sat 263px into both rails). */
@@ -1220,14 +1225,17 @@ html[data-score-position='bottom'] #stage[data-layout='arena'][data-composition]
   --arena-frame-h: min(
     530px,
     calc(var(--arena-frame-w) * 0.541),
-    calc((1080px - var(--arena-frame-top) - var(--arena-bar-reserve) - 16px - var(--arena-band-h) * var(--card-scale)) / var(--card-scale))
+    calc((1080px - var(--arena-frame-top) - var(--arena-bar-reserve) - var(--arena-band-reserve) - 16px) / var(--card-scale))
   );
 }
 html[data-score-position='bottom'] #stage[data-layout='arena'] {
   --arena-bar-top: auto;
   --arena-bar-bottom: 24px;
   --arena-bar-origin: 50% 100%;
-  --arena-frame-top: 36px;
+  /* The band takes the top row, so the video window starts under it. */
+  --arena-frame-top: calc(24px + var(--arena-band-h) * var(--card-scale) + 12px);
+  --arena-band-top: 24px;
+  --arena-band-reserve: 0px;
   /* The bar moved under the band, so its own scaled height comes back out of the budget. */
   --arena-bar-reserve: calc(24px + 124px * var(--card-scale) + 16px);
 }
@@ -1240,7 +1248,7 @@ html[data-score-position='bottom'] #stage[data-layout='arena'] {
   gap: 12px;
   position: absolute;
   left: 50%;
-  top: calc(var(--arena-frame-top, 172px) + var(--arena-frame-h, 530px) * var(--card-scale) + 12px);
+  top: var(--arena-band-top, 172px);
   width: var(--arena-frame-w, 980px);
   transform: translateX(-50%) scale(var(--card-scale));
   transform-origin: 50% 0;
@@ -1263,6 +1271,30 @@ html[data-score-position='bottom'] #stage[data-layout='arena'] {
   display: flex;
   flex: 1 1 0;
   min-width: 0;
+}
+#stage[data-layout='arena'] .c-player-band[data-player-order='bowler-left'] .c-batters,
+#stage[data-layout='arena'] .c-player-band[data-player-order='bowler-left'] .c-bowler,
+#stage[data-layout='arena'] .c-player-band[data-player-order='bowler-middle'] .c-batters,
+#stage[data-layout='arena'] .c-player-band[data-player-order='bowler-middle'] .c-bowler {
+  display: contents;
+}
+#stage[data-layout='arena'] .c-player-band[data-player-order='bowler-left'] .c-bowler .pc-card {
+  order: 0;
+}
+#stage[data-layout='arena'] .c-player-band[data-player-order='bowler-left'] .c-batters .pc-strike {
+  order: 1;
+}
+#stage[data-layout='arena'] .c-player-band[data-player-order='bowler-left'] .c-batters .pc-card:not(.pc-strike) {
+  order: 2;
+}
+#stage[data-layout='arena'] .c-player-band[data-player-order='bowler-middle'] .c-batters .pc-strike {
+  order: 0;
+}
+#stage[data-layout='arena'] .c-player-band[data-player-order='bowler-middle'] .c-bowler .pc-card {
+  order: 1;
+}
+#stage[data-layout='arena'] .c-player-band[data-player-order='bowler-middle'] .c-batters .pc-card:not(.pc-strike) {
+  order: 2;
 }
 #stage[data-layout='arena'] .c-player-band .pc-card {
   flex: 1 1 0;
@@ -2953,6 +2985,142 @@ html[data-score-position='bottom'] #stage[data-layout='fullscreen'][data-composi
    or a match that has not started. Same tie, same answer: hidden wins. */
 #stage[data-layout='arena'] .c-winprob[hidden] {
   display: none !important;
+}
+
+/* Win predictor with player faces ------------------------------------------------------------
+   Arena replaces the crest-only bar with this: same estimate, but each side also shows who is
+   actually out there (two batters, one bowler), because a viewer recognises a face before a flag. */
+#stage[data-layout='arena'] .c-winprob {
+  display: none !important;
+}
+.c-winpredictor {
+  display: none;
+}
+#stage[data-layout='arena'] .c-winpredictor {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5);
+}
+#stage[data-layout='arena'] .c-winpredictor[hidden] {
+  display: none !important;
+}
+#stage[data-layout='arena'] .wpr-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--accent-grad);
+  color: #000000;
+  font-family: var(--font-heading, sans-serif);
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  padding: 5px 8px;
+}
+#stage[data-layout='arena'] .wpr-est {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  opacity: 0.62;
+}
+#stage[data-layout='arena'] .wpr-card {
+  display: grid;
+  grid-template-columns: auto auto minmax(40px, 1fr) auto auto;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: #0b1526;
+}
+#stage[data-layout='arena'] .wpr-side {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+#stage[data-layout='arena'] .wpr-side-b {
+  justify-content: flex-end;
+}
+#stage[data-layout='arena'] .wpr-crest {
+  display: block;
+  /* `.asset-img` is absolutely positioned, so the host has to be its containing block — without
+     this the crest escaped its 26x18 slot and painted over the whole rail. */
+  position: relative;
+  flex: 0 0 auto;
+  width: 26px;
+  height: 18px;
+  border-radius: 3px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  background: #000000;
+}
+#stage[data-layout='arena'] .wpr-crest .asset-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+#stage[data-layout='arena'] .wpr-avatars {
+  display: flex;
+  align-items: center;
+}
+#stage[data-layout='arena'] .wpr-avatar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  margin-left: -6px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 1.5px solid var(--color-accent, #22c55e);
+  background: #111c2e;
+  color: #cbd5e1;
+  font-family: var(--font-numbers, sans-serif);
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+}
+#stage[data-layout='arena'] .wpr-avatar:first-child {
+  margin-left: 0;
+}
+#stage[data-layout='arena'] .wpr-avatar .asset-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top center;
+}
+#stage[data-layout='arena'] .wpr-team {
+  font-family: var(--font-heading, sans-serif);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  color: #e2e8f0;
+}
+#stage[data-layout='arena'] .wpr-pct {
+  font-family: var(--font-numbers, sans-serif);
+  font-size: 20px;
+  font-weight: 900;
+  line-height: 1;
+  color: #ffffff;
+}
+#stage[data-layout='arena'] .wpr-bar {
+  height: 8px;
+  min-width: 40px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.18);
+}
+#stage[data-layout='arena'] .wpr-fill {
+  height: 100%;
+  width: 50%;
+  border-radius: 999px;
+  transition: width 0.45s ease;
 }
 
 #stage[data-layout='arena'] .c-winprob .wp-title {
@@ -5339,4 +5507,21 @@ html[data-score-position='bottom'] #stage[data-layout='fullscreen'] .c-score-pop
 #stage[data-status='result'] .pc-photo img,
 #stage[data-status='result'] .wp-bar > * {
   animation: none;
+}
+
+/* Arena three-row composition -----------------------------------------------------------------
+   The reference layout puts the score bar and the player band on opposite edges, with the three
+   middle columns level with the video window. These rules sit at the end of the file so they win
+   the source-order tie against the older per-layout pins above, without another specificity war. */
+#stage[data-layout='arena'] .c-player-band,
+#stage[data-layout='arena'][data-composition] .c-player-band {
+  top: var(--arena-band-top) !important;
+}
+#stage[data-layout='arena'] .zone-left,
+#stage[data-layout='arena'] .zone-right,
+#stage[data-layout='arena'][data-composition] .zone-left,
+#stage[data-layout='arena'][data-composition] .zone-right,
+#stage[data-layout='arena'] .c-stream-frame,
+#stage[data-layout='arena'][data-composition] .c-stream-frame {
+  top: var(--arena-frame-top) !important;
 }

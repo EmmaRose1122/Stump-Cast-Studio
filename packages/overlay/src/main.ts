@@ -8,11 +8,13 @@ import {
   MatchHistorySchema,
   MatchStateSchema,
   SettingsSchema,
+  DEFAULT_LOOK,
   createSettings,
   deriveStats,
   fixtures,
   getLook,
   type EngineEvent,
+  type Look,
   type MatchState,
   type Settings,
 } from '@stumpcast/shared';
@@ -22,6 +24,7 @@ import { DataBadge } from './components/DataBadge';
 import { MatchCentre } from './components/MatchCentre';
 import { ExtrasRail } from './components/ExtrasRail';
 import { ProjectedScore } from './components/ProjectedScore';
+import { WinPredictor } from './components/WinPredictor';
 import { ScorePop } from './components/ScorePop';
 import { BatterCards, BowlerCard } from './components/PlayerCards';
 import { ScoreBar } from './components/ScoreBar';
@@ -65,8 +68,33 @@ mountStage(stageEl);
 // review and gallery preview silently rendered whatever match the studio happened to be on.
 const fixtureState = fixtureFor(params);
 const store = new OverlayStore(params.match ?? fixtureState?.id ?? null);
-const startLook = (params.look && getLook(params.look)) || store.get().look;
+
+/**
+ * Whether this render may actually *run* a look.
+ *
+ * A Pro look is fine in a design-review frame (`?preview=1`, which is what the look gallery opens)
+ * because that frame exists to show what the look looks like. It must never be enough on the bare
+ * broadcast URL: `?look=` is a review flag, not a licence, and that URL is literally what OBS has
+ * loaded. Without this an unlicensed channel could paste `?look=k01` into OBS and go on air with a
+ * paid look while the admin correctly showed it locked.
+ */
+const canRunLook = (look: { plan?: string } | undefined): boolean => {
+  if (!look) return false;
+  if (params.preview) return true;
+  return look.plan !== 'pro' || store.get().licensed;
+};
+
+const startLook = (params.look && canRunLook(getLook(params.look)) && getLook(params.look)) || store.get().look;
 store.setLook(startLook);
+
+/** If a licence disappears, a Pro look must not stay on air because the URL asked for it. */
+const enforceLookLicence = (licensed: boolean): void => {
+  if (licensed || params.preview) return;
+  const current = store.get().look;
+  if (current.plan !== 'pro') return;
+  const free = getLook(DEFAULT_LOOK.id);
+  if (free) store.setLook(free);
+};
 
 const initOverrides: Parameters<typeof createSettings>[0] = {};
 if (params.layout) initOverrides.layout = params.layout;
@@ -87,7 +115,7 @@ const withUrlOverrides = (s: Settings): Settings => {
   // `?look=` pins the Look for design review and the admin's per-look gallery previews. Without
   // this the first settings snapshot (or a `layout/settings` push) reverts `theme` to whatever the
   // operator has on air, so every card in the gallery renders the same look.
-  if (params.look && getLook(params.look)) out = { ...out, theme: params.look };
+  if (params.look && canRunLook(getLook(params.look))) out = { ...out, theme: params.look };
   return out;
 };
 
@@ -118,7 +146,8 @@ const playerBand = document.createElement('div');
 playerBand.className = 'c-player-band';
 playerBand.dataset.component = 'PlayerBand';
 stageEl.append(playerBand);
-const placePlayers = (layout: LayoutName): void => {
+const placePlayers = (layout: LayoutName, look: Look): void => {
+  playerBand.dataset.playerOrder = look.layoutVariant.playerOrder;
   if (layout === 'arena') {
     playerBand.append(batters.element, bowler.element);
   } else {
@@ -126,6 +155,32 @@ const placePlayers = (layout: LayoutName): void => {
     zones.right.append(bowler.element);
   }
 };
+/**
+ * Arena's middle is three columns, the way the reference broadcast builds it: the stats stack on
+ * the left, the video window in the middle, and the ball-by-ball plus match centre on the right.
+ * Every component still owns exactly one DOM node, so this only re-parents them. Other layouts keep
+ * the rails they had. Declared as a function so it is hoisted: it is called while the module is
+ * still initialising, before `stats` and friends are assigned.
+ */
+function placeArenaPanels(layout: LayoutName, look: Look): void {
+  if (layout === 'arena') {
+    const statsPanels = [stats.element, projected.element, extras.element, winPredictor.element];
+    const matchPanels = [thisBall.element, matchCentre.element, thisOver.element];
+    const statsOnLeft = look.layoutVariant.middleLayout.startsWith('left-stats');
+    zones.left.append(...(statsOnLeft ? statsPanels : matchPanels));
+    zones.right.append(...(statsOnLeft ? matchPanels : statsPanels));
+  } else {
+    zones.left.append(matchCentre.element);
+    zones.right.append(
+      thisBall.element,
+      thisOver.element,
+      stats.element,
+      projected.element,
+      extras.element,
+      winPredictor.element,
+    );
+  }
+}
 const scoreBar = new ScoreBar();
 const thisOver = new ThisOver();
 const thisBall = new ThisBall();
@@ -134,6 +189,7 @@ const stats = new StatsTiles();
 const projected = new ProjectedScore();
 const extras = new ExtrasRail();
 const winProb = new WinProb();
+const winPredictor = new WinPredictor();
 const batters = new BatterCards();
 const bowler = new BowlerCard();
 const banner = new BoundaryBanner();
@@ -156,9 +212,7 @@ stats.mount(zones.right, look);
 projected.mount(zones.right, look);
 extras.mount(zones.right, look);
 winProb.mount(zones.bottom, look);
-if (store.get().settings.layout === 'arena') {
-  zones.right.append(winProb.element);
-}
+winPredictor.mount(zones.left, look);
 banner.mount(zones.top, look);
 watermark.mount(stageEl, look);
 upgradePopup.mount(stageEl, look);
@@ -171,9 +225,10 @@ scorePop.mount(stageEl, look);
 scorePop.onVisibility = (visible) => {
   playerBand.classList.toggle('is-suppressed', visible);
 };
-resultScreen.mount(stageEl, look);
-preMatchScreen.mount(stageEl, look);
-placePlayers(store.get().settings.layout);
+  resultScreen.mount(stageEl, look);
+  preMatchScreen.mount(stageEl, look);
+placePlayers(store.get().settings.layout, store.get().look);
+placeArenaPanels(store.get().settings.layout, store.get().look);
 
 const cards = new CardManager(zones.card, look, CARD_DEFS, {
   fetchHistory: async (id) => {
@@ -196,6 +251,7 @@ const components = [
   projected,
   extras,
   winProb,
+  winPredictor,
   batters,
   bowler,
   banner,
@@ -259,11 +315,16 @@ try {
     const data = (await res.json()) as { licensed: boolean };
     store.setLicensed(data.licensed);
     applyLicenceState(data.licensed);
+    // `?look=` may have been honoured optimistically before this answer arrived.
+    enforceLookLicence(data.licensed);
   }
 } catch { /* offline */ }
 
 store.subscribe((s, prev) => {
-  if (s.licensed !== prev.licensed) applyLicenceState(s.licensed);
+  if (s.licensed !== prev.licensed) {
+    applyLicenceState(s.licensed);
+    enforceLookLicence(s.licensed);
+  }
 });
 
 // Render on every change. The DOM is only ever updated in place, so a lost connection or a
@@ -272,6 +333,8 @@ store.subscribe((s, prev) => {
   if (s.look !== prev.look) {
     applyLook(s.look);
     for (const c of components) c.setLook(s.look);
+    placePlayers(s.settings.layout, s.look);
+    placeArenaPanels(s.settings.layout, s.look);
   }
   if (s.look !== prev.look) cards.setLook(s.look);
   if (s.active !== prev.active) cards.apply(s.active);
@@ -283,7 +346,7 @@ store.subscribe((s, prev) => {
       s.settings.cardWidth,
       s.settings.sideCardScale ?? 1,
     );
-    placePlayers(s.settings.layout);
+    placePlayers(s.settings.layout, s.look);
     const updatedBg = s.settings.video.backgroundImage ?? 'floodlight';
     applyBackground(stageEl, updatedBg, s.settings.video.backgroundDim);
     applyComposition(stageEl, s.settings.video.activeObsLayout);
@@ -296,6 +359,7 @@ store.subscribe((s, prev) => {
     } else {
       zones.bottom.append(winProb.element);
     }
+    placeArenaPanels(s.settings.layout, s.look);
     syncOnAirScreen(s);
   }
   const match = store.current();
@@ -312,13 +376,16 @@ store.subscribe((s, prev) => {
 
 if (params.debug) mountDebug(store);
 
-// Audio plays in the OBS browser source. The admin's embedded preview stays silent so the
-// operator never hears every sound twice. But preview window (popout) should have audio.
+// Audio plays in the OBS browser source only. Every preview surface — the admin Preview and
+// pop-out windows, the look gallery, the resolution tester, fixture renders — is a real browser
+// tab, and constructing the engine there preloaded the whole sound library on WebSocket connect.
+// A download manager on the operator's PC turns those ungestured mp3 GETs into "Save As" dialogs,
+// so previews now load no audio at all. The Sounds page is where audio is auditioned.
 const audio =
-  params.fixture
+  params.preview || params.fixture || params.look || params.gallery || params.debug
     ? null
     : new OverlayAudio(createBrowserEngine(), location.origin);
-if (audio && (params.debug || params.preview)) {
+if (audio) {
   // Normal browsers hold audio until a click; OBS does not need this.
   // In preview mode, we also need an unlock button for browsers.
   const btn = document.createElement('button');
@@ -439,8 +506,24 @@ if (fixtureState) {
 }
 
 const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+
+// Commentary audio should ONLY play on:
+// 1. The Full Resolution / Broadcast Preview window (?preview=1&resolution=1)
+// 2. The Pop-out overlay window (window.self === window.top)
+// 3. The OBS Browser source overlay (window.self === window.top)
+//
+// Commentary audio must NEVER play in background admin dashboard frames (e.g. LookPreview cards on
+// Graphics page, ProLooksModal, Setup iframe, or design QA gallery), which was causing duplicate
+// speech, echo, and distorted comb-filtering.
+const isDashboardFrame = typeof window !== 'undefined' && window.self !== window.top && !params.resolution;
+const isLookOrGallery = Boolean(params.look && !params.resolution) || params.gallery;
+const commMuted = Boolean(params.commMute) || isDashboardFrame || isLookOrGallery;
+
 // Same origin as the overlay page, which is what the API proxy and the packaged app both serve.
 const commentary = new OverlayCommentary({ audioBase: location.origin });
+if (commMuted) {
+  commentary.setEnabled(false);
+}
 
 const client = new OverlayWsClient({
   url: `${proto}://${location.host}/ws${params.preview ? '?preview=1' : ''}`,
@@ -453,7 +536,9 @@ const client = new OverlayWsClient({
   onMessage: (msg) => {
     if (msg.type !== 'message') return;
     if (msg.channel === 'commentary') {
-      commentary.handle(msg.payload);
+      if (!commMuted) {
+        commentary.handle(msg.payload);
+      }
     } else if (msg.channel === 'state') {
       if (!params.fixture) {
         const m = MatchStateSchema.safeParse(msg.payload);
@@ -497,12 +582,12 @@ const client = new OverlayWsClient({
           // settings push would undo `?look=` for every gallery preview.
           if (effective.theme) {
             const l = getLook(effective.theme);
-            if (l && l.id !== store.get().look.id) store.setLook(l);
+            if (l && canRunLook(l) && l.id !== store.get().look.id) store.setLook(l);
           }
         }
       } else if (msg.event === 'look') {
         const l = LookSchema.safeParse(msg.payload);
-        if (l.success && !(params.look && getLook(params.look))) store.setLook(l.data);
+        if (l.success && !params.look && canRunLook(l.data)) store.setLook(l.data);
       }
     }
   },

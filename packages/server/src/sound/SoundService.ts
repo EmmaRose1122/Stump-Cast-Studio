@@ -189,8 +189,11 @@ export class SoundService {
       path.resolve(process.cwd(), 'packages', 'server', 'data', 'assets', 'sounds', filename),
       path.resolve(process.cwd(), 'data', 'assets', 'sounds', filename),
       path.resolve(process.cwd(), 'assets', 'sounds', filename),
+      path.resolve(process.cwd(), 'stumpcast', 'assets', 'sounds', filename),
       path.resolve(import.meta.dirname, '..', '..', 'data', 'assets', 'sounds', filename),
       path.resolve(import.meta.dirname, '..', '..', '..', 'data', 'assets', 'sounds', filename),
+      path.resolve(import.meta.dirname, '..', '..', '..', 'assets', 'sounds', filename),
+      path.resolve(import.meta.dirname, '..', '..', '..', '..', 'assets', 'sounds', filename),
       path.resolve(import.meta.dirname, '..', '..', '..', 'packages', 'server', 'data', 'assets', 'sounds', filename),
     ];
     const found = candidates.find((c) => fs.existsSync(c));

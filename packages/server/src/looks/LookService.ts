@@ -90,13 +90,14 @@ export class LookService {
   }
 
   /**
-   * The look to put on air. `allowPreview` lets an unlicensed studio *see* a Pro look in its own
-   * preview — the caller must not save it or send it to viewers on that basis.
+   * The look to put on air. A Pro look requires a licence, with no exceptions: the old
+   * `allowPreview` escape let an unlicensed studio select a Pro look into its own preview window,
+   * which is the selection the paid tier exists to gate.
    */
-  require(id: string, allowPreview = false): Look {
+  require(id: string): Look {
     const look = this.get(id);
     if (!look) throw new LookError('Unknown look', 404);
-    if (look.plan === 'pro' && !this.isLicensed() && !allowPreview) {
+    if (look.plan === 'pro' && !this.isLicensed()) {
       throw new LookError('This look needs a Pro licence', 403);
     }
     return look;

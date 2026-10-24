@@ -11,6 +11,7 @@ import {
   type AssetType,
 } from '../lib/assetsApi';
 import { parseSquadUpload } from '../lib/scoring';
+import { hasPlayerImage, rosterFromTeam, type RosterPlayer, type RosterSource } from '../lib/squadRoster';
 import {
   PlayerAvatar,
   TeamCrest,
@@ -24,11 +25,7 @@ const errText = (e: unknown) => (e instanceof Error ? e.message : 'Something wen
 const CHECKER =
   'bg-[repeating-conic-gradient(var(--color-surface-2)_0_25%,var(--color-bg)_0_50%)] bg-[length:16px_16px]';
 
-interface SquadPlayer {
-  name: string;
-  role: string;
-  tag?: 'C' | 'WK';
-}
+type SquadPlayer = RosterPlayer;
 
 const DEFAULT_SQUADS: Record<string, SquadPlayer[]> = {
   rsa: [
@@ -216,10 +213,21 @@ export const PlayersPage = () => {
     placeholderData: (prev) => prev,
   });
 
-  // Fetch all player assets to reliably check cutouts regardless of pagination
+  // Every saved player asset, all pages. A single 200-row page was assumed to be the whole library,
+  // so once the studio passed 200 players the rest silently read as MISSING.
   const allPlayerAssets = useQuery({
     queryKey: ['assets', 'all-players-list'],
-    queryFn: () => assetsApi.list({ type: 'player', pageSize: 200 }),
+    queryFn: async () => {
+      const first = await assetsApi.list({ type: 'player', pageSize: 200, page: 1 });
+      const pages = Math.ceil(first.total / 200);
+      if (pages <= 1) return first;
+      const rest = await Promise.all(
+        Array.from({ length: pages - 1 }, (_, i) =>
+          assetsApi.list({ type: 'player', pageSize: 200, page: i + 2 }),
+        ),
+      );
+      return { ...first, items: [first, ...rest].flatMap((p) => p.items) };
+    },
   });
 
   // Fast asset existence lookup map
@@ -235,6 +243,10 @@ export const PlayersPage = () => {
     const s = slug(playerName);
     return existingPlayerAssetIds.has(s) || existingPlayerAssetIds.has(`player-${s}`);
   };
+
+  /** Whether a squad row will actually paint a face: a saved asset, or the photo the site serves. */
+  const squadPlayerHasImage = (player: SquadPlayer): boolean =>
+    hasPlayerImage(player, hasPlayerCutout);
 
   const uploadFile = useMutation({
     mutationFn: (v: { file: File; type: AssetType; name?: string; short?: string }) =>
@@ -282,13 +294,33 @@ export const PlayersPage = () => {
     filePickerRef.current?.click();
   };
 
-  const handleImportPlayerAvatar = (playerName: string, teamShort = '') => {
-    const file = createPlayerAvatarFile(playerName, teamShort);
+  /**
+   * Saves a face for one player. When the score site published a photo, that photo is downloaded —
+   * the generated silhouette is only for a player the site has no picture of, and the toast says so.
+   * This button used to always draw a silhouette, so "IMPORT" produced an avatar-shaped placeholder
+   * while the real face sat unused on the page the studio had just scraped.
+   */
+  const handleImportPlayerAvatar = (
+    player: { name: string; imageUrl?: string },
+    teamShort = '',
+  ) => {
+    if (player.imageUrl) {
+      registerByUrl.mutate(
+        { type: 'player', name: player.name, url: player.imageUrl },
+        { onSuccess: () => toast({ title: `Imported ${player.name}'s photo`, kind: 'success' }) },
+      );
+      return;
+    }
+    const file = createPlayerAvatarFile(player.name, teamShort);
     uploadFile.mutate(
-      { file, type: 'player', name: playerName },
+      { file, type: 'player', name: player.name },
       {
         onSuccess: () => {
-          toast({ title: `Cutout ready for ${playerName}`, kind: 'success' });
+          toast({
+            title: `Placeholder generated for ${player.name}`,
+            description: 'The score site has no photo for this player — upload one to replace it.',
+            kind: 'info',
+          });
         },
       },
     );
@@ -343,25 +375,33 @@ export const PlayersPage = () => {
     wkts: 1,
   };
 
-  // Derive squad lists
-  const getSquadForTeam = (team: typeof team1): SquadPlayer[] => {
+  // Derive squad lists. The live match's announced line-up wins; the built-in XI is only a clearly
+  // labelled demo for a match whose squads page has not been scraped yet.
+  const rosterForTeam = (
+    team: typeof team1,
+  ): { players: SquadPlayer[]; source: RosterSource } => {
     const code = normalizeTeamCode(team.short || team.name);
-    if (uploadedSquads && uploadedSquads[code]) {
-      return uploadedSquads[code];
-    }
-    const def = DEFAULT_SQUADS[code] ?? DEFAULT_SQUADS[normalizeTeamCode(team.name)];
-    if (def) return def;
-
-    // Fallback generated roster
-    return Array.from({ length: 11 }, (_, i) => ({
-      name: `${team.short} Player ${i + 1}`,
-      role: i < 5 ? 'Batter' : i === 5 ? 'WK-Batter' : i < 8 ? 'Allrounder' : 'Bowler',
-      tag: i === 0 ? 'C' : i === 5 ? 'WK' : undefined,
-    }));
+    return rosterFromTeam(
+      activeMatch?.teams.find((t) => t.id === team.id) ?? activeMatch?.teams.find((t) => t.short === team.short),
+      uploadedSquads?.[code],
+      DEFAULT_SQUADS[code] ?? DEFAULT_SQUADS[normalizeTeamCode(team.name)],
+    );
   };
 
-  const squad1 = useMemo(() => getSquadForTeam(battingTeam), [battingTeam, uploadedSquads]);
-  const squad2 = useMemo(() => getSquadForTeam(bowlingTeam), [bowlingTeam, uploadedSquads]);
+  const roster1 = rosterForTeam(battingTeam);
+  const roster2 = rosterForTeam(bowlingTeam);
+  const squad1 = roster1.players;
+  const squad2 = roster2.players;
+  // The panel is only "live" when both sides came from the match or an operator upload.
+  const squadsAreLive = (s: RosterSource) => s === 'squad' || s === 'players' || s === 'uploaded';
+
+  /** The photo the score site published, by player name — the on-pitch cards use it too. */
+  const photoByName = new Map<string, string>();
+  for (const p of [...squad1, ...squad2]) if (p.imageUrl) photoByName.set(p.name, p.imageUrl);
+  const avatarSources = (name: string) => [
+    photoByName.get(name),
+    `/assets/players/${slug(name)}.webp`,
+  ];
 
   const onPitchPlayers = [
     { title: 'STRIKER (*)', player: striker, team: battingTeam, isBatter: true },
@@ -374,34 +414,52 @@ export const PlayersPage = () => {
   const handleAutoFetchAll = async () => {
     if (fetching) return;
     setFetching(true);
+
+    // Only players with no *saved* asset are work: a row that already renders a site photo still
+    // has nothing on disk for OBS, so those are fetched too when the site offers a URL.
+    const pending: { player: SquadPlayer; teamShort: string }[] = [];
+    for (const team of [
+      { roster: squad1, short: battingTeam.short },
+      { roster: squad2, short: bowlingTeam.short },
+    ]) {
+      for (const player of team.roster) {
+        if (!hasPlayerCutout(player.name)) pending.push({ player, teamShort: team.short });
+      }
+    }
+
+    const fromSite = pending.filter((p) => p.player.imageUrl).length;
     toast({
-      title: 'Auto-fetching missing assets...',
-      description: 'Generating and saving high-res vector cutouts for all missing match players',
+      title: `Fetching ${pending.length} squad photos...`,
+      description: `${fromSite} from the score site, ${pending.length - fromSite} placeholder${
+        pending.length - fromSite === 1 ? '' : 's'
+      }.`,
       kind: 'info',
     });
 
     try {
-      // Sync disk first
+      // Sync disk first so files dropped in by hand are registered before we decide what is missing.
       const sync = await fetch('/api/assets/sync', { method: 'POST' });
       if (!sync.ok) throw new Error(`Could not sync the asset library (${sync.status})`);
 
-      // Find all players from both squads and on-pitch without cutout
-      const missingList: { name: string; teamShort: string }[] = [];
-
-      for (const p of [...squad1, ...squad2]) {
-        if (!hasPlayerCutout(p.name)) {
-          const teamShort = squad1.includes(p) ? battingTeam.short : bowlingTeam.short;
-          missingList.push({ name: p.name, teamShort });
-        }
-      }
-
       const results = await Promise.allSettled(
-        missingList.map((item) => {
-          const file = createPlayerAvatarFile(item.name, item.teamShort);
-          return assetsApi.upload({ file, type: 'player', name: item.name, rights: true });
-        }),
+        pending.map(({ player, teamShort }) =>
+          player.imageUrl
+            ? assetsApi.importUrl({
+                type: 'player',
+                name: player.name,
+                url: player.imageUrl,
+                rights: true,
+              })
+            : assetsApi.upload({
+                file: createPlayerAvatarFile(player.name, teamShort),
+                type: 'player',
+                name: player.name,
+                rights: true,
+              }),
+        ),
       );
       const failed = results.filter((r) => r.status === 'rejected').length;
+      const saved = pending.length - failed;
 
       await qc.invalidateQueries({ queryKey: ['assets'] });
       await qc.invalidateQueries({ queryKey: ['missing'] });
@@ -409,14 +467,18 @@ export const PlayersPage = () => {
       if (failed) {
         const first = results.find((r) => r.status === 'rejected') as PromiseRejectedResult;
         toast({
-          title: `Auto-fetch: ${missingList.length - failed} of ${missingList.length} saved`,
+          title: `Auto-fetch: ${saved} of ${pending.length} saved`,
           description: `${failed} failed — ${errText(first.reason)}`,
           kind: 'error',
         });
+      } else if (pending.length === 0) {
+        toast({ title: 'Every squad player already has an image', kind: 'success' });
       } else {
         toast({
-          title: 'Auto-fetch complete!',
-          description: `All ${missingList.length} missing squad cutouts generated and saved to disk.`,
+          title: `Saved images for ${saved} players`,
+          description: `${fromSite} real photo${fromSite === 1 ? '' : 's'} from the score site, ${
+            saved - fromSite
+          } generated placeholder${saved - fromSite === 1 ? '' : 's'}.`,
           kind: 'success',
         });
       }
@@ -575,7 +637,11 @@ export const PlayersPage = () => {
                         CHECKER,
                       )}
                     >
-                      <PlayerAvatar name={player.name} className="max-h-full max-w-full" />
+                      <PlayerAvatar
+                        name={player.name}
+                        srcs={avatarSources(player.name)}
+                        className="max-h-full max-w-full"
+                      />
                     </div>
                     <div className="flex-1 min-w-0">
                       <h3 className="font-heading text-sm font-bold text-slate-900 truncate" title={player.name}>
@@ -605,7 +671,12 @@ export const PlayersPage = () => {
                     </button>
                     {!hasCutout && (
                       <button
-                        onClick={() => handleImportPlayerAvatar(player.name, team.short)}
+                        onClick={() =>
+                          handleImportPlayerAvatar(
+                            { name: player.name, imageUrl: photoByName.get(player.name) },
+                            team.short,
+                          )
+                        }
                         className="rounded-lg border border-blue-200 bg-white px-2.5 py-1.5 text-xs font-bold uppercase text-blue-700 hover:bg-blue-50 transition shadow-xs"
                       >
                         Auto-Gen
@@ -828,17 +899,27 @@ export const PlayersPage = () => {
             <div className="flex items-center justify-between border-b border-border/40 pb-2 mb-3">
               <div className="flex items-center gap-2">
                 <TeamCrest team={battingTeam} className="size-6 rounded" />
-                <span className="font-heading text-sm font-bold text-white">
+                <span className="font-heading text-sm font-bold text-blue-950">
                   {battingTeam.name} ({battingTeam.short})
                 </span>
+                <span
+                  className={clsx(
+                    'rounded px-1.5 py-0.5 text-[9px] font-bold uppercase',
+                    squadsAreLive(roster1.source)
+                      ? 'bg-emerald-100 text-emerald-800'
+                      : 'bg-amber-100 text-amber-800',
+                  )}
+                >
+                  {squadsAreLive(roster1.source) ? 'LIVE SQUAD' : 'DEMO XI'}
+                </span>
               </div>
-              <span className="text-xs font-semibold text-muted">
-                {squad1.filter((p) => hasPlayerCutout(p.name)).length}/{squad1.length} cutouts ready
+              <span className="text-xs font-semibold text-slate-500">
+                {squad1.filter((p) => squadPlayerHasImage(p)).length}/{squad1.length} photos
               </span>
             </div>
             <div className="space-y-2">
               {squad1.map((player) => {
-                const hasCutout = hasPlayerCutout(player.name);
+                const hasCutout = squadPlayerHasImage(player);
                 const isCurrentStriker = player.name === striker.name;
 
                 return (
@@ -848,7 +929,11 @@ export const PlayersPage = () => {
                   >
                     <div className="flex items-center gap-3 min-w-0">
                       <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-blue-50/50 border border-blue-200 p-0.5">
-                        <PlayerAvatar name={player.name} className="max-h-full max-w-full" />
+                        <PlayerAvatar
+                          name={player.name}
+                          srcs={avatarSources(player.name)}
+                          className="max-h-full max-w-full"
+                        />
                       </div>
                       <div className="min-w-0 truncate">
                         <div className="flex items-center gap-1.5 truncate">
@@ -877,7 +962,7 @@ export const PlayersPage = () => {
                         {hasCutout ? '✓ READY' : 'MISSING'}
                       </span>
                       <button
-                        onClick={() => handleImportPlayerAvatar(player.name, battingTeam.short)}
+                        onClick={() => handleImportPlayerAvatar(player, battingTeam.short)}
                         className="rounded-lg bg-orange-500 px-3 py-1 text-xs font-bold uppercase text-white hover:bg-orange-600 transition shadow-xs border border-orange-400"
                       >
                         IMPORT
@@ -903,14 +988,24 @@ export const PlayersPage = () => {
                 <span className="font-heading text-sm font-bold text-blue-950">
                   {bowlingTeam.name} ({bowlingTeam.short})
                 </span>
+                <span
+                  className={clsx(
+                    'rounded px-1.5 py-0.5 text-[9px] font-bold uppercase',
+                    squadsAreLive(roster2.source)
+                      ? 'bg-emerald-100 text-emerald-800'
+                      : 'bg-amber-100 text-amber-800',
+                  )}
+                >
+                  {squadsAreLive(roster2.source) ? 'LIVE SQUAD' : 'DEMO XI'}
+                </span>
               </div>
               <span className="text-xs font-semibold text-slate-500">
-                {squad2.filter((p) => hasPlayerCutout(p.name)).length}/{squad2.length} cutouts ready
+                {squad2.filter((p) => squadPlayerHasImage(p)).length}/{squad2.length} photos
               </span>
             </div>
             <div className="space-y-2">
               {squad2.map((player) => {
-                const hasCutout = hasPlayerCutout(player.name);
+                const hasCutout = squadPlayerHasImage(player);
                 const isCurrentBowler = player.name === bowler.name;
 
                 return (
@@ -920,7 +1015,11 @@ export const PlayersPage = () => {
                   >
                     <div className="flex items-center gap-3 min-w-0">
                       <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-blue-50/50 border border-blue-200 p-0.5">
-                        <PlayerAvatar name={player.name} className="max-h-full max-w-full" />
+                        <PlayerAvatar
+                          name={player.name}
+                          srcs={avatarSources(player.name)}
+                          className="max-h-full max-w-full"
+                        />
                       </div>
                       <div className="min-w-0 truncate">
                         <div className="flex items-center gap-1.5 truncate">
@@ -949,7 +1048,7 @@ export const PlayersPage = () => {
                         {hasCutout ? '✓ READY' : 'MISSING'}
                       </span>
                       <button
-                        onClick={() => handleImportPlayerAvatar(player.name, bowlingTeam.short)}
+                        onClick={() => handleImportPlayerAvatar(player, bowlingTeam.short)}
                         className="rounded-lg bg-orange-500 px-3 py-1 text-xs font-bold uppercase text-white hover:bg-orange-600 transition shadow-xs border border-orange-400"
                       >
                         IMPORT

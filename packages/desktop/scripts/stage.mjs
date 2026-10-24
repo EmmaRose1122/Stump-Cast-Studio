@@ -50,9 +50,6 @@ cpSync(path.join(desktop, 'dist'), path.join(stage, 'packages', 'desktop', 'dist
 });
 cpSync(path.join(packages, 'overlay', 'dist'), path.join(stage, 'packages', 'overlay', 'dist'), { recursive: true });
 cpSync(path.join(packages, 'admin', 'dist'), path.join(stage, 'packages', 'admin', 'dist'), { recursive: true });
-if (existsSync(path.join(packages, 'license-admin', 'dist'))) {
-  cpSync(path.join(packages, 'license-admin', 'dist'), path.join(stage, 'packages', 'license-admin', 'dist'), { recursive: true });
-}
 // The signing halves stay on the seller's machine. Copying `.secrets` into the installer handed
 // every customer the private keys for licences and selector bundles, which is the whole paid
 // model handed back to them. The customer's own secrets (Gemini key) live in the encrypted store

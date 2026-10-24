@@ -43,7 +43,7 @@ export const LookPreview = ({ id, origin, params = '', className = '' }: LookPre
       {scale > 0 && (
         <iframe
           title={`${id} look preview`}
-          src={`${overlayBaseUrl(origin)}?preview=1&look=${encodeURIComponent(id)}${params}`}
+          src={`${overlayBaseUrl(origin)}?preview=1&look=${encodeURIComponent(id)}&commMute=1${params}`}
           loading="lazy"
           tabIndex={-1}
           aria-hidden

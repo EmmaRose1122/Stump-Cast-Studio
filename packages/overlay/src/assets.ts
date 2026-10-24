@@ -27,6 +27,7 @@ export const assetUrl = (kind: 'players' | 'teams', id: string): string => {
 /**
  * Layer an image over a text fallback (initials, a letter). If the file does not exist the
  * request fails quietly and the fallback stays, so a missing photo never shows a broken icon.
+ * Handles both local asset URLs and external URLs (Cricbuzz, Crex) with CORS support.
  */
 export const attachImage = (host: HTMLElement, src: string): void => {
   const img = document.createElement('img');
@@ -34,6 +35,10 @@ export const attachImage = (host: HTMLElement, src: string): void => {
   img.decoding = 'async';
   img.className = 'asset-img';
   img.style.display = 'none';
+  // Enable CORS for external images (Cricbuzz, Crex player photos)
+  if (src.startsWith('http://') || src.startsWith('https://')) {
+    img.crossOrigin = 'anonymous';
+  }
   let retried = false;
   img.addEventListener('load', () => {
     img.style.display = '';

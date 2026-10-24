@@ -460,7 +460,7 @@ export class CommentaryTts {
       STUMCAST_TTS_OUT: tmp,
       STUMCAST_TTS_VOICE: this.systemVoice,
       STUMCAST_TTS_RATE: '1',
-      STUMCAST_TTS_VOLUME: '100',
+      STUMCAST_TTS_VOLUME: '85',
     };
     let ok = false;
     try {

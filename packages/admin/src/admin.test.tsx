@@ -340,7 +340,7 @@ describe('studio survives faults', () => {
     }
   });
 
-  it('renders AI API KEYS configuration controls and modal in SettingsPage', async () => {
+  it('renders AI API KEYS configuration controls and the live squad panel in SettingsPage', async () => {
     const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     render(
       <QueryClientProvider client={qc}>
@@ -351,8 +351,9 @@ describe('studio survives faults', () => {
     );
     const keyBtn = screen.getByRole('button', { name: /AI API KEYS/i });
     expect(keyBtn).toBeTruthy();
-    const configGeminiBtn = screen.getByRole('button', { name: /Configure Gemini Key|Gemini Key Active/i });
-    expect(configGeminiBtn).toBeTruthy();
+    // The old "AI IMAGE GENERATOR" mock was replaced by a real squad panel driven by the match.
+    expect(screen.getByText(/ON-PITCH PLAYERS/i)).toBeTruthy();
+    expect(screen.getByRole('button', { name: /SELECT ALL MISSING/i })).toBeTruthy();
   });
 });
 

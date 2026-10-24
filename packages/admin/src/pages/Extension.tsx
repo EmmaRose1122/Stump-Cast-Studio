@@ -1,29 +1,32 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import clsx from 'clsx';
-import { useState } from 'react';
-import { api } from '../lib/api';
-import { navigate } from '../lib/router';
-import { useAdmin } from '../store';
-import { Button, Card } from '../ui';
+﻿import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import clsx from 'clsx'
+import { useState } from 'react'
+import { api } from '../lib/api'
+import { navigate } from '../lib/router'
+import { useAdmin } from '../store'
+import { Button, Card, Alert, Input, Label } from '../ui'
 
 export const ExtensionPage = () => {
-  const qc = useQueryClient();
-  const toast = useAdmin((s) => s.toast);
-  const [urlDraft, setUrlDraft] = useState('');
+  const qc = useQueryClient()
+  const toast = useAdmin((s) => s.toast)
+  const [urlDraft, setUrlDraft] = useState('')
+  const [pairCode, setPairCode] = useState('')
+  const [pairError, setPairError] = useState('')
+  const [pairing, setPairing] = useState(false)
 
   const provider = useQuery({
     queryKey: ['provider'],
     queryFn: api.providerStatus,
     refetchInterval: 2000,
-  });
-  const matches = useQuery({ queryKey: ['matches'], queryFn: api.matches, refetchInterval: 3000 });
-  const settings = useQuery({ queryKey: ['settings'], queryFn: api.settings });
+  })
+  const matches = useQuery({ queryKey: ['matches'], queryFn: api.matches, refetchInterval: 3000 })
+  const settings = useQuery({ queryKey: ['settings'], queryFn: api.settings })
 
   const saveSettings = useMutation({
     mutationFn: api.saveSettings,
     onSuccess: (s) => qc.setQueryData(['settings'], s),
     onError: () => toast({ title: 'Could not save', kind: 'error' }),
-  });
+  })
 
   const openMatch = useMutation({
     mutationFn: async (url: string) => {
@@ -31,47 +34,99 @@ export const ExtensionPage = () => {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ command: 'openMatch', url }),
-      });
-      if (!res.ok) throw new Error('Could not send command');
-      return res.json();
+      })
+      if (!res.ok) throw new Error('Could not send command')
+      return res.json()
     },
     onSuccess: () => {
-      toast({ title: 'Opening match page...', kind: 'success' });
-      setUrlDraft('');
+      toast({ title: 'Opening match page...', kind: 'success' })
+      setUrlDraft('')
     },
     onError: () => toast({ title: 'Could not open match. Is the extension connected?', kind: 'error' }),
-  });
+  })
 
-  const health = provider.data?.health ?? 'down';
-  const accepted = Boolean(settings.data?.sourceTermsAcceptedAt);
+  const pairCodeMutation = useMutation({
+    mutationFn: async (code: string) => {
+      const res = await fetch('/api/ext/pair', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ code }),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: 'Invalid code' }))
+        throw new Error(err.error ?? 'Invalid pairing code')
+      }
+      return res.json()
+    },
+    onSuccess: () => {
+      toast({ title: 'Extension paired successfully!', kind: 'success' })
+      setPairCode('')
+      setPairError('')
+      void qc.invalidateQueries({ queryKey: ['provider'] })
+    },
+    onError: (e) => setPairError(e instanceof Error ? e.message : 'Pairing failed'),
+  })
 
-  const statusColor =
-    health === 'connected' ? 'bg-emerald-400' : health === 'stale' ? 'bg-amber-400' : 'bg-rose-500';
-  const statusText =
-    health === 'connected' ? 'Connected' : health === 'stale' ? 'Stale' : 'Not connected';
+  const autoPairMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch('/api/ext/auto-pair', { method: 'POST' })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: 'Auto-pair failed' }))
+        throw new Error(err.error ?? 'Auto-pair failed')
+      }
+      return res.json()
+    },
+    onSuccess: () => {
+      toast({ title: 'Auto-paired with Studio!', kind: 'success' })
+      void qc.invalidateQueries({ queryKey: ['provider'] })
+    },
+    onError: (e) => setPairError(e instanceof Error ? e.message : 'Auto-pair failed'),
+  })
 
-  const [rawStatus, setRawStatus] = useState<Record<string, unknown> | null>(null);
+  const unpairMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch('/api/ext/unpair', { method: 'POST' })
+      if (!res.ok) throw new Error('Could not unpair')
+      return res.json()
+    },
+    onSuccess: () => {
+      toast({ title: 'Extension unpaired', kind: 'info' })
+      void qc.invalidateQueries({ queryKey: ['provider'] })
+    },
+    onError: () => toast({ title: 'Could not unpair', kind: 'error' }),
+  })
+
   const testConnection = useMutation({
     mutationFn: async () => {
-      const res = await fetch('/api/ext/status');
-      return res.json();
+      const res = await fetch('/api/ext/status')
+      return res.json()
     },
-    onSuccess: (data) => setRawStatus(data),
-    onError: (e) => setRawStatus({ error: e instanceof Error ? e.message : String(e) }),
-  });
+    onSuccess: (data) => toast({ title: 'Connection test complete', kind: 'success' }),
+    onError: (e) => toast({ title: 'Test failed', description: e instanceof Error ? e.message : String(e), kind: 'error' }),
+  })
 
   const seedMatch = useMutation({
     mutationFn: async () => {
-      const res = await fetch('/api/ext/seed-match', { method: 'POST' });
-      return res.json();
+      const res = await fetch('/api/ext/seed-match', { method: 'POST' })
+      return res.json()
     },
     onSuccess: () => {
-      toast({ title: 'Test match data seeded', kind: 'success' });
-      void qc.invalidateQueries({ queryKey: ['matches'] });
-      void qc.invalidateQueries({ queryKey: ['provider'] });
+      toast({ title: 'Test match data seeded', kind: 'success' })
+      void qc.invalidateQueries({ queryKey: ['matches'] })
+      void qc.invalidateQueries({ queryKey: ['provider'] })
     },
     onError: () => toast({ title: 'Could not seed test data', kind: 'error' }),
-  });
+  })
+
+  const health = provider.data?.health ?? 'down'
+  const accepted = Boolean(settings.data?.sourceTermsAcceptedAt)
+
+  const statusColor =
+    health === 'connected' ? 'bg-emerald-400' : health === 'stale' ? 'bg-amber-400' : 'bg-rose-500'
+  const statusText =
+    health === 'connected' ? 'Connected' : health === 'stale' ? 'Stale' : 'Not connected'
+
+  const [rawStatus, setRawStatus] = useState<Record<string, unknown> | null>(null)
 
   return (
     <div className="w-full max-w-4xl mx-auto flex flex-col items-center space-y-6">
@@ -84,6 +139,7 @@ export const ExtensionPage = () => {
         </p>
       </div>
 
+      {/* Connection Status Banner */}
       <div className="flex flex-wrap items-center gap-3 rounded-xl border border-blue-200 bg-white px-4 py-3 shadow-sm">
         <span className={clsx('size-3 rounded-full', statusColor)} />
         <span className="font-semibold text-blue-950">{statusText}</span>
@@ -95,7 +151,7 @@ export const ExtensionPage = () => {
         )}
         <div className="ml-auto flex gap-2">
           <Button variant="secondary" onClick={() => testConnection.mutate()} disabled={testConnection.isPending}>
-            Test API
+            Test Connection
           </Button>
           <Button variant="secondary" onClick={() => seedMatch.mutate()} disabled={seedMatch.isPending}>
             Seed Test Data
@@ -103,101 +159,143 @@ export const ExtensionPage = () => {
         </div>
       </div>
 
-      {rawStatus && (
-        <div className="w-full rounded-xl border border-blue-200 bg-blue-50/50 p-4 shadow-xs">
-          <h3 className="text-xs font-bold text-slate-600 uppercase tracking-wider">Raw Status Response</h3>
-          <pre className="mt-2 text-xs text-slate-700 overflow-x-auto">
-            {JSON.stringify(rawStatus, null, 2)}
-          </pre>
-        </div>
-      )}
+      {/* Pairing Section - Always visible with clear status */}
+      <Card className="w-full">
+        <h2 className="font-heading text-lg font-semibold text-slate-900">Extension Pairing</h2>
+        <div className="mt-3 space-y-4">
 
-      {health !== 'connected' && (
-        <Card className="w-full">
-          <h2 className="font-heading text-lg font-semibold text-blue-950">Troubleshooting</h2>
-          <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm text-slate-700">
-            <li>
-              Open <code className="text-teal font-mono">chrome://extensions</code> in Chrome
-            </li>
-            <li>Find "StumpCast Studio Connector" and click <b>Reload</b> (circular arrow icon)</li>
-            <li>
-              Open the extension&apos;s options page and check if it shows{" "}
-              <b>"Paired with StumpCast Studio"</b>
-            </li>
-            <li>
-              If paired but admin still shows "Not connected", the extension service worker may be
-              suspended. Click the <b>Service Worker</b> link on the extension card to wake it up.
-            </li>
-            <li>
-              Make sure a Cricbuzz or Crex match page is open in Chrome (the extension only reads
-              pages you have open)
-            </li>
-          </ol>
-          <div className="mt-4 flex flex-wrap gap-2">
-            <Button
-              variant="primary"
-              onClick={() => window.open('chrome://extensions', '_blank')}
-            >
-              Open chrome://extensions
-            </Button>
-            <Button
-              variant="secondary"
-              onClick={() => window.open('chrome://serviceworker-internals', '_blank')}
-            >
-              Open Service Worker Internals
-            </Button>
-          </div>
-        </Card>
-      )}
+          {health === 'connected' ? (
+            // Connected state - show unpair option
+            <div className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-emerald-300 bg-emerald-50/50 p-3">
+              <div className="flex items-center gap-3">
+                <span className="size-3 rounded-full bg-emerald-400" />
+                <div>
+                  <p className="font-semibold text-emerald-800">Extension Paired & Streaming</p>
+                  <p className="text-sm text-emerald-700">
+                    {provider.data?.openTabs ?? 0} tab(s) active · {matches.data?.length ?? 0} match(es) found
+                  </p>
+                </div>
+              </div>
+              <Button variant="danger" onClick={() => unpairMutation.mutate()} disabled={unpairMutation.isPending}>
+                Unpair Extension
+              </Button>
+            </div>
+          ) : (
+            // Not connected - show pairing options
+            <>
+              <Alert variant="warning">
+                <strong>Extension Not Connected</strong>
+                <p className="text-sm text-slate-600 mt-1">
+                  The Chrome extension is not paired with StumpCast Studio. Choose a pairing method below.
+                </p>
+              </Alert>
 
-      {health !== 'connected' && (
-        <Card className="w-full">
-          <h2 className="font-heading text-lg font-semibold text-slate-900">Connect the extension</h2>
-          <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm text-slate-700">
-            <li>
-              In Chrome open <code className="text-blue-700 font-mono">chrome://extensions</code>, turn on{' '}
-              <b>Developer mode</b> and choose <b>Load unpacked</b>, then select the StumpCast{' '}
-              <code className="text-blue-700 font-mono">extension</code> folder.
-            </li>
-            <li>
-              The extension connects <b>automatically (1-Click Auto Connect)</b> to StumpCast Studio on localhost. No manual pair code is needed.
-            </li>
-            <li>
-              Open a live match page on Cricbuzz or Crex in Chrome to automatically stream real-time scores into Studio.
-            </li>
-          </ol>
+              {/* Auto-pair (recommended) */}
+              <div className="rounded-lg border border-blue-200 bg-blue-50/50 p-4">
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                  <div>
+                    <p className="font-semibold text-blue-950">⚡ 1-Click Auto Connect (Recommended)</p>
+                    <p className="text-sm text-blue-700 mt-1">
+                      Automatically discovers StumpCast Studio on localhost and pairs instantly. No codes needed.
+                    </p>
+                  </div>
+                  <Button
+                    variant="primary"
+                    onClick={() => autoPairMutation.mutate()}
+                    disabled={autoPairMutation.isPending}
+                  >
+                    {autoPairMutation.isPending ? 'Connecting...' : 'Auto-Connect Now'}
+                  </Button>
+                </div>
+              </div>
 
-          <label className="mt-4 flex max-w-2xl items-start gap-3 rounded-lg border border-blue-200 bg-blue-50/40 p-3 text-sm">
-            <input
-              type="checkbox"
-              checked={accepted}
-              disabled={!settings.data || saveSettings.isPending || accepted}
-              onChange={async (event) => {
-                if (!event.currentTarget.checked) return;
-                try {
-                  const response = await fetch('/api/ext/terms/accept', { method: 'POST' });
-                  if (!response.ok) throw new Error('Could not record acceptance');
-                  const result = (await response.json()) as { acceptedAt: number };
-                  if (settings.data) {
-                    qc.setQueryData(['settings'], {
-                      ...settings.data,
-                      sourceTermsAcceptedAt: result.acceptedAt,
-                    });
+              {/* Manual pair code */}
+              <div className="rounded-lg border border-amber-200 bg-amber-50/50 p-4">
+                <p className="font-semibold text-amber-950 mb-2">🔐 Manual Pair Code</p>
+                <p className="text-sm text-amber-700 mb-3">
+                  Use this if auto-connect fails. Get a 6-digit code from the extension options page.
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <Input
+                    value={pairCode}
+                    onChange={(e) => { setPairCode(e.target.value.toUpperCase()); setPairError('') }}
+                    placeholder="123456"
+                    maxLength={6}
+                    className="flex-1 min-w-[120px] text-center text-lg font-mono tracking-widest"
+                    disabled={pairing}
+                  />
+                  <Button
+                    variant="primary"
+                    onClick={() => { setPairing(true); pairCodeMutation.mutate(pairCode) }}
+                    disabled={pairing || !pairCode.trim() || pairCodeMutation.isPending}
+                  >
+                    {pairCodeMutation.isPending ? 'Pairing...' : 'Pair with Code'}
+                  </Button>
+                </div>
+                {pairError && (
+                  <Alert variant="error" className="mt-3">
+                    {pairError}
+                  </Alert>
+                )}
+              </div>
+
+              {/* Troubleshooting */}
+              <div className="rounded-lg border border-slate-200 bg-slate-50/50 p-4">
+                <p className="font-semibold text-slate-950 mb-2">🛠 Troubleshooting</p>
+                <ol className="list-decimal space-y-1 pl-5 text-sm text-slate-600">
+                  <li>Open <code className="text-teal font-mono">chrome://extensions</code> in Chrome</li>
+                  <li>Find "StumpCast Studio Connector" and click <b>Reload</b> (circular arrow icon)</li>
+                  <li>Open the extension&apos;s options page (click "Extension options") and check if it shows <b>"Paired with StumpCast Studio"</b></li>
+                  <li>If paired but admin shows "Not connected", the service worker may be suspended. Click the <b>Service Worker</b> link on the extension card to wake it up.</li>
+                  <li>Make sure a Cricbuzz or Crex <b>live match page</b> is open in Chrome (the extension only reads pages you have open)</li>
+                </ol>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Button variant="primary" onClick={() => window.open('chrome://extensions', '_blank')}>
+                    Open chrome://extensions
+                  </Button>
+                  <Button variant="secondary" onClick={() => window.open('chrome://serviceworker-internals', '_blank')}>
+                    Open Service Worker Internals
+                  </Button>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Source Terms Acceptance */}
+          {!accepted && settings.data && (
+            <Label className="flex max-w-2xl items-start gap-3 rounded-lg border border-blue-200 bg-blue-50/40 p-3 text-sm cursor-pointer">
+              <input
+                type="checkbox"
+                checked={accepted}
+                disabled={!settings.data || saveSettings.isPending}
+                onChange={async (event) => {
+                  if (!event.currentTarget.checked) return
+                  try {
+                    const response = await fetch('/api/ext/terms/accept', { method: 'POST' })
+                    if (!response.ok) throw new Error('Could not record acceptance')
+                    const result = (await response.json()) as { acceptedAt: number }
+                    if (settings.data) {
+                      qc.setQueryData(['settings'], {
+                        ...settings.data,
+                        sourceTermsAcceptedAt: result.acceptedAt,
+                      })
+                    }
+                  } catch {
+                    toast({ title: 'Could not save the notice acceptance', kind: 'error' })
                   }
-                } catch {
-                  toast({ title: 'Could not save the notice acceptance', kind: 'error' });
-                }
-              }}
-            />
-            <span className="text-slate-700">
-              I understand that the extension reads only match pages I open. I am responsible for
-              complying with the source site&apos;s terms of use; StumpCast does not host or resell
-              source data.
-            </span>
-          </label>
-        </Card>
-      )}
+                }}
+              />
+              <span className="text-slate-700">
+                I understand that the extension reads only match pages I open. I am responsible for
+                complying with the source site&apos;s terms of use; StumpCast does not host or resell
+                source data.
+              </span>
+            </Label>
+          )}
+        </div>
+      </Card>
 
+      {/* Data Feed Status - Connected only */}
       {health === 'connected' && (
         <Card className="w-full">
           <h2 className="font-heading text-lg font-semibold text-slate-900">Data Feed Status</h2>
@@ -240,6 +338,7 @@ export const ExtensionPage = () => {
         </Card>
       )}
 
+      {/* Your Matches - shown when connected, stale, or matches exist */}
       {(health === 'connected' || health === 'stale' || (matches.data && matches.data.length > 0)) && (
         <Card className="w-full">
           <h2 className="font-heading text-lg font-semibold text-slate-900">Your Matches</h2>
@@ -252,11 +351,13 @@ export const ExtensionPage = () => {
                 >
                   <div>
                     <span className="truncate text-sm text-slate-900 font-medium">
-                      {m.title && m.title.includes('vs')
-                        ? m.title
-                        : m.teams[0]?.name && m.teams[1]?.name
-                          ? `${m.teams[0].name} vs ${m.teams[1].name}${m.title ? ` (${m.title})` : ''}`
-                          : m.title} · {m.score.runs}-{m.score.wkts}
+                      {(() => {
+                        if (m.title && m.title.includes('vs')) return m.title
+                        if (m.teams[0]?.name && m.teams[1]?.name) {
+                          return `${m.teams[0].name} vs ${m.teams[1].name}${m.title ? ` (${m.title})` : ''}`
+                        }
+                        return m.title
+                      })()} · {m.score.runs}-{m.score.wkts}
                       {m.score.overs > 0 || m.score.balls > 0 ? ` (${m.score.overs}.${m.score.balls} ov)` : ''}
                     </span>
                     <span
@@ -312,5 +413,5 @@ export const ExtensionPage = () => {
         Back to setup wizard
       </Button>
     </div>
-  );
-};
+  )
+}

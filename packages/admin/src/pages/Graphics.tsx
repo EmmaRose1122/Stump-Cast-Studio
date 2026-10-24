@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import clsx from 'clsx';
 import { useEffect, useState } from 'react';
-import { DEFAULT_DIRECTOR_RULES, type DirectorRule, type DirectorTrigger } from '@stumpcast/shared';
+import { DEFAULT_DIRECTOR_RULES, whatsappUrl, type DirectorRule, type DirectorTrigger } from '@stumpcast/shared';
 import { api, useServerOrigin } from '../lib/api';
 import {
   ALL_CARDS,
@@ -159,7 +159,7 @@ export const GraphicsPage = () => {
               SEE PRO LOOKS
             </button>
             <a
-              href="https://wa.me/?text=Hi%20StumpCast%2C%20I%20want%20a%20Pro%20Look"
+              href={whatsappUrl('Hi StumpCast, I want a Pro Look')}
               target="_blank"
               rel="noreferrer"
               className="rounded-lg border border-blue-200 bg-white px-3.5 py-1.5 text-xs font-bold text-blue-700 transition hover:bg-blue-50 shadow-xs"

@@ -56,7 +56,8 @@ import { SelectorService } from './ext/selectors';
 import { OBSLink } from './obs/OBSLink';
 import { registerObsRoutes } from './obs/routes';
 import { WsHub, type Audience } from './ws/hub';
-import { signLicenceToken, verifyLicenceToken, type LicencePayload } from './licence/licence';
+import { verifyLicenceToken } from './licence/licence';
+import { findNewestInstaller, installerDirs, compareVersions } from './updates/installers';
 import { getMachineId, getFormattedMachineId } from './licence/machineId';
 
 const SETTINGS_KEY = 'app';
@@ -296,45 +297,21 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
   });
 
   fastify.get('/api/app/update-download-file', async (_req, reply) => {
-    const candidates = [
-      path.resolve(process.cwd(), 'release', 'StumpCast-Studio-Setup-1.0.7.exe'),
-      path.resolve(import.meta.dirname, '..', '..', '..', 'release', 'StumpCast-Studio-Setup-1.0.7.exe'),
-      'C:\\Users\\IK\\Downloads\\StumpCast Studio\\stumpcast\\release\\StumpCast-Studio-Setup-1.0.7.exe',
-      path.join(process.env.USERPROFILE || '', 'Downloads', 'StumpCast Studio', 'stumpcast', 'release', 'StumpCast-Studio-Setup-1.0.7.exe'),
-      path.resolve(process.cwd(), 'release', 'StumpCast-Studio-Setup-1.0.6.exe'),
-      path.resolve(import.meta.dirname, '..', '..', '..', 'release', 'StumpCast-Studio-Setup-1.0.6.exe'),
-      'C:\\Users\\IK\\Downloads\\StumpCast Studio\\stumpcast\\release\\StumpCast-Studio-Setup-1.0.6.exe',
-      path.join(process.env.USERPROFILE || '', 'Downloads', 'StumpCast Studio', 'stumpcast', 'release', 'StumpCast-Studio-Setup-1.0.6.exe'),
-      path.resolve(process.cwd(), 'release', 'StumpCast-Studio-Setup-1.0.5.exe'),
-      path.resolve(import.meta.dirname, '..', '..', '..', 'release', 'StumpCast-Studio-Setup-1.0.5.exe'),
-      'C:\\Users\\IK\\Downloads\\StumpCast Studio\\stumpcast\\release\\StumpCast-Studio-Setup-1.0.5.exe',
-      path.join(process.env.USERPROFILE || '', 'Downloads', 'StumpCast Studio', 'stumpcast', 'release', 'StumpCast-Studio-Setup-1.0.5.exe'),
-      path.resolve(process.cwd(), 'release', 'StumpCast-Studio-Setup-1.0.4.exe'),
-      path.resolve(import.meta.dirname, '..', '..', '..', 'release', 'StumpCast-Studio-Setup-1.0.4.exe'),
-      'C:\\Users\\IK\\Downloads\\StumpCast Studio\\stumpcast\\release\\StumpCast-Studio-Setup-1.0.4.exe',
-      path.join(process.env.USERPROFILE || '', 'Downloads', 'StumpCast Studio', 'stumpcast', 'release', 'StumpCast-Studio-Setup-1.0.4.exe'),
-      path.resolve(process.cwd(), 'release', 'StumpCast-Studio-Setup-1.0.3.exe'),
-      path.resolve(import.meta.dirname, '..', '..', '..', 'release', 'StumpCast-Studio-Setup-1.0.3.exe'),
-      'C:\\Users\\IK\\Downloads\\StumpCast Studio\\stumpcast\\release\\StumpCast-Studio-Setup-1.0.3.exe',
-      path.join(process.env.USERPROFILE || '', 'Downloads', 'StumpCast Studio', 'stumpcast', 'release', 'StumpCast-Studio-Setup-1.0.3.exe'),
-      path.resolve(process.cwd(), 'release', 'StumpCast-Studio-Setup-1.0.2.exe'),
-      path.resolve(import.meta.dirname, '..', '..', '..', 'release', 'StumpCast-Studio-Setup-1.0.2.exe'),
-      'C:\\Users\\IK\\Downloads\\StumpCast Studio\\stumpcast\\release\\StumpCast-Studio-Setup-1.0.2.exe',
-      path.join(process.env.USERPROFILE || '', 'Downloads', 'StumpCast Studio', 'stumpcast', 'release', 'StumpCast-Studio-Setup-1.0.2.exe'),
-      path.resolve(process.cwd(), 'release', 'StumpCast-Studio-Setup-1.0.1.exe'),
-      path.resolve(import.meta.dirname, '..', '..', '..', 'release', 'StumpCast-Studio-Setup-1.0.1.exe'),
-      path.resolve(process.cwd(), 'release', 'StumpCast-Studio-Setup-0.0.0.exe'),
-      path.resolve(import.meta.dirname, '..', '..', '..', 'release', 'StumpCast-Studio-Setup-0.0.0.exe'),
-    ];
-    const target = candidates.find((f) => fs.existsSync(f));
-    if (!target) {
-      return reply.code(404).send({ error: 'Installer executable not found' });
+    // Newest installer that is strictly newer than the running build. This used to be a fixed
+    // filename list that began at Setup-1.0.7.exe, so an app already on 1.0.9 downloaded and
+    // installed 1.0.7 when the operator pressed Update - a downgrade dressed as an update.
+    const hit = findNewestInstaller(installerDirs({ moduleDir: import.meta.dirname }), APP_VERSION);
+    if (!hit) {
+      return reply.code(404).send({
+        error: `No installer newer than ${APP_VERSION} has been built yet`,
+        currentVersion: APP_VERSION,
+      });
     }
-    const stat = fs.statSync(target);
+    const stat = fs.statSync(hit.file);
     reply.header('Content-Type', 'application/vnd.microsoft.portable-executable');
-    reply.header('Content-Disposition', `attachment; filename="${path.basename(target)}"`);
+    reply.header('Content-Disposition', `attachment; filename="${path.basename(hit.file)}"`);
     reply.header('Content-Length', stat.size);
-    return reply.send(fs.createReadStream(target));
+    return reply.send(fs.createReadStream(hit.file));
   });
 
   fastify.get('/latest.yml', async (_req, reply) => {
@@ -346,6 +323,16 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
     ];
     const target = candidates.find((f) => fs.existsSync(f));
     if (!target) return reply.code(404).send({ error: 'latest.yml not found' });
+    // electron-updater treats whatever this file advertises as "the newest release". Serving a
+    // stale one would point the desktop updater at an older build, so it is withheld unless the
+    // version inside really is newer than the one running here.
+    const advertised = /version:\s*([0-9.]+)/i.exec(fs.readFileSync(target, 'utf8'))?.[1];
+    if (advertised && compareVersions(advertised, APP_VERSION) <= 0) {
+      return reply.code(404).send({
+        error: `latest.yml advertises ${advertised}, which is not newer than ${APP_VERSION}`,
+        currentVersion: APP_VERSION,
+      });
+    }
     reply.header('Content-Type', 'text/yaml');
     return reply.send(fs.readFileSync(target, 'utf8'));
   });
@@ -395,46 +382,27 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
     };
   });
 
-  fastify.post('/api/app/update-install', async () => {
-    const candidates = [
-      'C:\\Users\\IK\\AppData\\Roaming\\StumpCast Studio\\updates\\StumpCast-Studio-Setup-1.0.7.exe',
-      path.resolve(process.cwd(), 'release', 'StumpCast-Studio-Setup-1.0.7.exe'),
-      path.resolve(import.meta.dirname, '..', '..', '..', 'release', 'StumpCast-Studio-Setup-1.0.7.exe'),
-      'C:\\Users\\IK\\Downloads\\StumpCast Studio\\stumpcast\\release\\StumpCast-Studio-Setup-1.0.7.exe',
-      path.join(process.env.USERPROFILE || '', 'Downloads', 'StumpCast Studio', 'stumpcast', 'release', 'StumpCast-Studio-Setup-1.0.7.exe'),
-      'C:\\Users\\IK\\AppData\\Roaming\\StumpCast Studio\\updates\\StumpCast-Studio-Setup-1.0.6.exe',
-      path.resolve(process.cwd(), 'release', 'StumpCast-Studio-Setup-1.0.6.exe'),
-      path.resolve(import.meta.dirname, '..', '..', '..', 'release', 'StumpCast-Studio-Setup-1.0.6.exe'),
-      'C:\\Users\\IK\\Downloads\\StumpCast Studio\\stumpcast\\release\\StumpCast-Studio-Setup-1.0.6.exe',
-      path.join(process.env.USERPROFILE || '', 'Downloads', 'StumpCast Studio', 'stumpcast', 'release', 'StumpCast-Studio-Setup-1.0.6.exe'),
-      'C:\\Users\\IK\\AppData\\Roaming\\StumpCast Studio\\updates\\StumpCast-Studio-Setup-1.0.5.exe',
-      path.resolve(process.cwd(), 'release', 'StumpCast-Studio-Setup-1.0.5.exe'),
-      path.resolve(import.meta.dirname, '..', '..', '..', 'release', 'StumpCast-Studio-Setup-1.0.5.exe'),
-      'C:\\Users\\IK\\Downloads\\StumpCast Studio\\stumpcast\\release\\StumpCast-Studio-Setup-1.0.5.exe',
-      path.join(process.env.USERPROFILE || '', 'Downloads', 'StumpCast Studio', 'stumpcast', 'release', 'StumpCast-Studio-Setup-1.0.5.exe'),
-      'C:\\Users\\IK\\AppData\\Roaming\\StumpCast Studio\\updates\\StumpCast-Studio-Setup-1.0.4.exe',
-      path.resolve(process.cwd(), 'release', 'StumpCast-Studio-Setup-1.0.4.exe'),
-      path.resolve(import.meta.dirname, '..', '..', '..', 'release', 'StumpCast-Studio-Setup-1.0.4.exe'),
-      'C:\\Users\\IK\\Downloads\\StumpCast Studio\\stumpcast\\release\\StumpCast-Studio-Setup-1.0.4.exe',
-      path.join(process.env.USERPROFILE || '', 'Downloads', 'StumpCast Studio', 'stumpcast', 'release', 'StumpCast-Studio-Setup-1.0.4.exe'),
-      'C:\\Users\\IK\\AppData\\Roaming\\StumpCast Studio\\updates\\StumpCast-Studio-Setup-1.0.3.exe',
-      path.resolve(process.cwd(), 'release', 'StumpCast-Studio-Setup-1.0.3.exe'),
-      path.resolve(import.meta.dirname, '..', '..', '..', 'release', 'StumpCast-Studio-Setup-1.0.3.exe'),
-      'C:\\Users\\IK\\Downloads\\StumpCast Studio\\stumpcast\\release\\StumpCast-Studio-Setup-1.0.3.exe',
-      path.join(process.env.USERPROFILE || '', 'Downloads', 'StumpCast Studio', 'stumpcast', 'release', 'StumpCast-Studio-Setup-1.0.3.exe'),
-    ];
-    const target = candidates.find((f) => fs.existsSync(f) && fs.statSync(f).size > 10_000_000);
-    if (target) {
-      try {
-        const child = child_process.spawn(target, [], { detached: true, stdio: 'ignore' });
-        child.unref();
-      } catch (err) {
-        console.error('Failed to launch installer from server:', err);
-      }
+  fastify.post('/api/app/update-install', async (_req, reply) => {
+    // Same rule as the download route: only an installer newer than this build, so "Install" can
+    // never quietly put the operator back on an older release.
+    const hit = findNewestInstaller(installerDirs({ moduleDir: import.meta.dirname }), APP_VERSION);
+    if (!hit) {
+      return reply.code(409).send({
+        error: `No installer newer than ${APP_VERSION} is available`,
+        currentVersion: APP_VERSION,
+      });
+    }
+    try {
+      const child = child_process.spawn(hit.file, [], { detached: true, stdio: 'ignore' });
+      child.unref();
+    } catch (err) {
+      console.error('Failed to launch installer from server:', err);
+      return reply.code(500).send({ error: 'Could not launch the installer' });
     }
     return {
       status: 'installing',
       message: 'Installer launched. Application restarting...',
+      version: hit.version,
     };
   });
 
@@ -528,7 +496,7 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
   const say = (item: GeneratedCommentary, scope: Audience = 'preview'): GeneratedCommentary => {
     const voiceOverride = advancedCommentary.getConfig().voiceOverrides[item.speaker.id] ?? item.speaker.voiceName;
     tts.register(item.id, item.text, item.lang, voiceOverride);
-    hub.broadcast('commentary', 'speak', item);
+    hub.broadcast('commentary', 'speak', item, scope);
     // Rendering a sentence takes seconds and the overlay asks for it only once the line is on air;
     // starting that work here — while the line is still inside the broadcast delay — is what stops
     // a long line from being cut off by the overlay's wait for the audio. Only done when something
@@ -803,67 +771,6 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
   };
 
   // ---- licence routes ----
-  const privateKeyHex = (() => {
-    const candidates = [
-      process.env.STUMPCAST_LICENCE_PRIVATE_KEY_FILE,
-      config.licencePrivateKey,
-      path.resolve(import.meta.dirname, '..', '..', '.secrets', 'licence-private.key'),
-      path.resolve(import.meta.dirname, '..', '..', '..', '.secrets', 'licence-private.key'),
-      path.resolve(process.cwd(), '.secrets', 'licence-private.key'),
-      'C:\\Users\\IK\\Downloads\\StumpCast Studio\\stumpcast\\.secrets\\licence-private.key',
-      path.join(process.env.USERPROFILE || '', 'Downloads', 'StumpCast Studio', 'stumpcast', '.secrets', 'licence-private.key'),
-      path.join(process.env.LOCALAPPDATA || '', 'Programs', 'StumpCast Studio', 'resources', 'app', '.secrets', 'licence-private.key'),
-      path.join(process.env.LOCALAPPDATA || '', 'Programs', 'StumpCast Studio', '.secrets', 'licence-private.key'),
-    ].filter(Boolean) as string[];
-
-    for (const keyPath of candidates) {
-      try {
-        if (fs.existsSync(keyPath)) {
-          return fs.readFileSync(keyPath, 'utf8').trim();
-        }
-      } catch {
-        /* try next */
-      }
-    }
-    return null;
-  })();
-
-  fastify.post('/api/licence/generate', async (req, reply) => {
-    // Issuing keys is the seller's job and happens on the seller's machine
-    // (`scripts/licence-keygen.bat`). Left open here, any customer who happened to have a private
-    // key on disk could mint themselves a paid licence, so signing has to be asked for on purpose.
-    if (process.env.STUMPCAST_LICENCE_SIGNING !== '1') {
-      return reply.code(404).send({ error: 'Licence signing is not available on this server' });
-    }
-    if (!privateKeyHex) {
-      return reply.code(503).send({ error: 'Licence private key not found on server' });
-    }
-    const body = z.object({
-      channel: z.string().min(1).max(100),
-      plan: z.enum(['monthly', 'yearly', 'lifetime']),
-      days: z.number().int().min(1).max(36500).optional(),
-      mid: z.string().optional(),
-    }).safeParse(req.body);
-    if (!body.success) return reply.code(400).send({ error: 'Invalid licence request' });
-
-    const { channel, plan, days: reqDays, mid } = body.data;
-    const iat = Math.floor(Date.now() / 1000);
-    const defaultDays = plan === 'monthly' ? 31 : 366;
-    const days = reqDays ?? defaultDays;
-
-    const payload: LicencePayload = {
-      v: 1,
-      channel,
-      plan,
-      iat,
-      ...(mid ? { mid } : {}),
-      ...(plan === 'lifetime' ? {} : { exp: iat + days * 86400 }),
-    };
-
-    const token = signLicenceToken(payload, privateKeyHex);
-    return { token, channel, plan, days, mid: payload.mid ?? null, expiresAt: payload.exp ? payload.exp * 1000 : null };
-  });
-
   fastify.get('/api/licence', async () => {
     const row = db.select().from(schema.licence).get();
     const check = row?.token ? verifyLicenceToken(row.token, undefined, undefined, undefined, hostMachineId) : null;
@@ -928,9 +835,15 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
     licensed: isLicensed(),
     looks: looks.list(activeLookId()),
   }));
-  fastify.get('/api/looks/catalog', async () => ({
-    catalog: looks.catalog(),
-  }));
+  fastify.get('/api/looks/catalog', async () => {
+    const licensed = isLicensed();
+    // `locked` travels with the look so a look can be advertised without being selectable; the
+    // picker renders the tile but never sends it to /activate while this is true.
+    return {
+      licensed,
+      catalog: looks.catalog().map((l) => ({ ...l, locked: l.plan === 'pro' && !licensed })),
+    };
+  });
   fastify.get('/api/looks/active', async () => looks.get(activeLookId()) ?? looks.all()[0]);
   fastify.post('/api/looks/activate', async (req, reply) => {
     const body = z
@@ -938,14 +851,9 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
       .safeParse(req.body);
     if (!body.success) return reply.code(400).send({ error: 'A look id is required' });
     try {
-      const preview = body.data.preview ?? false;
-      const look = looks.require(body.data.id, preview);
-      // A preview is the operator trying a look on for size: it must never reach the broadcast.
-      // Saving it here is what let a free studio run Pro looks on air without a licence.
-      if (preview) {
-        hub.broadcast('layout', 'look', look, 'preview');
-        return { ...look, preview: true };
-      }
+      // No preview bypass. A Pro look is selectable only with a licence, on the preview window as
+      // much as on air — otherwise the free tier can put a paid look on screen by asking nicely.
+      const look = looks.require(body.data.id);
       saveSettings({ ...loadSettings(), theme: look.id });
       hub.broadcast('layout', 'look', look);
       return look;
@@ -1347,13 +1255,9 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
   };
   await serve(config.overlayDir, '/overlay/', true);
   await serve(config.adminDir, '/admin/', false);
-  await serve(config.licenseAdminDir, '/license-admin/', false);
-  await serve(config.licenseAdminDir, '/license-generator/', false);
   fastify.get('/', async (_req, reply) => reply.redirect('/admin/'));
   fastify.get('/overlay', async (_req, reply) => reply.redirect('/overlay/'));
   fastify.get('/admin', async (_req, reply) => reply.redirect('/admin/'));
-  fastify.get('/license-admin', async (_req, reply) => reply.redirect('/license-admin/'));
-  fastify.get('/license-generator', async (_req, reply) => reply.redirect('/license-generator/'));
   const assetsDir = path.join(config.dataDir, 'assets');
   fs.mkdirSync(assetsDir, { recursive: true });
 
@@ -1386,6 +1290,18 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
     root: assetsDir,
     prefix: '/assets/',
     decorateReply: false,
+    // Media must stream, never look like a file to save. Without an explicit inline disposition a
+    // download manager can hijack an ungestured mp3 GET and throw a "Save As" dialog over the
+    // operator's screen mid-broadcast.
+    // `@fastify/static` v10 hands this callback the reply, not a raw ServerResponse.
+    setHeaders: (reply, filePath) => {
+      const ext = path.extname(filePath).toLowerCase();
+      if (ext === '.mp3' || ext === '.wav' || ext === '.ogg' || ext === '.m4a' || ext === '.webm') {
+        reply.header('Content-Disposition', 'inline');
+        reply.header('Cache-Control', 'public, max-age=3600');
+      }
+      reply.header('X-Content-Type-Options', 'nosniff');
+    },
   });
 
   const app: StumpCastApp = {

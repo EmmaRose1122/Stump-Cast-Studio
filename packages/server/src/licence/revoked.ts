@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 /**
- * Revocations written by the "key generator" desktop app (see `key generator/records/revoked.json`).
+ * Revocations written by the Python key generator (see `data/licences/revoked.json`).
  *
  * A token is only ever looked at here AFTER its Ed25519 signature has been checked, so matching on
  * the decoded payload is safe: nobody can add themselves to a revocation list by forging a token.
@@ -29,11 +29,11 @@ export interface RevocationIndex {
   count: number;
 }
 
-/** sha256 over the whole token, first 16 hex characters. Mirrors scripts/licence-keygen-core.mjs. */
+/** sha256 over the whole token, first 16 hex characters. Mirrors the Python key generator. */
 export const fingerprintOf = (token: string): string =>
   createHash('sha256').update(token).digest('hex').slice(0, 16);
 
-const FILE = path.join('key generator', 'records', 'revoked.json');
+const FILE = path.join('data', 'licences', 'revoked.json');
 
 /**
  * The app lives next to the repo, not inside the pnpm workspace, so the path is resolved the same

@@ -28,6 +28,18 @@ export const LookSchema = z.object({
     scorePosition: z.enum(['top', 'bottom']),
     playerCardStyle: z.enum(['cutout', 'badge', 'badge-right', 'round-badge', 'mirrored']),
     boundaryStyle: z.string().min(1),
+    middleLayout: z.enum([
+      'left-stats',
+      'left-stats-projected',
+      'left-stats-partnership',
+      'right-stats',
+      'right-stats-projected',
+      'right-stats-striker',
+      'right-cluster-recent',
+      'right-cluster-video',
+      'right-cluster-partnership',
+    ]).default('left-stats'),
+    playerOrder: z.enum(['striker-left', 'bowler-left', 'bowler-middle']).default('striker-left'),
   }),
   motion: z.object({
     entrance: z.enum([

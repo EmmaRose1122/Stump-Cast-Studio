@@ -31,7 +31,9 @@
   "layoutVariant": {
     "scorePosition": "bottom",
     "playerCardStyle": "mirrored",
-    "boundaryStyle": "spark"
+    "boundaryStyle": "spark",
+    "middleLayout": "right-cluster-video",
+    "playerOrder": "bowler-middle"
   },
   "motion": {
     "entrance": "skew",

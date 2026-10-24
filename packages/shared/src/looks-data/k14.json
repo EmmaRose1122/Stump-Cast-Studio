@@ -31,7 +31,9 @@
   "layoutVariant": {
     "scorePosition": "top",
     "playerCardStyle": "round-badge",
-    "boundaryStyle": "sweeping"
+    "boundaryStyle": "sweeping",
+    "middleLayout": "left-stats-partnership",
+    "playerOrder": "bowler-left"
   },
   "motion": {
     "entrance": "fade",

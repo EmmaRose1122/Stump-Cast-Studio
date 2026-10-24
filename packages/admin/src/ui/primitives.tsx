@@ -321,6 +321,83 @@ export const EmptyState = ({
   </div>
 );
 
+/* Input ------------------------------------------------------------------------------------- */
+
+export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+  label?: string;
+  error?: string;
+}
+
+export const Input = forwardRef<HTMLInputElement, InputProps>(({
+  label,
+  error,
+  className,
+  id,
+  ...rest
+}, ref) => {
+  const inputId = id || label?.toLowerCase().replace(/\s+/g, '-')
+  return (
+    <div className="flex flex-col gap-1">
+      {label && <label htmlFor={inputId} className="text-sm font-medium text-slate-700">{label}</label>}
+      <input
+        ref={ref}
+        id={inputId}
+        className={clsx(
+          'min-h-10 px-3 rounded-[10px] border border-border bg-white text-sm text-slate-900 placeholder-slate-400',
+          'focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500',
+          error && 'border-red-500 focus:border-red-500 focus:ring-red-500',
+          className,
+        )}
+        aria-invalid={!!error}
+        aria-describedby={error ? `${inputId}-error` : undefined}
+        {...rest}
+      />
+      {error && <p id={`${inputId}-error`} className="text-xs text-red-600" role="alert">{error}</p>}
+    </div>
+  )
+})
+Input.displayName = 'Input'
+
+/* Label ------------------------------------------------------------------------------------- */
+
+export const Label = ({ children, className, ...rest }: React.LabelHTMLAttributes<HTMLLabelElement>) => (
+  <label className={clsx('flex items-center gap-2 text-sm text-slate-700 cursor-pointer', className)} {...rest}>
+    {children}
+  </label>
+)
+
+/* Alert ------------------------------------------------------------------------------------- */
+
+export type AlertVariant = 'info' | 'success' | 'warn' | 'warning' | 'error'
+
+const ALERT_STYLES: Record<AlertVariant, string> = {
+  info: 'border-blue-500 bg-blue-50/50 text-blue-800',
+  success: 'border-emerald-500 bg-emerald-50/50 text-emerald-800',
+  warn: 'border-amber-500 bg-amber-50/50 text-amber-800',
+  warning: 'border-amber-500 bg-amber-50/50 text-amber-800',
+  error: 'border-red-500 bg-red-50/50 text-red-800',
+}
+
+interface AlertProps {
+  variant?: AlertVariant
+  title?: string
+  children?: React.ReactNode
+  className?: string
+}
+
+export const Alert = ({ variant = 'info', title, children, className }: AlertProps) => (
+  <div role="alert" className={clsx(
+    'flex flex-wrap items-start justify-between gap-3 rounded-card border-l-4 p-4',
+    ALERT_STYLES['info'],
+    className,
+  )}>
+    <div className="flex-1">
+      {title && <p className="font-semibold">{title}</p>}
+      {children && <p className="mt-1 text-sm text-slate-600">{children}</p>}
+    </div>
+  </div>
+)
+
 /* Banner ------------------------------------------------------------------------------------ */
 
 export type BannerTone = 'info' | 'warn' | 'error' | 'success';

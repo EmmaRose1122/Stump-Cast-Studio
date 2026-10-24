@@ -58,6 +58,13 @@ export const useLiveSocket = (): void => {
         } else if (channel === 'cards') {
           const c = CardCommandSchema.safeParse(payload);
           if (!c.success) return;
+          // Auto-asset downloads and manual uploads both land here. Without this the squad panel
+          // kept painting the old (or missing) face until the page was reloaded by hand.
+          if (c.data.action === 'asset-updated') {
+            void qc.invalidateQueries({ queryKey: ['assets'] });
+            void qc.invalidateQueries({ queryKey: ['missing'] });
+            return;
+          }
           if (airTimer) clearTimeout(airTimer);
           if (c.data.action === 'show') {
             setOnAirCard(c.data.cardId);

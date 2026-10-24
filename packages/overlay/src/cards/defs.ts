@@ -280,17 +280,30 @@ const winProbability: CardDef = {
   render(s) {
     if (!s.winProb) return empty('No win-probability estimate for this format.');
     const a = Math.round(s.winProb.teamA * 100);
+    const b = 100 - a;
+    const teamA = s.teams[0];
+    const teamB = s.teams[1];
     const bar = el('div', 'cd-bar');
+    if (teamB?.color) bar.style.background = teamB.color;
     const fill = el('div', 'cd-bar-fill');
     fill.style.width = `${a}%`;
+    if (teamA?.color) fill.style.background = teamA.color;
     bar.append(fill);
+
+    const desc =
+      s.target !== undefined && s.runsNeeded !== undefined && s.ballsLeft !== undefined
+        ? `Need ${s.runsNeeded} runs off ${s.ballsLeft} balls (${s.wicketsLeft ?? 10 - s.score.wkts} wickets left)`
+        : s.projected !== undefined
+          ? `Projected total: ${s.projected} runs (${s.ballsLeft ?? 0} balls remaining)`
+          : 'Live probability estimated from run rate, targets and wickets';
+
     return [
       row(
-        stat(`${a}%`, s.teams[0].name.toUpperCase()),
-        stat(`${100 - a}%`, s.teams[1].name.toUpperCase()),
+        stat(`${a}%`, teamA.name.toUpperCase()),
+        stat(`${b}%`, teamB.name.toUpperCase()),
       ),
       bar,
-      note('Estimate based on the score, balls left and wickets in hand'),
+      note(desc),
     ];
   },
 };

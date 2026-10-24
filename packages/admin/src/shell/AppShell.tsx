@@ -1,4 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { whatsappUrl } from '@stumpcast/shared';
 import clsx from 'clsx';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -179,6 +180,25 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
   });
   const isLicensed = licenceQuery.data?.licensed ?? false;
 
+  // The version the engine is actually running. The header chip used to print a literal "v1.0.7"
+  // regardless of the build, which is why an app on 1.0.9 told the operator it was on 1.0.7.
+  const versionQuery = useQuery({
+    queryKey: ['app-version'],
+    queryFn: async () => {
+      try {
+        const res = await fetch('/api/app/version');
+        if (res.ok) {
+          const body = (await res.json()) as { currentVersion?: string };
+          if (body.currentVersion) return body.currentVersion;
+        }
+      } catch {
+        /* offline; fall back to the update check below */
+      }
+      return '';
+    },
+    staleTime: 60_000,
+  });
+
   const updateQuery = useQuery({
     queryKey: ['app-update'],
     queryFn: async () => {
@@ -191,8 +211,8 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
           if (res?.updateAvailable) {
             return {
               updateAvailable: true,
-              latestVersion: res.latestVersion ?? res.version ?? '1.0.7',
-              currentVersion: res.currentVersion ?? '1.0.7',
+              latestVersion: res.latestVersion ?? res.version ?? '—',
+              currentVersion: res.currentVersion ?? '—',
               releaseNotes:
                 res.releaseNotes ||
                 '• Direct In-App Desktop Updater with live transfer progress bar\n• Fast Cricbuzz & Crex match state scrapers\n• Red, White & Blue studio broadcast overlays\n• Center-aligned operator control room layout',
@@ -219,14 +239,17 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
       }
       return {
         updateAvailable: false,
-        latestVersion: '1.0.7',
-        currentVersion: '1.0.7',
+        latestVersion: '',
+        currentVersion: '',
         releaseNotes: '',
         downloadUrl: '',
       };
     },
     refetchInterval: 30000,
   });
+
+  /** Prefer the live engine version; the update check is a fallback, never a literal. */
+  const runningVersion = versionQuery.data || updateQuery.data?.currentVersion || '—';
 
   const handleCheckUpdate = async (simulate = false) => {
     setIsCheckingUpdate(true);
@@ -246,7 +269,7 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
           kind: 'success',
         });
       } else {
-        toast({ title: `StumpCast Studio is up to date (v${refreshed.data?.currentVersion ?? '1.0.7'})`, kind: 'info' });
+        toast({ title: `StumpCast Studio is up to date (v${refreshed.data?.currentVersion ?? '—'})`, kind: 'info' });
       }
     } catch {
       toast({ title: 'Failed to check for updates', kind: 'error' });
@@ -432,8 +455,10 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
   };
 
   const openPopout = () => {
+    const matchId = settings.data?.onStreamMatchId;
+    const url = matchId ? `${overlayFullUrl}?match=${encodeURIComponent(matchId)}` : overlayFullUrl;
     window.open(
-      overlayFullUrl,
+      url,
       'StumpCastOverlay',
       'popup=yes,width=1280,height=720,menubar=no,toolbar=no',
     );
@@ -496,14 +521,6 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
                 >
                   🔑 ACTIVATE LICENSE
                 </button>
-                <a
-                  href="/license-generator/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="rounded bg-blue-50 px-2.5 py-1 text-xs font-bold text-blue-700 border border-blue-300 hover:bg-blue-100 transition shadow-xs flex items-center gap-1"
-                >
-                  ⚙️ KEY GENERATOR
-                </a>
               </>
             )}
 
@@ -526,7 +543,7 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
                 title="Click to check updates"
               >
                 <span className="size-2 rounded-full bg-blue-500"></span>
-                <span>v1.0.7 · UP TO DATE</span>
+                <span>v{runningVersion} · UP TO DATE</span>
               </button>
             )}
 
@@ -705,7 +722,7 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
               </button>
               <button
                 type="button"
-                onClick={() => window.open('https://wa.me/?text=Hi%2C%20I%20want%20to%20go%20pro%20on%20StumpCast!', '_blank')}
+                onClick={() => window.open(whatsappUrl('Hi, I want to go pro on StumpCast!'), '_blank')}
                 className="rounded bg-blue-600 px-3.5 py-1.5 font-bold uppercase tracking-wider text-white hover:bg-blue-700 transition shadow-xs"
               >
                 Go Pro on WhatsApp
@@ -880,9 +897,9 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
               />
               <div className="flex items-center justify-between text-xs pt-1">
                 <a
-                  href={`https://wa.me/?text=${encodeURIComponent(
+                  href={whatsappUrl(
                     `Hi StumpCast, here is my Computer Machine ID for Pro License:\n${licenceQuery.data?.machineId || ''}`,
-                  )}`}
+                  )}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="font-bold text-emerald-600 hover:text-emerald-700 flex items-center gap-1"
@@ -902,10 +919,10 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
         title="StumpCast Studio Update"
         description={
           updateReady
-            ? `Update v${updateQuery.data?.latestVersion ?? '1.0.7'} is downloaded and ready to install!`
+            ? `Update v${updateQuery.data?.latestVersion ?? '—'} is downloaded and ready to install!`
             : updateQuery.data?.updateAvailable
-            ? `New Version v${updateQuery.data.latestVersion} is available! (Current: v${updateQuery.data.currentVersion ?? '1.0.7'})`
-            : `You are running the latest version of StumpCast Studio (v${updateQuery.data?.currentVersion ?? '1.0.7'}).`
+            ? `New Version v${updateQuery.data.latestVersion} is available! (Current: v${updateQuery.data.currentVersion ?? '—'})`
+            : `You are running the latest version of StumpCast Studio (v${updateQuery.data?.currentVersion ?? '—'}).`
         }
         actions={
           <div className="flex flex-wrap items-center justify-end gap-2 w-full">
@@ -972,7 +989,7 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
                   ) : (
                     <>
                       <span className="size-2 rounded-full bg-orange-500 animate-ping inline-block" />
-                      Downloading StumpCast-Studio-Setup-{updateQuery.data?.latestVersion ?? '1.0.7'}.exe
+                      Downloading StumpCast-Studio-Setup-{updateQuery.data?.latestVersion ?? '—'}.exe
                     </>
                   )}
                 </span>

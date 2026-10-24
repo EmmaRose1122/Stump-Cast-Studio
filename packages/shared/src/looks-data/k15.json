@@ -31,7 +31,9 @@
   "layoutVariant": {
     "scorePosition": "bottom",
     "playerCardStyle": "round-badge",
-    "boundaryStyle": "corner-tag"
+    "boundaryStyle": "corner-tag",
+    "middleLayout": "right-cluster-video",
+    "playerOrder": "striker-left"
   },
   "motion": {
     "entrance": "swing",

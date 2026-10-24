@@ -315,7 +315,6 @@ const startServer = (): Promise<{ url: string; engineVersion?: string }> =>
 
 const adminUrl = (route = '/live'): string => `${serverUrl}/admin/#${route}`;
 const overlayUrl = (): string => `${serverUrl}/overlay/`;
-const licenseGeneratorUrl = (): string => `${serverUrl}/license-generator/`;
 
 /** Fetch the currently selected on-stream match ID from the server settings. */
 const getOnStreamMatchId = async (): Promise<string | null> => {
@@ -486,7 +485,6 @@ const createTray = (): void => {
 				label: 'Open Overlay in Browser',
 				click: () => serverUrl && void shell.openExternal(overlayUrl()),
 			},
-			{ label: 'License Key Generator', click: () => serverUrl && void shell.openExternal(licenseGeneratorUrl()) },
 			{ label: 'Copy Overlay Link', click: () => serverUrl && clipboard.writeText(overlayUrl()) },
 			{ label: 'Pop-out Preview', click: () => void createPreviewWindow() },
 			{
@@ -552,6 +550,48 @@ ipcMain.handle('stumpcast:set-secret', (_event, key: string, value?: string) => 
 	saveSecrets(secrets);
 	return true;
 });
+
+const INSTALLER_NAME = /^StumpCast-Studio-Setup-(\d+\.\d+\.\d+)\.exe$/i;
+
+/**
+ * Newest setup executable that is strictly newer than the running build, so "Download update" can
+ * never hand the operator an older release than the one they already have. The old code listed
+ * `Setup-1.0.7.exe` first, which is how a 1.0.9 install "updated" itself down to 1.0.7.
+ */
+const findNewestInstaller = (dirs: string[], minimumVersion: string): string | null => {
+	const versionOf = (name: string): string | null => INSTALLER_NAME.exec(name)?.[1] ?? null;
+	const newer = (a: string, b: string): boolean => {
+		const pa = a.split('.').map(Number);
+		const pb = b.split('.').map(Number);
+		for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+			const d = (pa[i] ?? 0) - (pb[i] ?? 0);
+			if (d !== 0) return d > 0;
+		}
+		return false;
+	};
+	let best: { file: string; version: string } | null = null;
+	for (const dir of dirs) {
+		let names: string[] = [];
+		try {
+			names = fs.readdirSync(dir);
+		} catch {
+			continue;
+		}
+		for (const name of names) {
+			const version = versionOf(name);
+			if (!version || !newer(version, minimumVersion)) continue;
+			if (!best || newer(version, best.version)) best = { file: path.join(dir, name), version };
+		}
+	}
+	return best?.file ?? null;
+};
+
+const installerSearchDirs = (workspaceRoot: string): string[] => [
+	path.join(workspaceRoot, 'release'),
+	path.join(process.env.USERPROFILE || '', 'Downloads', 'StumpCast Studio', 'stumpcast', 'release'),
+	path.join(app.getPath('userData'), 'updates'),
+];
+
 let cachedDownloadedInstaller: string | null = null;
 let activeDownloadAbort: AbortController | null = null;
 
@@ -749,29 +789,8 @@ ipcMain.handle('stumpcast:download-update', async (_event, downloadUrl?: string)
 		}
 
 		// Local / Simulation fallback: copy or simulate transfer
-		const localCandidates = [
-			path.join(workspaceRoot, 'release', 'StumpCast-Studio-Setup-1.0.7.exe'),
-			'C:\\Users\\IK\\Downloads\\StumpCast Studio\\stumpcast\\release\\StumpCast-Studio-Setup-1.0.7.exe',
-			path.join(process.env.USERPROFILE || '', 'Downloads', 'StumpCast Studio', 'stumpcast', 'release', 'StumpCast-Studio-Setup-1.0.7.exe'),
-			path.join(workspaceRoot, 'release', 'StumpCast-Studio-Setup-1.0.6.exe'),
-			'C:\\Users\\IK\\Downloads\\StumpCast Studio\\stumpcast\\release\\StumpCast-Studio-Setup-1.0.6.exe',
-			path.join(process.env.USERPROFILE || '', 'Downloads', 'StumpCast Studio', 'stumpcast', 'release', 'StumpCast-Studio-Setup-1.0.6.exe'),
-			path.join(workspaceRoot, 'release', 'StumpCast-Studio-Setup-1.0.5.exe'),
-			'C:\\Users\\IK\\Downloads\\StumpCast Studio\\stumpcast\\release\\StumpCast-Studio-Setup-1.0.5.exe',
-			path.join(process.env.USERPROFILE || '', 'Downloads', 'StumpCast Studio', 'stumpcast', 'release', 'StumpCast-Studio-Setup-1.0.5.exe'),
-			path.join(workspaceRoot, 'release', 'StumpCast-Studio-Setup-1.0.4.exe'),
-			'C:\\Users\\IK\\Downloads\\StumpCast Studio\\stumpcast\\release\\StumpCast-Studio-Setup-1.0.4.exe',
-			path.join(process.env.USERPROFILE || '', 'Downloads', 'StumpCast Studio', 'stumpcast', 'release', 'StumpCast-Studio-Setup-1.0.4.exe'),
-			path.join(workspaceRoot, 'release', 'StumpCast-Studio-Setup-1.0.3.exe'),
-			'C:\\Users\\IK\\Downloads\\StumpCast Studio\\stumpcast\\release\\StumpCast-Studio-Setup-1.0.3.exe',
-			path.join(process.env.USERPROFILE || '', 'Downloads', 'StumpCast Studio', 'stumpcast', 'release', 'StumpCast-Studio-Setup-1.0.3.exe'),
-			path.join(workspaceRoot, 'release', 'StumpCast-Studio-Setup-1.0.2.exe'),
-			'C:\\Users\\IK\\Downloads\\StumpCast Studio\\stumpcast\\release\\StumpCast-Studio-Setup-1.0.2.exe',
-			path.join(process.env.USERPROFILE || '', 'Downloads', 'StumpCast Studio', 'stumpcast', 'release', 'StumpCast-Studio-Setup-1.0.2.exe'),
-			path.join(workspaceRoot, 'release', 'StumpCast-Studio-Setup-1.0.1.exe'),
-			path.join(workspaceRoot, 'release', 'StumpCast-Studio-Setup-0.0.0.exe'),
-		];
-		const existingExe = localCandidates.find((f) => fs.existsSync(f));
+		const newestInstaller = findNewestInstaller(installerSearchDirs(workspaceRoot), app.getVersion());
+		const existingExe = newestInstaller && fs.existsSync(newestInstaller) ? newestInstaller : null;
 		const totalSize = existingExe ? fs.statSync(existingExe).size : 129_412_818;
 
 		const pcts = [15, 30, 50, 70, 85, 95, 100];
@@ -837,20 +856,7 @@ ipcMain.handle('stumpcast:install-update', () => {
 		}
 	}
 	if (!installerToRun || !fs.existsSync(installerToRun)) {
-		const candidates = [
-			path.join(workspaceRoot, 'release', 'StumpCast-Studio-Setup-1.0.7.exe'),
-			'C:\\Users\\IK\\Downloads\\StumpCast Studio\\stumpcast\\release\\StumpCast-Studio-Setup-1.0.7.exe',
-			path.join(process.env.USERPROFILE || '', 'Downloads', 'StumpCast Studio', 'stumpcast', 'release', 'StumpCast-Studio-Setup-1.0.7.exe'),
-			path.join(workspaceRoot, 'release', 'StumpCast-Studio-Setup-1.0.6.exe'),
-			'C:\\Users\\IK\\Downloads\\StumpCast Studio\\stumpcast\\release\\StumpCast-Studio-Setup-1.0.6.exe',
-			path.join(workspaceRoot, 'release', 'StumpCast-Studio-Setup-1.0.5.exe'),
-			'C:\\Users\\IK\\Downloads\\StumpCast Studio\\stumpcast\\release\\StumpCast-Studio-Setup-1.0.5.exe',
-			path.join(workspaceRoot, 'release', 'StumpCast-Studio-Setup-1.0.4.exe'),
-			'C:\\Users\\IK\\Downloads\\StumpCast Studio\\stumpcast\\release\\StumpCast-Studio-Setup-1.0.4.exe',
-			path.join(workspaceRoot, 'release', 'StumpCast-Studio-Setup-1.0.3.exe'),
-			'C:\\Users\\IK\\Downloads\\StumpCast Studio\\stumpcast\\release\\StumpCast-Studio-Setup-1.0.3.exe',
-		];
-		const found = candidates.find((f) => fs.existsSync(f) && fs.statSync(f).size > 10_000_000);
+		const found = findNewestInstaller(installerSearchDirs(workspaceRoot), app.getVersion());
 		if (found) installerToRun = found;
 	}
 

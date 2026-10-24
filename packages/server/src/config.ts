@@ -1,4 +1,3 @@
-import fs from 'node:fs';
 import path from 'node:path';
 
 export interface ServerConfig {
@@ -10,10 +9,6 @@ export interface ServerConfig {
   /** Built overlay/admin bundles; static routes are skipped if a folder is missing. */
   overlayDir: string;
   adminDir: string;
-  licenseAdminDir: string;
-  licenseGeneratorDir: string;
-  /** Path to the Ed25519 private key (hex) used to sign licence tokens. */
-  licencePrivateKey: string;
   /** Dev-only override that forces the paid tier; a real install is decided by its licence row. */
   licensed: boolean;
 }
@@ -24,15 +19,6 @@ export const loadConfig = (
   env: NodeJS.ProcessEnv = process.env,
   overrides: Partial<ServerConfig> = {},
 ): ServerConfig => {
-  const licenseAdminCandidates = [
-    path.join(pkgRoot, 'license-admin', 'dist'),
-    path.resolve(import.meta.dirname, '..', '..', 'license-admin', 'dist'),
-    path.resolve(process.cwd(), 'packages', 'license-admin', 'dist'),
-    path.resolve(process.cwd(), 'resources', 'app', 'packages', 'license-admin', 'dist'),
-    'C:\\Users\\IK\\Downloads\\StumpCast Studio\\stumpcast\\packages\\license-admin\\dist',
-  ];
-  const foundLicenseAdmin = licenseAdminCandidates.find((p) => fs.existsSync(p)) ?? path.join(pkgRoot, 'license-admin', 'dist');
-
   return {
     host: env.STUMPCAST_HOST ?? '127.0.0.1',
     port: Number(env.STUMPCAST_PORT ?? 4000),
@@ -40,9 +26,6 @@ export const loadConfig = (
     dataDir: path.resolve(env.STUMPCAST_DATA ?? './data'),
     overlayDir: path.join(pkgRoot, 'overlay', 'dist'),
     adminDir: path.join(pkgRoot, 'admin', 'dist'),
-    licenseAdminDir: foundLicenseAdmin,
-    licenseGeneratorDir: foundLicenseAdmin,
-    licencePrivateKey: path.join(pkgRoot, '.secrets', 'licence-private.key'),
     // Opt-in, not opt-out: the old `!== '0'` meant every build was paid unless someone remembered
     // to say otherwise, so the free tier never actually existed outside a packaged installer.
     licensed: env.STUMPCAST_LICENSED === 'true',

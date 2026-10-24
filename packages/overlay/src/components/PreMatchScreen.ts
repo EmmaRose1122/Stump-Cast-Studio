@@ -1,5 +1,6 @@
 import type { MatchState, Team, SquadPlayer } from '@stumpcast/shared';
 import { assetUrl, attachImage, teamAssetId } from '../assets';
+import { slug } from '@stumpcast/shared';
 import { OverlayComponent } from '../component';
 
 export type PreMatchScene = 'auto' | 'clock' | 'toss' | 'squad1' | 'squad2';
@@ -228,22 +229,21 @@ export class PreMatchScreen extends OverlayComponent {
     `;
     this.setCrest(el.querySelector<HTMLElement>('.pms-squad-crest')!, team.short);
 
-    // Attach images for squad photos (external URLs from Cricbuzz/Crex)
+    // Attach images for squad photos from local asset store
     if (hasSquadData) {
       const wrappers = el.querySelectorAll<HTMLElement>('.pms-squad-photo-wrapper');
       squad.forEach((player, index) => {
-        if (player.imageUrl) {
-          const wrapper = wrappers[index];
-          if (wrapper) {
-            const initialsEl = wrapper.querySelector('.pms-squad-initials');
-            if (initialsEl) {
-              // Replace initials with image using attachImage pattern
-              wrapper.replaceChildren();
-              wrapper.classList.remove('has-image');
-              const initialsText = initialsEl.textContent || '';
-              wrapper.textContent = initialsText;
-              attachImage(wrapper as HTMLElement, player.imageUrl);
-            }
+        const wrapper = wrappers[index];
+        if (wrapper) {
+          const initialsEl = wrapper.querySelector('.pms-squad-initials');
+          if (initialsEl) {
+            // Replace initials with image using attachImage pattern - use local asset store
+            wrapper.replaceChildren();
+            wrapper.classList.remove('has-image');
+            const initialsText = initialsEl.textContent || '';
+            wrapper.textContent = initialsText;
+            const playerAssetId = slug(player.name);
+            attachImage(wrapper as HTMLElement, assetUrl('players', playerAssetId));
           }
         }
       });

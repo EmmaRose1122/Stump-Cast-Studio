@@ -126,16 +126,34 @@ export class AudioEngine {
     const failed: string[] = [];
     await Promise.all(
       sounds.map(async (s) => {
-        this.volumes.set(s.id, s.volume ?? 1);
+        const targetVol = Math.min(1, Math.max(0, s.volume ?? 1));
+        this.volumes.set(s.id, targetVol);
+        const loop = this.loops.get(s.id);
+        if (loop && this.ctx) {
+          loop.gain.gain.setValueAtTime(targetVol, this.ctx.currentTime);
+        }
+        if (this.buffers.has(s.id)) {
+          loaded.push(s.id);
+          return;
+        }
         try {
           const bytes = await this.deps.fetchBytes(s.url);
+          if (!bytes || bytes.byteLength === 0) {
+            console.warn(`Sound ${s.id}: Empty response from ${s.url}`);
+            failed.push(s.id);
+            return;
+          }
           this.buffers.set(s.id, await ctx.decodeAudioData(bytes));
           loaded.push(s.id);
-        } catch {
+        } catch (err) {
+          console.warn(`Sound ${s.id}: Failed to load from ${s.url}`, err);
           failed.push(s.id);
         }
       }),
     );
+    if (failed.length > 0) {
+      console.warn('Sound preload failed for:', failed);
+    }
     return { loaded, failed };
   }
 

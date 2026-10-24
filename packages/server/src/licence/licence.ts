@@ -1,4 +1,4 @@
-import { createPublicKey, sign, verify, createPrivateKey, type KeyObject } from 'node:crypto';
+import { createPublicKey, verify, type KeyObject } from 'node:crypto';
 import { z } from 'zod';
 import { LICENCE_PUBLIC_KEY_HEX } from './publicKey';
 import { isRevoked, loadRevocations, type RevocationIndex } from './revoked';
@@ -29,8 +29,6 @@ export type LicenceCheck =
   | { valid: false; reason: 'malformed' | 'bad-signature' | 'expired' | 'invalid-payload' | 'revoked' | 'machine-mismatch' };
 
 const SPKI_ED25519_PREFIX = Buffer.from('302a300506032b6570032100', 'hex');
-const PKCS8_ED25519_PREFIX = Buffer.from('302e020100300506032b657004220420', 'hex');
-
 const publicKeyFromHex = (hex: string): KeyObject =>
   createPublicKey({
     key: Buffer.concat([SPKI_ED25519_PREFIX, Buffer.from(hex, 'hex')]),
@@ -65,7 +63,7 @@ export const verifyLicenceToken = (
   const parsed = LicencePayloadSchema.safeParse(json);
   if (!parsed.success) return { valid: false, reason: 'invalid-payload' };
   // Only now — the signature has been checked, so this payload really came from us. A key the
-  // seller expired by hand in the key-generator app must stop working even though its expiry
+  // seller expired by hand in the Python key generator must stop working even though its expiry
   // date is still in the future; without this the "Expire" button would be decoration.
   if (isRevoked(token, parsed.data, revocations)) return { valid: false, reason: 'revoked' };
   if (parsed.data.exp !== undefined && parsed.data.exp < nowSec) return { valid: false, reason: 'expired' };
@@ -78,16 +76,4 @@ export const verifyLicenceToken = (
   }
 
   return { valid: true, payload: parsed.data };
-};
-
-/** Issuer side (used by scripts/sign-licence.mjs and tests). Never ship the private key. */
-export const signLicenceToken = (payload: LicencePayload, privateKeyHex: string): string => {
-  const payloadPart = Buffer.from(JSON.stringify(LicencePayloadSchema.parse(payload)), 'utf8').toString('base64url');
-  const key = createPrivateKey({
-    key: Buffer.concat([PKCS8_ED25519_PREFIX, Buffer.from(privateKeyHex, 'hex')]),
-    format: 'der',
-    type: 'pkcs8',
-  });
-  const sig = sign(null, Buffer.from(payloadPart, 'utf8'), key).toString('base64url');
-  return `${LICENCE_PREFIX}.${payloadPart}.${sig}`;
 };

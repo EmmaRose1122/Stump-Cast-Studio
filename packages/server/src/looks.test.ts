@@ -54,13 +54,25 @@ describe('looks API', () => {
     expect(body.looks.find((l) => l.active)!.id).toBe('ink-gold');
   });
 
-  it('a preview activation never reaches the saved settings', async () => {
+  it('refuses a Pro look even when the client asks for a preview', async () => {
+    // The preview escape hatch let a free studio select a Pro look into its own preview window,
+    // which is the selection the paid tier exists to gate. There is no preview path now.
     const { send } = await boot(false);
     const res = await send('POST', '/api/looks/activate', { id: 'midnight-glass', preview: true });
-    expect(res.status).toBe(200);
-    expect(await res.json()).toMatchObject({ id: 'midnight-glass', preview: true });
+    expect(res.status).toBe(403);
     const settings = (await (await send('GET', '/api/settings')).json()) as { theme: string };
     expect(settings.theme).not.toBe('midnight-glass');
+  });
+
+  it('marks Pro looks locked in the catalog while unlicensed', async () => {
+    const { send } = await boot(false);
+    const body = (await (await send('GET', '/api/looks/catalog')).json()) as {
+      licensed: boolean;
+      catalog: { id: string; plan: string; locked: boolean }[];
+    };
+    expect(body.licensed).toBe(false);
+    expect(body.catalog.length).toBeGreaterThan(20);
+    expect(body.catalog.every((l) => l.plan !== 'pro' || l.locked)).toBe(true);
   });
 
   it('activates a free look, persists it and broadcasts to overlays', async () => {

@@ -31,7 +31,9 @@
   "layoutVariant": {
     "scorePosition": "bottom",
     "playerCardStyle": "round-badge",
-    "boundaryStyle": "split-bar"
+    "boundaryStyle": "split-bar",
+    "middleLayout": "left-stats",
+    "playerOrder": "striker-left"
   },
   "motion": {
     "entrance": "glitch",

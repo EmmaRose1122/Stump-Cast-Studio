@@ -7,6 +7,7 @@ export const ResolutionTester = ({ onClose, matchId }: { onClose?: () => void; m
   const qc = useQueryClient();
   const [mode, setMode] = useState<'fit' | 'actual'>('fit');
   const [reload, setReload] = useState(0);
+  const [commMute, setCommMute] = useState(false);
   const [showProLooks, setShowProLooks] = useState(false);
   const settings = useQuery({ queryKey: ['settings'], queryFn: api.settings });
   const currentLayout = settings.data?.layout ?? 'arena';
@@ -36,8 +37,8 @@ export const ResolutionTester = ({ onClose, matchId }: { onClose?: () => void; m
 
   const overlayBase = window.location.port === '5175' ? 'http://127.0.0.1:5174/' : `${window.location.origin}/overlay/`;
   const overlayUrl = effectiveMatchId
-    ? `${overlayBase}?match=${encodeURIComponent(effectiveMatchId)}&layout=${currentLayout}&preview=1&resolution=1&reload=${reload}`
-    : `${overlayBase}?fixture=test&layout=${currentLayout}&preview=1&resolution=1&reload=${reload}`;
+    ? `${overlayBase}?match=${encodeURIComponent(effectiveMatchId)}&layout=${currentLayout}&preview=1&resolution=1&reload=${reload}${commMute ? '&commMute=1' : ''}`
+    : `${overlayBase}?fixture=test&layout=${currentLayout}&preview=1&resolution=1&reload=${reload}${commMute ? '&commMute=1' : ''}`;
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-slate-100 text-slate-800">
@@ -145,6 +146,19 @@ export const ResolutionTester = ({ onClose, matchId }: { onClose?: () => void; m
             }`}
           >
             100% (1:1 1080P)
+          </button>
+          <button
+            type="button"
+            onClick={() => setCommMute(!commMute)}
+            className={`flex items-center gap-1.5 rounded px-3 py-1.5 text-xs font-bold uppercase tracking-wider transition cursor-pointer ${
+              commMute
+                ? 'bg-amber-50 text-amber-800 border border-amber-300 hover:bg-amber-100'
+                : 'bg-emerald-50 text-emerald-800 border border-emerald-300 hover:bg-emerald-100'
+            }`}
+            title={commMute ? 'Commentary audio is muted in preview window' : 'Commentary audio is active in preview window'}
+          >
+            <span>{commMute ? '🔇' : '🎙️'}</span>
+            <span>{commMute ? 'Commentary: Muted' : 'Commentary: Active'}</span>
           </button>
           <button
             type="button"

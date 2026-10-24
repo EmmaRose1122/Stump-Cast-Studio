@@ -73,6 +73,10 @@ export class OverlayCommentary {
   private timeout: unknown = null;
   /** The server-audio element currently playing, so a stop() can actually silence it. */
   private current: AudioPlayerLike | null = null;
+  /** Remember recently spoken IDs to prevent duplicate / echoing playback */
+  private readonly spokenIds = new Set<string>();
+  private lastSpokenText = '';
+  private lastSpokenTime = 0;
 
   private readonly setTimer: (fn: () => void, ms: number) => unknown;
   private readonly clearTimer: (id: unknown) => void;
@@ -109,7 +113,7 @@ export class OverlayCommentary {
   }
 
   handle(payload: unknown): void {
-    if (!payload || typeof payload !== 'object') return;
+    if (!this.enabled || !payload || typeof payload !== 'object') return;
     const p = payload as Record<string, unknown>;
     const text = typeof p.text === 'string' ? p.text : '';
     const id = typeof p.id === 'string' ? p.id : '';
@@ -122,7 +126,22 @@ export class OverlayCommentary {
 
   speak(text: string, lang?: CommentaryPayload['lang'], id = '', speaker?: CommentaryPayload['speaker']): void {
     if (!this.enabled || !text.trim()) return;
-    this.queue.push({ id, text: text.trim(), lang, speaker });
+    const cleanText = text.trim();
+    // 1. Deduplicate by ID to prevent replay/echo
+    if (id && (this.spokenIds.has(id) || this.queue.some((q) => q.id === id))) return;
+    // 2. Deduplicate identical text within 4 seconds (prevents overlapping/echo)
+    const now = Date.now();
+    if (cleanText === this.lastSpokenText && now - this.lastSpokenTime < 4000) return;
+
+    if (id) {
+      this.spokenIds.add(id);
+      if (this.spokenIds.size > 100) {
+        const first = this.spokenIds.values().next().value;
+        if (first) this.spokenIds.delete(first);
+      }
+    }
+
+    this.queue.push({ id, text: cleanText, lang, speaker });
     while (this.queue.length > MAX_QUEUE) this.queue.shift();
     this.processQueue();
   }
@@ -154,10 +173,12 @@ export class OverlayCommentary {
   }
 
   private processQueue(): void {
-    if (this.speaking || this.queue.length === 0) return;
+    if (!this.enabled || this.speaking || this.queue.length === 0) return;
     const next = this.queue.shift();
     if (!next) return;
     this.speaking = true;
+    this.lastSpokenText = next.text;
+    this.lastSpokenTime = Date.now();
     const player = this.playerFor(next);
     // The server is asked first because an OBS browser source has no speech engine of its own;
     // whatever the browser can do is only the fallback. When there is nothing to ask, the browser
@@ -222,6 +243,10 @@ export class OverlayCommentary {
   }
 
   private speakWithBrowser(line: QueuedLine): void {
+    if (!this.enabled) {
+      this.finish();
+      return;
+    }
     const synth = this.synth;
     if (!synth) {
       this.finish();

@@ -121,6 +121,13 @@ export interface PlayerAvatarProps {
   className?: string;
   hasCutout?: boolean;
   bust?: number;
+  /**
+   * Ordered image candidates, tried left to right before falling back to initials. The squad panel
+   * passes the photo URL the score site published; without this the avatar only ever asked for the
+   * local `players/<slug>.webp` slot and showed initials for every player the studio had not saved
+   * a cutout for — even though the live page was showing a face for all of them.
+   */
+  srcs?: (string | undefined)[];
 }
 
 /**
@@ -130,19 +137,29 @@ export const PlayerAvatar: React.FC<PlayerAvatarProps> = ({
   name,
   className = 'size-10',
   bust,
+  srcs,
 }) => {
   const playerSlug = slug(name);
-  const [failed, setFailed] = useState(false);
+  const localUrl = `/assets/players/${playerSlug}.webp${bust ? `?v=${bust}` : ''}`;
+  const key = (srcs ?? []).filter(Boolean).join('|');
+  const candidates = key ? (srcs!.filter(Boolean) as string[]) : [localUrl];
 
-  const imgUrl = `/assets/players/${playerSlug}.webp${bust ? `?v=${bust}` : ''}`;
+  // Restart at the first candidate whenever the sources change: a player keeps their component
+  // across a re-render, so a latched failure would otherwise survive a successful upload.
+  const [index, setIndex] = useState(0);
+  const [seen, setSeen] = useState(key);
+  if (seen !== key) {
+    setSeen(key);
+    setIndex(0);
+  }
 
-  if (!failed) {
+  if (index < candidates.length) {
     return (
       <img
-        src={imgUrl}
+        src={candidates[index]}
         alt={name}
         className={`${className} object-contain`}
-        onError={() => setFailed(true)}
+        onError={() => setIndex((i) => i + 1)}
       />
     );
   }

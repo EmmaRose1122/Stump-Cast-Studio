@@ -1,4 +1,4 @@
-import type { MatchState } from '@stumpcast/shared';
+import { whatsappUrl, type MatchState } from '@stumpcast/shared';
 import { OverlayComponent } from '../component';
 
 /** The gap between two appearances is re-rolled inside this band on every cycle (never a fixed period). */
@@ -62,7 +62,7 @@ export class UpgradePopup extends OverlayComponent {
     closeBtn?.addEventListener('click', () => this.dismiss());
     const getBtn = root.querySelector('.upgrade-popup-btn-primary');
     getBtn?.addEventListener('click', () => {
-      window.open('https://wa.me/?text=Hi%2C%20I%20want%20to%20buy%20a%20StumpCast%20Pro%20licence%20key', '_blank');
+      window.open(whatsappUrl('Hi, I want to buy a StumpCast Pro licence key'), '_blank');
     });
     return root;
   }
