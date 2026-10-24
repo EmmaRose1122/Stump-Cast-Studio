@@ -41,7 +41,15 @@ import { mountGallery } from './cards/gallery';
 import { StreamFrame } from './components/StreamFrame';
 import { ResultScreen } from './components/ResultScreen';
 import { PreMatchScreen } from './components/PreMatchScreen';
-import { applyBackground, applyComposition, applyLayout, applyOnAirScreen, applyTvTheme, createZones, type LayoutName } from './layout';
+import {
+  applyBackground,
+  applyComposition,
+  applyLayout,
+  applyOnAirScreen,
+  applyTvTheme,
+  createZones,
+  type LayoutName,
+} from './layout';
 import { bumpAsset } from './assets';
 import { OverlayAudio, createBrowserEngine } from './audio';
 import { OverlayCommentary } from './commentary';
@@ -84,7 +92,8 @@ const canRunLook = (look: { plan?: string } | undefined): boolean => {
   return look.plan !== 'pro' || store.get().licensed;
 };
 
-const startLook = (params.look && canRunLook(getLook(params.look)) && getLook(params.look)) || store.get().look;
+const startLook =
+  (params.look && canRunLook(getLook(params.look)) && getLook(params.look)) || store.get().look;
 store.setLook(startLook);
 
 /** If a licence disappears, a Pro look must not stay on air because the URL asked for it. */
@@ -225,8 +234,8 @@ scorePop.mount(stageEl, look);
 scorePop.onVisibility = (visible) => {
   playerBand.classList.toggle('is-suppressed', visible);
 };
-  resultScreen.mount(stageEl, look);
-  preMatchScreen.mount(stageEl, look);
+resultScreen.mount(stageEl, look);
+preMatchScreen.mount(stageEl, look);
 placePlayers(store.get().settings.layout, store.get().look);
 placeArenaPanels(store.get().settings.layout, store.get().look);
 
@@ -318,7 +327,9 @@ try {
     // `?look=` may have been honoured optimistically before this answer arrived.
     enforceLookLicence(data.licensed);
   }
-} catch { /* offline */ }
+} catch {
+  /* offline */
+}
 
 store.subscribe((s, prev) => {
   if (s.licensed !== prev.licensed) {
@@ -515,7 +526,8 @@ const proto = location.protocol === 'https:' ? 'wss' : 'ws';
 // Commentary audio must NEVER play in background admin dashboard frames (e.g. LookPreview cards on
 // Graphics page, ProLooksModal, Setup iframe, or design QA gallery), which was causing duplicate
 // speech, echo, and distorted comb-filtering.
-const isDashboardFrame = typeof window !== 'undefined' && window.self !== window.top && !params.resolution;
+const isDashboardFrame =
+  typeof window !== 'undefined' && window.self !== window.top && !params.resolution;
 const isLookOrGallery = Boolean(params.look && !params.resolution) || params.gallery;
 const commMuted = Boolean(params.commMute) || isDashboardFrame || isLookOrGallery;
 
@@ -567,7 +579,7 @@ const client = new OverlayWsClient({
           }
         } else store.applyCard(c.data);
       }
-    } else     if (msg.channel === 'licence') {
+    } else if (msg.channel === 'licence') {
       const data = msg.payload as { licensed?: boolean } | null;
       if (data?.licensed !== undefined) {
         store.setLicensed(data.licensed);

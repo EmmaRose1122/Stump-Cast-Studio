@@ -77,9 +77,9 @@ describe('schemas', () => {
   it('requires the two win probabilities to be one number split in two', () => {
     const base = { ...fixtures.test, winProb: { teamA: 0.34, teamB: 0.36 } };
     expect(MatchStateSchema.safeParse(base).success).toBe(false);
-    expect(MatchStateSchema.safeParse({ ...base, winProb: { teamA: 0.34, teamB: 0.66 } }).success).toBe(
-      true,
-    );
+    expect(
+      MatchStateSchema.safeParse({ ...base, winProb: { teamA: 0.34, teamB: 0.66 } }).success,
+    ).toBe(true);
   });
 
   it('sizes a first-innings projection against the innings actually being played', () => {
@@ -134,6 +134,8 @@ describe('schemas', () => {
       motion: { entrance: 'fade' },
     });
     expect(look.plan).toBe('free');
+    expect(look.layoutVariant.middleLayout).toBe('left-stats');
+    expect(look.layoutVariant.playerOrder).toBe('striker-left');
   });
 });
 

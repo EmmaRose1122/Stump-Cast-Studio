@@ -33,17 +33,15 @@
     "playerCardStyle": "round-badge",
     "boundaryStyle": "split-bar",
     "middleLayout": "left-stats",
-    "playerOrder": "striker-left"
+    "playerOrder": "striker-left",
+    "broadcastBadgeStyle": "round-left",
+    "broadcastBarStyle": "flat",
+    "statTheme": "dark-cyan"
   },
   "motion": {
     "entrance": "glitch",
     "easing": "power2.out",
     "durationMs": 450
   },
-  "tags": [
-    "glitch entrances",
-    "scores at the bottom",
-    "pill score bar",
-    "round photo badges"
-  ]
+  "tags": ["glitch entrances", "scores at the bottom", "pill score bar", "round photo badges"]
 }

@@ -28,18 +28,66 @@ export const LookSchema = z.object({
     scorePosition: z.enum(['top', 'bottom']),
     playerCardStyle: z.enum(['cutout', 'badge', 'badge-right', 'round-badge', 'mirrored']),
     boundaryStyle: z.string().min(1),
-    middleLayout: z.enum([
-      'left-stats',
-      'left-stats-projected',
-      'left-stats-partnership',
-      'right-stats',
-      'right-stats-projected',
-      'right-stats-striker',
-      'right-cluster-recent',
-      'right-cluster-video',
-      'right-cluster-partnership',
-    ]).default('left-stats'),
+    middleLayout: z
+      .enum([
+        'left-stats',
+        'left-stats-projected',
+        'left-stats-partnership',
+        'right-stats',
+        'right-stats-projected',
+        'right-stats-striker',
+        'right-cluster-recent',
+        'right-cluster-video',
+        'right-cluster-partnership',
+      ])
+      .default('left-stats'),
     playerOrder: z.enum(['striker-left', 'bowler-left', 'bowler-middle']).default('striker-left'),
+    broadcastBadgeStyle: z
+      .enum([
+        'cutout-left',
+        'cutout-right',
+        'round-left',
+        'round-right',
+        'square-left',
+        'square-right',
+      ])
+      .optional(),
+    broadcastBarStyle: z
+      .enum([
+        'flat',
+        'floating',
+        'floating-white',
+        'flat-led',
+        'slanted-led',
+        'arrow',
+        'notched',
+        'slanted',
+        'slanted-mono',
+        'notched-mono',
+        'notched-sunset',
+        'flat-aurora',
+      ])
+      .optional(),
+    statTheme: z
+      .enum([
+        'light',
+        'light-green',
+        'dark-cyan',
+        'dark-magenta',
+        'dark-lime',
+        'broadcast-white',
+        'led-amber',
+        'led-green',
+        'light-orange',
+        'light-pink',
+        'light-yellow',
+        'light-silver',
+        'glass-sky',
+        'light-rose',
+        'light-red',
+        'mono-light',
+      ])
+      .optional(),
   }),
   motion: z.object({
     entrance: z.enum([
@@ -104,9 +152,7 @@ const PLAYER_CARD_TAGS: Record<Look['layoutVariant']['playerCardStyle'], string>
  */
 export const describeLook = (look: Look): string[] => [
   `${look.motion.entrance} entrances`,
-  look.layoutVariant.scorePosition === 'bottom'
-    ? 'scores at the bottom'
-    : 'scores on top',
+  look.layoutVariant.scorePosition === 'bottom' ? 'scores at the bottom' : 'scores on top',
   SCORE_BAR_TAGS[look.tokens.scoreBarShape],
   PLAYER_CARD_TAGS[look.layoutVariant.playerCardStyle],
 ];

@@ -33,17 +33,15 @@
     "playerCardStyle": "badge-right",
     "boundaryStyle": "glow-ring",
     "middleLayout": "left-stats",
-    "playerOrder": "striker-left"
+    "playerOrder": "striker-left",
+    "broadcastBadgeStyle": "round-right",
+    "broadcastBarStyle": "arrow",
+    "statTheme": "light-pink"
   },
   "motion": {
     "entrance": "pop",
     "easing": "back.out(1.5)",
     "durationMs": 460
   },
-  "tags": [
-    "pop entrances",
-    "scores at the bottom",
-    "arrow score bar",
-    "photo badges on the right"
-  ]
+  "tags": ["pop entrances", "scores at the bottom", "arrow score bar", "photo badges on the right"]
 }

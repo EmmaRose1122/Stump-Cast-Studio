@@ -33,17 +33,15 @@
     "playerCardStyle": "badge-right",
     "boundaryStyle": "edge-flash",
     "middleLayout": "right-stats",
-    "playerOrder": "bowler-middle"
+    "playerOrder": "bowler-middle",
+    "broadcastBadgeStyle": "round-right",
+    "broadcastBarStyle": "floating",
+    "statTheme": "dark-lime"
   },
   "motion": {
     "entrance": "blinds",
     "easing": "power2.out",
     "durationMs": 460
   },
-  "tags": [
-    "blinds entrances",
-    "scores on top",
-    "floating score cards",
-    "photo badges on the right"
-  ]
+  "tags": ["blinds entrances", "scores on top", "floating score cards", "photo badges on the right"]
 }

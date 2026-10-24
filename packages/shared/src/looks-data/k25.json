@@ -33,17 +33,15 @@
     "playerCardStyle": "round-badge",
     "boundaryStyle": "edge-flash",
     "middleLayout": "left-stats",
-    "playerOrder": "striker-left"
+    "playerOrder": "striker-left",
+    "broadcastBadgeStyle": "square-left",
+    "broadcastBarStyle": "notched-mono",
+    "statTheme": "mono-light"
   },
   "motion": {
     "entrance": "pop",
     "easing": "back.out(1.5)",
     "durationMs": 460
   },
-  "tags": [
-    "pop entrances",
-    "scores on top",
-    "notched score bar",
-    "round photo badges"
-  ]
+  "tags": ["pop entrances", "scores on top", "notched score bar", "round photo badges"]
 }

@@ -33,7 +33,10 @@
     "playerCardStyle": "badge-right",
     "boundaryStyle": "edge-flash",
     "middleLayout": "right-cluster-recent",
-    "playerOrder": "striker-left"
+    "playerOrder": "striker-left",
+    "broadcastBadgeStyle": "round-right",
+    "broadcastBarStyle": "floating",
+    "statTheme": "light-green"
   },
   "motion": {
     "entrance": "rise",

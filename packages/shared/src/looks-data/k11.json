@@ -33,17 +33,15 @@
     "playerCardStyle": "mirrored",
     "boundaryStyle": "spark",
     "middleLayout": "right-cluster-video",
-    "playerOrder": "bowler-middle"
+    "playerOrder": "bowler-middle",
+    "broadcastBadgeStyle": "cutout-right",
+    "broadcastBarStyle": "arrow",
+    "statTheme": "light-orange"
   },
   "motion": {
     "entrance": "skew",
     "easing": "expo.out",
     "durationMs": 480
   },
-  "tags": [
-    "skew entrances",
-    "scores at the bottom",
-    "arrow score bar",
-    "mirrored player cards"
-  ]
+  "tags": ["skew entrances", "scores at the bottom", "arrow score bar", "mirrored player cards"]
 }

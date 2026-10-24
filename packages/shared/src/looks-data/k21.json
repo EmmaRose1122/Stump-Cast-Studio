@@ -33,17 +33,15 @@
     "playerCardStyle": "cutout",
     "boundaryStyle": "gold-flare",
     "middleLayout": "left-stats",
-    "playerOrder": "bowler-middle"
+    "playerOrder": "bowler-middle",
+    "broadcastBadgeStyle": "cutout-left",
+    "broadcastBarStyle": "slanted-mono",
+    "statTheme": "mono-light"
   },
   "motion": {
     "entrance": "zoom",
     "easing": "back.out(1.4)",
     "durationMs": 480
   },
-  "tags": [
-    "zoom entrances",
-    "scores at the bottom",
-    "slanted score bar",
-    "cut-out player photos"
-  ]
+  "tags": ["zoom entrances", "scores at the bottom", "slanted score bar", "cut-out player photos"]
 }

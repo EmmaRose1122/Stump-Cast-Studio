@@ -24,15 +24,7 @@ const initials = (name: string): string =>
 export class WinPredictor extends OverlayComponent {
   protected override readonly alwaysVisible = true;
   private e!: Record<
-    | 'aTeam'
-    | 'bTeam'
-    | 'pctA'
-    | 'pctB'
-    | 'fillA'
-    | 'crestA'
-    | 'crestB'
-    | 'avA'
-    | 'avB',
+    'aTeam' | 'bTeam' | 'pctA' | 'pctB' | 'fillA' | 'crestA' | 'crestB' | 'avA' | 'avB',
     HTMLElement
   >;
 
@@ -42,7 +34,7 @@ export class WinPredictor extends OverlayComponent {
     root.innerHTML = `
       <div class="wpr-label">WIN PREDICTOR <span class="wpr-est">EST.</span></div>
       <div class="wpr-card">
-        <div class="wpr-side">
+        <div class="wpr-side wpr-side-a">
           <span class="wpr-crest wpr-crest-a"></span>
           <span class="wpr-avatars wpr-av-a"></span>
           <span class="wpr-team wpr-team-a"></span>

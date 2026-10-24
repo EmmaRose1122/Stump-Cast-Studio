@@ -33,7 +33,10 @@
     "playerCardStyle": "badge-right",
     "boundaryStyle": "burst",
     "middleLayout": "left-stats",
-    "playerOrder": "bowler-middle"
+    "playerOrder": "bowler-middle",
+    "broadcastBadgeStyle": "round-right",
+    "broadcastBarStyle": "notched-sunset",
+    "statTheme": "light-pink"
   },
   "motion": {
     "entrance": "drop",

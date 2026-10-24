@@ -33,17 +33,15 @@
     "playerCardStyle": "mirrored",
     "boundaryStyle": "edge-flash",
     "middleLayout": "right-stats-striker",
-    "playerOrder": "bowler-left"
+    "playerOrder": "bowler-left",
+    "broadcastBadgeStyle": "cutout-right",
+    "broadcastBarStyle": "arrow",
+    "statTheme": "light-yellow"
   },
   "motion": {
     "entrance": "drop",
     "easing": "power2.out",
     "durationMs": 480
   },
-  "tags": [
-    "drop entrances",
-    "scores on top",
-    "arrow score bar",
-    "mirrored player cards"
-  ]
+  "tags": ["drop entrances", "scores on top", "arrow score bar", "mirrored player cards"]
 }

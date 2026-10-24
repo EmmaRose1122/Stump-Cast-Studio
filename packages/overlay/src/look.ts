@@ -29,6 +29,21 @@ export const applyLook = (look: Look, root: HTMLElement = document.documentEleme
   root.dataset.playerCard = look.layoutVariant.playerCardStyle;
   root.dataset.middleLayout = look.layoutVariant.middleLayout;
   root.dataset.playerOrder = look.layoutVariant.playerOrder;
+  if (look.layoutVariant.broadcastBadgeStyle) {
+    root.dataset.broadcastBadgeStyle = look.layoutVariant.broadcastBadgeStyle;
+  } else {
+    delete root.dataset.broadcastBadgeStyle;
+  }
+  if (look.layoutVariant.broadcastBarStyle) {
+    root.dataset.broadcastBarStyle = look.layoutVariant.broadcastBarStyle;
+  } else {
+    delete root.dataset.broadcastBarStyle;
+  }
+  if (look.layoutVariant.statTheme) {
+    root.dataset.statTheme = look.layoutVariant.statTheme;
+  } else {
+    delete root.dataset.statTheme;
+  }
   root.dataset.scoreBar = look.tokens.scoreBarShape;
   root.dataset.boundary = look.layoutVariant.boundaryStyle;
   root.dataset.entrance = look.motion.entrance;

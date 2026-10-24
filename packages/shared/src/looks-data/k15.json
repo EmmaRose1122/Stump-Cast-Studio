@@ -33,17 +33,15 @@
     "playerCardStyle": "round-badge",
     "boundaryStyle": "corner-tag",
     "middleLayout": "right-cluster-video",
-    "playerOrder": "striker-left"
+    "playerOrder": "striker-left",
+    "broadcastBadgeStyle": "round-left",
+    "broadcastBarStyle": "notched",
+    "statTheme": "light-silver"
   },
   "motion": {
     "entrance": "swing",
     "easing": "power2.out",
     "durationMs": 520
   },
-  "tags": [
-    "swing entrances",
-    "scores at the bottom",
-    "notched score bar",
-    "round photo badges"
-  ]
+  "tags": ["swing entrances", "scores at the bottom", "notched score bar", "round photo badges"]
 }

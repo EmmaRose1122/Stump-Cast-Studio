@@ -33,7 +33,10 @@
     "playerCardStyle": "cutout",
     "boundaryStyle": "banner-sweep",
     "middleLayout": "left-stats",
-    "playerOrder": "striker-left"
+    "playerOrder": "striker-left",
+    "broadcastBadgeStyle": "cutout-left",
+    "broadcastBarStyle": "floating-white",
+    "statTheme": "broadcast-white"
   },
   "motion": {
     "entrance": "curtain",

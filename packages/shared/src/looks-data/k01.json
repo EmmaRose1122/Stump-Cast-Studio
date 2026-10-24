@@ -33,17 +33,15 @@
     "playerCardStyle": "cutout",
     "boundaryStyle": "split-bar",
     "middleLayout": "left-stats",
-    "playerOrder": "bowler-left"
+    "playerOrder": "bowler-left",
+    "broadcastBadgeStyle": "cutout-left",
+    "broadcastBarStyle": "flat",
+    "statTheme": "light"
   },
   "motion": {
     "entrance": "slide",
     "easing": "power2.out",
     "durationMs": 480
   },
-  "tags": [
-    "slide entrances",
-    "scores on top",
-    "pill score bar",
-    "cut-out player photos"
-  ]
+  "tags": ["slide entrances", "scores on top", "pill score bar", "cut-out player photos"]
 }

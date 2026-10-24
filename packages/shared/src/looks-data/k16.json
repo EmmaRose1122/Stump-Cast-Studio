@@ -33,17 +33,15 @@
     "playerCardStyle": "cutout",
     "boundaryStyle": "glow-ring",
     "middleLayout": "left-stats",
-    "playerOrder": "bowler-middle"
+    "playerOrder": "bowler-middle",
+    "broadcastBadgeStyle": "cutout-left",
+    "broadcastBarStyle": "flat",
+    "statTheme": "glass-sky"
   },
   "motion": {
     "entrance": "blur",
     "easing": "power2.out",
     "durationMs": 550
   },
-  "tags": [
-    "blur entrances",
-    "scores on top",
-    "glass score bar",
-    "cut-out player photos"
-  ]
+  "tags": ["blur entrances", "scores on top", "glass score bar", "cut-out player photos"]
 }

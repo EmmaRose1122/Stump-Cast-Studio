@@ -33,17 +33,15 @@
     "playerCardStyle": "round-badge",
     "boundaryStyle": "corner-tag",
     "middleLayout": "left-stats",
-    "playerOrder": "bowler-left"
+    "playerOrder": "bowler-left",
+    "broadcastBadgeStyle": "round-left",
+    "broadcastBarStyle": "flat",
+    "statTheme": "light-rose"
   },
   "motion": {
     "entrance": "zoom-out",
     "easing": "power3.out",
     "durationMs": 520
   },
-  "tags": [
-    "zoom-out entrances",
-    "scores at the bottom",
-    "glass score bar",
-    "round photo badges"
-  ]
+  "tags": ["zoom-out entrances", "scores at the bottom", "glass score bar", "round photo badges"]
 }

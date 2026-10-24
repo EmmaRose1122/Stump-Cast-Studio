@@ -29,6 +29,7 @@ import { StreamFrame } from './components/StreamFrame';
 import { UpgradePopup } from './components/UpgradePopup';
 import { ballChip, situationText } from './format';
 import { applyLayout, createZones } from './layout';
+import { applyLook } from './look';
 
 const mount = <T extends { mount(stage: HTMLElement, look: typeof graphiteTeal): void }>(c: T) => {
   const stage = document.createElement('div');
@@ -71,10 +72,36 @@ describe('Looks', () => {
   it('loads every attached Pro look with its arena panel and player arrangement', () => {
     expect(PRO_LOOKS_23.length).toBeGreaterThanOrEqual(23);
     expect(new Set(PRO_LOOKS_23.map((look) => look.id)).size).toBe(PRO_LOOKS_23.length);
-    expect(new Set(PRO_LOOKS_23.map((look) => look.layoutVariant.middleLayout)).size).toBeGreaterThan(1);
+    expect(new Set(PRO_LOOKS_23.map((look) => look.layoutVariant.middleLayout))).toEqual(
+      new Set([
+        'left-stats',
+        'left-stats-projected',
+        'left-stats-partnership',
+        'right-stats',
+        'right-stats-projected',
+        'right-stats-striker',
+        'right-cluster-recent',
+        'right-cluster-video',
+        'right-cluster-partnership',
+      ]),
+    );
     expect(new Set(PRO_LOOKS_23.map((look) => look.layoutVariant.playerOrder))).toEqual(
       new Set(['striker-left', 'bowler-left', 'bowler-middle']),
     );
+    expect(PRO_LOOKS_23.every((look) => look.layoutVariant.broadcastBadgeStyle)).toBe(true);
+    expect(PRO_LOOKS_23.every((look) => look.layoutVariant.broadcastBarStyle)).toBe(true);
+    expect(PRO_LOOKS_23.every((look) => look.layoutVariant.statTheme)).toBe(true);
+  });
+
+  it('applies the selected broadcast composition to the overlay theme', () => {
+    const root = document.createElement('html');
+    const look = PRO_LOOKS_23.find((candidate) => candidate.id === 'k11')!;
+    applyLook(look, root);
+    expect(root.dataset.middleLayout).toBe('right-cluster-video');
+    expect(root.dataset.playerOrder).toBe('bowler-middle');
+    expect(root.dataset.broadcastBadgeStyle).toBe('cutout-right');
+    expect(root.dataset.broadcastBarStyle).toBe('arrow');
+    expect(root.dataset.statTheme).toBe('light-orange');
   });
 });
 
@@ -133,9 +160,27 @@ describe('ScoreBar', () => {
       ...test,
       currentInnings: 4,
       innings: [
-        { number: 1, battingTeamId: batting.id, score: { runs: 284, wkts: 10, overs: 90, balls: 0 }, declared: false, allOut: true },
-        { number: 2, battingTeamId: bowling.id, score: { runs: 390, wkts: 10, overs: 120, balls: 0 }, declared: false, allOut: true },
-        { number: 3, battingTeamId: bowling.id, score: { runs: 314, wkts: 6, overs: 80, balls: 0 }, declared: false, allOut: false },
+        {
+          number: 1,
+          battingTeamId: batting.id,
+          score: { runs: 284, wkts: 10, overs: 90, balls: 0 },
+          declared: false,
+          allOut: true,
+        },
+        {
+          number: 2,
+          battingTeamId: bowling.id,
+          score: { runs: 390, wkts: 10, overs: 120, balls: 0 },
+          declared: false,
+          allOut: true,
+        },
+        {
+          number: 3,
+          battingTeamId: bowling.id,
+          score: { runs: 314, wkts: 6, overs: 80, balls: 0 },
+          declared: false,
+          allOut: false,
+        },
         { number: 4, battingTeamId: batting.id, score: test.score, declared: false, allOut: false },
       ],
     };
@@ -221,7 +266,11 @@ describe('MatchCentre / ThisBall', () => {
     ball.update({ ...state, thisOver: [], lastBalls: [createBall({ ball: 1, runs: 4 })] });
     expect(ballStage.querySelector('.tb-value')?.textContent).toBe('4');
     expect(ballStage.querySelector('.tb-detail')?.textContent).toBe('FOUR');
-    ball.update({ ...state, thisOver: [], lastBalls: [createBall({ ball: 1, runs: 0, wicket: { kind: 'bowled', playerOutId: 'p1' } })] });
+    ball.update({
+      ...state,
+      thisOver: [],
+      lastBalls: [createBall({ ball: 1, runs: 0, wicket: { kind: 'bowled', playerOutId: 'p1' } })],
+    });
     expect(ballStage.querySelector('.tb-detail')?.textContent).toBe('WICKET');
   });
 
@@ -294,7 +343,9 @@ describe('StatsTiles / WinProb / PlayerCards / Watermark', () => {
     expect(stage.querySelector('.wp-crest-b img')!.getAttribute('src')).toContain('team-rsa');
     expect((stage.querySelector('.wp-fill') as HTMLElement).style.width).toBe('70%');
     // The fill is the left-hand side's colour, so it has to be Pakistan's, not South Africa's.
-    expect((stage.querySelector('.wp-fill') as HTMLElement).style.background).toContain('17, 87, 6');
+    expect((stage.querySelector('.wp-fill') as HTMLElement).style.background).toContain(
+      '17, 87, 6',
+    );
   });
 
   it('hides the rail when fewer than two teams are known', () => {
@@ -355,8 +406,7 @@ describe('StreamFrame camera panels', () => {
       configurable: true,
       value: {
         getUserMedia,
-        enumerateDevices: async () =>
-          deviceIds.map((d) => ({ kind: 'videoinput', deviceId: d })),
+        enumerateDevices: async () => deviceIds.map((d) => ({ kind: 'videoinput', deviceId: d })),
       },
     });
     HTMLMediaElement.prototype.play = () => Promise.resolve();
@@ -431,7 +481,9 @@ describe('UpgradePopup timers', () => {
   });
 
   it('rolls the gap inside 10-15 s and never repeats a fixed period', () => {
-    const gaps = [0, 0.25, 0.5, 0.75, 1].map((r) => new UpgradePopup({ random: () => r }).nextGapMs());
+    const gaps = [0, 0.25, 0.5, 0.75, 1].map((r) =>
+      new UpgradePopup({ random: () => r }).nextGapMs(),
+    );
     expect(gaps).toEqual([10_000, 11_250, 12_500, 13_750, 15_000]);
     // A broken RNG must still land inside the band rather than firing every millisecond.
     for (const r of [Number.NaN, -1, 2]) {
@@ -554,7 +606,8 @@ describe('UpgradePopup timers', () => {
     vi.useRealTimers();
   });
 
-  it('stays silent for the session after Dismiss, even if start is called again', () => {    vi.useFakeTimers();
+  it('stays silent for the session after Dismiss, even if start is called again', () => {
+    vi.useFakeTimers();
     const p = new UpgradePopup({ random: () => 0 });
     const stage = mount(p);
     const popup = stage.querySelector('.c-upgrade-popup')!;
@@ -586,7 +639,12 @@ describe('ScorePop ball strip', () => {
       batterId: t20.batters[0].playerId,
       bowlerId: t20.bowler.playerId,
     });
-    const next = { ...t20, score: { runs: 102, wkts: 2, overs: 11, balls: 4 }, thisOver: [ball], lastBalls: [ball] };
+    const next = {
+      ...t20,
+      score: { runs: 102, wkts: 2, overs: 11, balls: 4 },
+      thisOver: [ball],
+      lastBalls: [ball],
+    };
 
     p.update(t20); // first sight is only the baseline
     expect(el.hidden).toBe(true);
@@ -611,7 +669,18 @@ describe('ScorePop ball strip', () => {
 
 describe('layouts', () => {
   it('defines ten valid OBS presets with normalized source rectangles', () => {
-    expect(OBS_LAYOUT_PRESETS.map((preset) => preset.id)).toEqual(['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J']);
+    expect(OBS_LAYOUT_PRESETS.map((preset) => preset.id)).toEqual([
+      'A',
+      'B',
+      'C',
+      'D',
+      'E',
+      'F',
+      'G',
+      'H',
+      'I',
+      'J',
+    ]);
     for (const preset of OBS_LAYOUT_PRESETS) {
       for (const rect of Object.values(preset.roles)) {
         expect(rect!.x).toBeGreaterThanOrEqual(0);
@@ -650,7 +719,6 @@ describe('pre-match and result screens', () => {
     const f = new StreamFrame();
     expect(mount(f).querySelector('.sf-match-slug')!.textContent).toBe('');
   });
-
 
   it('the clock scene shows feed facts and no invented captains or pitch reports', () => {
     const s = new PreMatchScreen();
@@ -696,12 +764,13 @@ describe('pre-match and result screens', () => {
 
   it('the auto cycle is armed only while on air and is disarmed by pinning a scene', () => {
     const armed: number[] = [];
-    const setIntervalSpy = vi
-      .spyOn(window, 'setInterval')
-      .mockImplementation(((fn: () => void, ms: number) => {
-        armed.push(ms);
-        return 1;
-      }) as unknown as typeof window.setInterval);
+    const setIntervalSpy = vi.spyOn(window, 'setInterval').mockImplementation(((
+      fn: () => void,
+      ms: number,
+    ) => {
+      armed.push(ms);
+      return 1;
+    }) as unknown as typeof window.setInterval);
     const clearSpy = vi
       .spyOn(window, 'clearInterval')
       .mockImplementation((() => undefined) as unknown as typeof window.clearInterval);

@@ -33,17 +33,15 @@
     "playerCardStyle": "cutout",
     "boundaryStyle": "split-bar",
     "middleLayout": "left-stats",
-    "playerOrder": "bowler-middle"
+    "playerOrder": "bowler-middle",
+    "broadcastBadgeStyle": "cutout-left",
+    "broadcastBarStyle": "slanted-led",
+    "statTheme": "led-green"
   },
   "motion": {
     "entrance": "unfold",
     "easing": "power3.out",
     "durationMs": 520
   },
-  "tags": [
-    "unfold entrances",
-    "scores on top",
-    "slanted score bar",
-    "cut-out player photos"
-  ]
+  "tags": ["unfold entrances", "scores on top", "slanted score bar", "cut-out player photos"]
 }

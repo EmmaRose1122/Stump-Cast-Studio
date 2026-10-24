@@ -33,17 +33,15 @@
     "playerCardStyle": "mirrored",
     "boundaryStyle": "spark",
     "middleLayout": "left-stats-projected",
-    "playerOrder": "bowler-left"
+    "playerOrder": "bowler-left",
+    "broadcastBadgeStyle": "cutout-right",
+    "broadcastBarStyle": "flat-led",
+    "statTheme": "led-amber"
   },
   "motion": {
     "entrance": "flip",
     "easing": "power2.out",
     "durationMs": 500
   },
-  "tags": [
-    "flip entrances",
-    "scores at the bottom",
-    "flat score bar",
-    "mirrored player cards"
-  ]
+  "tags": ["flip entrances", "scores at the bottom", "flat score bar", "mirrored player cards"]
 }

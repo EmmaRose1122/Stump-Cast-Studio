@@ -33,17 +33,15 @@
     "playerCardStyle": "mirrored",
     "boundaryStyle": "edge-flash",
     "middleLayout": "right-stats-projected",
-    "playerOrder": "striker-left"
+    "playerOrder": "striker-left",
+    "broadcastBadgeStyle": "cutout-right",
+    "broadcastBarStyle": "notched",
+    "statTheme": "light-green"
   },
   "motion": {
     "entrance": "slide-right",
     "easing": "power2.out",
     "durationMs": 480
   },
-  "tags": [
-    "slide-right entrances",
-    "scores on top",
-    "notched score bar",
-    "mirrored player cards"
-  ]
+  "tags": ["slide-right entrances", "scores on top", "notched score bar", "mirrored player cards"]
 }

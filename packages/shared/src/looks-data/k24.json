@@ -33,17 +33,15 @@
     "playerCardStyle": "badge-right",
     "boundaryStyle": "glow-ring",
     "middleLayout": "right-cluster-partnership",
-    "playerOrder": "bowler-middle"
+    "playerOrder": "bowler-middle",
+    "broadcastBadgeStyle": "round-right",
+    "broadcastBarStyle": "flat-aurora",
+    "statTheme": "light"
   },
   "motion": {
     "entrance": "zoom",
     "easing": "back.out(1.4)",
     "durationMs": 480
   },
-  "tags": [
-    "zoom entrances",
-    "scores on top",
-    "flat score bar",
-    "photo badges on the right"
-  ]
+  "tags": ["zoom entrances", "scores on top", "flat score bar", "photo badges on the right"]
 }
