@@ -5909,7 +5909,7 @@ html[data-middle-layout^='right-cluster'] #stage[data-layout='arena'] .wpr-crest
 #stage .c-scorebar {
   isolation: isolate;
 }
-html:not([data-score-bar='floating']) #stage:not([data-active-screen='result']) .c-scorebar::before {
+html:not([data-score-bar='floating']) #stage .c-scorebar::before {
   content: '';
   position: absolute;
   inset: 0;
@@ -5920,8 +5920,8 @@ html:not([data-score-bar='floating']) #stage:not([data-active-screen='result']) 
   background:
     repeating-linear-gradient(
       118deg,
-      rgba(255, 255, 255, 0.045) 0 1px,
-      rgba(0, 0, 0, 0.02) 1px 4px
+      rgba(255, 255, 255, 0.035) 0 1px,
+      rgba(0, 0, 0, 0.02) 1px 5px
     ),
     radial-gradient(42% 130% at 0% 35%, rgba(255, 255, 255, 0.16), transparent 62%),
     radial-gradient(42% 130% at 100% 35%, rgba(255, 255, 255, 0.16), transparent 62%),
