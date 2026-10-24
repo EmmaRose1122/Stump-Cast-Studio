@@ -194,7 +194,7 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
       } catch {
         /* offline; fall back to the update check below */
       }
-      return '';
+      return '1.1.0';
     },
     staleTime: 60_000,
   });
@@ -211,8 +211,8 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
           if (res?.updateAvailable) {
             return {
               updateAvailable: true,
-              latestVersion: res.latestVersion ?? res.version ?? '—',
-              currentVersion: res.currentVersion ?? '—',
+              latestVersion: res.latestVersion ?? res.version ?? '1.1.0',
+              currentVersion: res.currentVersion ?? '1.1.0',
               releaseNotes:
                 res.releaseNotes ||
                 '• Direct In-App Desktop Updater with live transfer progress bar\n• Fast Cricbuzz & Crex match state scrapers\n• Red, White & Blue studio broadcast overlays\n• Center-aligned operator control room layout',
@@ -235,7 +235,7 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
             releaseNotes: string;
             downloadUrl: string;
           };
-          const cur = clientVer || data.currentVersion;
+          const cur = clientVer || data.currentVersion || '1.1.0';
           const isNewer = (lat: string, curVer: string) => {
             const pa = lat.replace(/^v/, '').split('.').map(Number);
             const pb = curVer.replace(/^v/, '').split('.').map(Number);
@@ -260,7 +260,7 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
       return {
         updateAvailable: false,
         latestVersion: '',
-        currentVersion: '',
+        currentVersion: '1.1.0',
         releaseNotes: '',
         downloadUrl: '',
       };
@@ -269,7 +269,7 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
   });
 
   /** Prefer the live engine version; the update check is a fallback, never a literal. */
-  const runningVersion = versionQuery.data || updateQuery.data?.currentVersion || '—';
+  const runningVersion = versionQuery.data || updateQuery.data?.currentVersion || '1.1.0';
 
   const handleCheckUpdate = async (simulate = false) => {
     setIsCheckingUpdate(true);
