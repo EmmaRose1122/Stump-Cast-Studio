@@ -5,6 +5,14 @@ export interface CommentaryPayload {
   timestamp: number;
   /** Script the line is written in, so the right voice reads it. */
   lang?: 'hi' | 'ur' | 'en';
+  /** Speaker persona info for voice selection */
+  speaker?: {
+    id: string;
+    name: string;
+    gender: 'male' | 'female';
+    voiceName: string;
+    primaryLanguage: 'hi' | 'ur' | 'en';
+  };
 }
 
 /** The slice of HTMLAudioElement the player needs; keeps this file testable without a browser. */
@@ -52,6 +60,7 @@ interface QueuedLine {
   id: string;
   text: string;
   lang?: CommentaryPayload['lang'];
+  speaker?: CommentaryPayload['speaker'];
 }
 
 export class OverlayCommentary {
@@ -105,14 +114,15 @@ export class OverlayCommentary {
     const text = typeof p.text === 'string' ? p.text : '';
     const id = typeof p.id === 'string' ? p.id : '';
     const lang = p.lang === 'hi' || p.lang === 'ur' || p.lang === 'en' ? p.lang : undefined;
+    const speaker = p.speaker && typeof p.speaker === 'object' ? p.speaker as CommentaryPayload['speaker'] : undefined;
     if (text) {
-      this.speak(text, lang, id);
+      this.speak(text, lang, id, speaker);
     }
   }
 
-  speak(text: string, lang?: CommentaryPayload['lang'], id = ''): void {
+  speak(text: string, lang?: CommentaryPayload['lang'], id = '', speaker?: CommentaryPayload['speaker']): void {
     if (!this.enabled || !text.trim()) return;
-    this.queue.push({ id, text: text.trim(), lang });
+    this.queue.push({ id, text: text.trim(), lang, speaker });
     while (this.queue.length > MAX_QUEUE) this.queue.shift();
     this.processQueue();
   }
@@ -238,7 +248,9 @@ export class OverlayCommentary {
         return prefix < 0 ? 9 : prefix;
       };
       utterance.lang = line.lang === 'ur' ? 'ur-PK' : line.lang === 'en' ? 'en-GB' : 'hi-IN';
-      const preferred = voices
+      
+      // Prefer voice matching speaker gender if available
+      let preferred = voices
         .map((v, i) => ({ v, i }))
         .filter(({ v }) => score(v) < 9)
         .sort(
@@ -247,6 +259,16 @@ export class OverlayCommentary {
             (b.v.default ? 1 : 0) - (a.v.default ? 1 : 0) ||
             a.i - b.i,
         )[0];
+      
+      // If we have speaker info, try to match gender
+      if (line.speaker && preferred) {
+        const genderPref = line.speaker.gender === 'male' ? 'male' : 'female';
+        const genderMatch = voices.find((v) => 
+          score(v) < 9 && v.name.toLowerCase().includes(genderPref)
+        );
+        if (genderMatch) preferred = { v: genderMatch, i: 0 };
+      }
+      
       if (preferred) utterance.voice = preferred.v;
 
       utterance.onend = () => this.finish();

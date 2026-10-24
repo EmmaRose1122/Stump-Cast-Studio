@@ -115,4 +115,14 @@ export const attachPictures = (update: RawUpdate, doc: Document, base: string): 
     const url = find(f.bowler.name);
     if (url) f.bowler.imageUrl = url;
   }
+
+  // Also attach photos to squad players from the squads page
+  for (const team of f.teams) {
+    if (!team.squad) continue;
+    for (const player of team.squad) {
+      if (player.imageUrl) continue; // Already has image from domLists extraction
+      const url = find(player.name);
+      if (url) player.imageUrl = url;
+    }
+  }
 };

@@ -156,7 +156,7 @@ const pushSplashVersion = (version: string | undefined, source: string): void =>
  * Hand the newer build to the splash. Ignored when the number is not actually newer, so a stale
  * feed can never make the splash advertise a downgrade. Remembered on disk too: the update check
  * usually finishes after the studio window is up, and the next launch's splash is the place where
- * "Update v1.0.8 available — installing" still means something to the operator.
+ * "Update v1.0.9 available — installing" still means something to the operator.
  */
 const reportUpdateForSplash = (version: string | undefined, state = 'available'): void => {
 	if (!version || !isVersionNewer(version, app.getVersion())) return;
@@ -317,6 +317,21 @@ const adminUrl = (route = '/live'): string => `${serverUrl}/admin/#${route}`;
 const overlayUrl = (): string => `${serverUrl}/overlay/`;
 const licenseGeneratorUrl = (): string => `${serverUrl}/license-generator/`;
 
+/** Fetch the currently selected on-stream match ID from the server settings. */
+const getOnStreamMatchId = async (): Promise<string | null> => {
+	if (!serverUrl) return null;
+	try {
+		const res = await fetch(`${serverUrl}/api/settings`, { signal: AbortSignal.timeout(2000) });
+		if (res.ok) {
+			const settings = (await res.json()) as { onStreamMatchId?: string | null };
+			return settings.onStreamMatchId ?? null;
+		}
+	} catch {
+		// Ignore errors, return null
+	}
+	return null;
+};
+
 const createSplashWindow = (): void => {
 	const icon = appIconPath();
 	// The running version, straight from this process. Nothing about it is written in splash.html.
@@ -411,12 +426,18 @@ const createAdminWindow = async (route = '/live'): Promise<void> => {
 	setTimeout(() => { if (adminWindow && !adminWindow.isDestroyed() && !adminWindow.isVisible()) { adminWindow.show(); closeSplash(); } }, 3000);
 };
 
-const createPreviewWindow = async (): Promise<void> => {
+const createPreviewWindow = async (matchId?: string | null): Promise<void> => {
 	if (previewWindow && !previewWindow.isDestroyed()) {
 		previewWindow.show();
 		previewWindow.focus();
 		return;
 	}
+	// If no matchId provided, fetch from server
+	const effectiveMatchId = matchId ?? (await getOnStreamMatchId());
+	const previewUrl = effectiveMatchId
+		? `${overlayUrl()}?preview=1&match=${encodeURIComponent(effectiveMatchId)}`
+		: `${overlayUrl()}?preview=1`;
+
 	previewWindow = new BrowserWindow({
 		width: 960,
 		height: 540,
@@ -429,7 +450,7 @@ const createPreviewWindow = async (): Promise<void> => {
 		webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true },
 	});
 	watchWindow(previewWindow, 'preview');
-	await previewWindow.loadURL(`${overlayUrl()}?preview=1`);
+	await previewWindow.loadURL(previewUrl);
 };
 
 const openDeepLink = (raw: string): void => {
@@ -887,7 +908,7 @@ if (!gotLock) {
 
 	const startAutoUpdate = (): void => {
 		// electron-updater finds the newer build first (`info.version`); hand it to the splash so
-		// the booting window can say "Update v1.0.8 available" instead of staying silent.
+		// the booting window can say "Update v1.0.9 available" instead of staying silent.
 		electronUpdater.autoUpdater.on('update-available', (info) => {
 			reportUpdateForSplash(info.version, 'available');
 		});

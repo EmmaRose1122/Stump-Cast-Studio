@@ -236,17 +236,17 @@ syncOnAirScreen(store.get());
 /**
  * Free-tier marks on air.
  *
- * The upgrade ad is for the operator, so it only runs in the admin's `?preview=1` frame. The URL
- * handed to OBS carries no `preview`, and a viewer should never watch a broadcast black out behind
- * a "Go Pro" box every twelve seconds - the persistent `Made with StumpCast Studio` mark and the
- * panel brand pills do that job without eating the picture. A paid channel loses all of it, and a
- * `?look=` design-review render loses it too, because the look gallery opens one frame per look and
- * an ad in all of them hides the thing being reviewed.
+ * The upgrade ad runs on the audience feed on purpose: a nudge only the operator can see converts
+ * nobody. What it must not do is blackout the picture, so it is a compact lower-third with no
+ * dimming backdrop (see `.c-upgrade-popup`). A paid channel loses all of it, and the look gallery
+ * does too — it opens one `?preview=1&look=` frame per look, and an ad in all of them hides the
+ * thing being reviewed. A bare `?look=` review URL still shows the ad, because that frame is meant
+ * to be the real feed.
  */
 const applyLicenceState = (licensed: boolean) => {
   document.documentElement.dataset.licensed = licensed ? '1' : '0';
   watermark.setVisible(!licensed);
-  if (licensed || !params.preview || params.look) upgradePopup.stop();
+  if (licensed || (params.preview && params.look)) upgradePopup.stop();
   else upgradePopup.start();
 };
 
@@ -313,13 +313,14 @@ store.subscribe((s, prev) => {
 if (params.debug) mountDebug(store);
 
 // Audio plays in the OBS browser source. The admin's embedded preview stays silent so the
-// operator never hears every sound twice.
+// operator never hears every sound twice. But preview window (popout) should have audio.
 const audio =
-  params.preview || params.fixture
+  params.fixture
     ? null
     : new OverlayAudio(createBrowserEngine(), location.origin);
-if (audio && params.debug) {
+if (audio && (params.debug || params.preview)) {
   // Normal browsers hold audio until a click; OBS does not need this.
+  // In preview mode, we also need an unlock button for browsers.
   const btn = document.createElement('button');
   btn.textContent = 'Click to enable audio';
   btn.className = 'audio-unlock';

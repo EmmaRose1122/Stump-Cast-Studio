@@ -122,6 +122,7 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
 
   const [proModalOpen, setProModalOpen] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewMatchId, setPreviewMatchId] = useState<string | null>(null);
   const [bannerDismissed, setBannerDismissed] = useState(false);
   const [licenceOpen, setLicenceOpen] = useState(false);
   const [licenceInput, setLicenceInput] = useState('');
@@ -462,7 +463,7 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
                 <div className="flex items-center gap-1.5 mt-0.5 text-[11px] text-slate-500 font-medium">
                   <span className="text-slate-600 font-semibold tracking-wide">Live Broadcast Engine</span>
                   <span className="text-slate-300">·</span>
-                  <span className="font-mono text-orange-600 font-bold">v1.0.8</span>
+                  <span className="font-mono text-orange-600 font-bold">v1.0.9</span>
                 </div>
               </div>
             </div>
@@ -559,7 +560,10 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
             <button
               type="button"
               id="header-preview-btn"
-              onClick={() => setPreviewOpen(true)}
+              onClick={() => {
+                setPreviewMatchId(settings.data?.onStreamMatchId ?? matches.data?.[0]?.id ?? null);
+                setPreviewOpen(true);
+              }}
               className="flex items-center gap-1.5 rounded-lg border border-blue-200 bg-white px-3 py-1.5 text-xs font-bold text-blue-900 hover:bg-blue-50 transition shadow-xs"
             >
               <span>🖥️</span> Preview
@@ -736,7 +740,13 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
       <ProLooksModal isOpen={proModalOpen} onClose={() => setProModalOpen(false)} />
 
       {previewOpen && (
-        <ResolutionTester onClose={() => setPreviewOpen(false)} />
+        <ResolutionTester
+          onClose={() => {
+            setPreviewOpen(false);
+            setPreviewMatchId(null);
+          }}
+          matchId={previewMatchId ?? undefined as string | undefined}
+        />
       )}
 
       {/* Licence Key Dialog */}

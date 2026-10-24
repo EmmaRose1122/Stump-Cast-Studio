@@ -219,6 +219,7 @@ export interface AiKeysStatus {
   gemini: { hasKey: boolean };
   openai: { hasKey: boolean };
   cricket: { hasKey: boolean };
+  xtts: { hasKey: boolean };
 }
 
 export const keysApi = {

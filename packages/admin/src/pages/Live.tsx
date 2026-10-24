@@ -353,7 +353,14 @@ const YourMatchesSection = () => {
                     <button
                       type="button"
                       disabled={!settings.data || put.isPending}
-                      onClick={() => put.mutate(m.id)}
+                      onClick={() => {
+                        put.mutate(m.id);
+                        // Also open preview with this match
+                        setTimeout(() => {
+                          const url = `${window.location.origin}/overlay/?match=${encodeURIComponent(m.id)}&preview=1`;
+                          window.open(url, 'StumpCastPreview', 'popup=yes,width=1280,height=720,menubar=no,toolbar=no');
+                        }, 500);
+                      }}
                       className="w-full flex items-center justify-center gap-2 rounded-xl bg-orange-500 py-2.5 font-heading text-xs font-black uppercase tracking-wider text-white hover:bg-orange-600 transition shadow-sm border border-orange-400"
                     >
                       <span>📺</span>

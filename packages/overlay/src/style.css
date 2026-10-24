@@ -1002,8 +1002,8 @@ html[data-score-position='bottom'] #stage[data-layout='classic'][data-compositio
   top: 172px;
   transform: translateX(-50%) scale(var(--card-scale));
   transform-origin: 50% 0;
-  width: 980px;
-  height: 530px;
+  width: var(--arena-frame-w, 980px);
+  height: var(--arena-frame-h, 530px);
   border: 2.5px solid var(--color-accent, #22c55e);
   border-radius: 16px;
   box-shadow: 0 0 24px var(--color-accent, rgba(34, 197, 94, 0.35)), 0 20px 50px rgba(0, 0, 0, 0.9);
@@ -1212,8 +1212,14 @@ html[data-score-position='bottom'] #stage[data-layout='arena'][data-composition]
   --arena-band-h: 116px;
   /* With the bar on top it already sits above the frame, so it claims nothing below. */
   --arena-bar-reserve: 0px;
+  /* The rails are 380px wide at 48px in, scaled by sideCardScale from their outer edges. Whatever
+     is left between them is the most the video window may cover, or it paints over the rail panels
+     (measured: at cardScale 1.5 an unscaled 980px frame sat 263px into both rails). */
+  --arena-gutter: calc(1920px - 96px - 760px * var(--side-scale, var(--card-scale)) - 48px);
+  --arena-frame-w: max(320px, min(980px, calc(var(--arena-gutter) / var(--card-scale))));
   --arena-frame-h: min(
     530px,
+    calc(var(--arena-frame-w) * 0.541),
     calc((1080px - var(--arena-frame-top) - var(--arena-bar-reserve) - 16px - var(--arena-band-h) * var(--card-scale)) / var(--card-scale))
   );
 }
@@ -1235,7 +1241,7 @@ html[data-score-position='bottom'] #stage[data-layout='arena'] {
   position: absolute;
   left: 50%;
   top: calc(var(--arena-frame-top, 172px) + var(--arena-frame-h, 530px) * var(--card-scale) + 12px);
-  width: 980px;
+  width: var(--arena-frame-w, 980px);
   transform: translateX(-50%) scale(var(--card-scale));
   transform-origin: 50% 0;
   z-index: 6;
@@ -2066,10 +2072,7 @@ html[data-score-position='bottom'] #stage[data-layout='classic'] .zone-main {
   top: 36px !important;
   bottom: auto !important;
   width: max-content !important;
-  /* The bar is scaled by 1.2 * cardScale after layout, so a percentage max-width is applied to the
-     unscaled box and the bar grew into both side rails (measured 117x46 overlap on each). Dividing
-     by the same factor keeps the *rendered* width inside the gutter between them at any scale. */
-  max-width: calc(980px / (1.2 * var(--card-scale))) !important;
+  max-width: 90% !important;
   display: block !important;
   transform: translateX(-50%) scale(calc(1.2 * var(--card-scale))) !important;
   transform-origin: 50% 0 !important;
@@ -2080,10 +2083,24 @@ html[data-score-position='bottom'] #stage[data-layout='fullscreen'] .zone-main {
   bottom: 36px !important;
   transform-origin: 50% 100% !important;
 }
-#stage[data-layout='fullscreen'] .zone-left {
+/* With the bar on the floor the rails take the space it vacated at the top. */
+html[data-score-position='bottom'] #stage[data-layout='fullscreen'] .zone-left,
+html[data-score-position='bottom'] #stage[data-layout='fullscreen'] .zone-right,
+html[data-score-position='bottom'] #stage[data-layout='fullscreen'][data-composition] .zone-left,
+html[data-score-position='bottom'] #stage[data-layout='fullscreen'][data-composition] .zone-right {
+  top: 36px !important;
+}
+#stage[data-layout='fullscreen'] {
+  /* The fullscreen bar is a two-row scoreboard, so the rails have to start under it rather than
+     beside it: they used to pin to 172px while the bar's rendered bottom sat near 220px, and the
+     bar (z-index 25) covered the top of both rail panels. */
+  --fs-bar-h: 160px;
+}
+#stage[data-layout='fullscreen'] .zone-left,
+#stage[data-layout='fullscreen'][data-composition] .zone-left {
   left: 54px !important;
   right: auto !important;
-  top: 172px !important;
+  top: calc(36px + var(--fs-bar-h) * 1.2 * var(--card-scale) + 18px) !important;
   bottom: auto !important;
   width: 400px !important;
   display: flex !important;
@@ -2093,10 +2110,11 @@ html[data-score-position='bottom'] #stage[data-layout='fullscreen'] .zone-main {
   transform-origin: 0 0 !important;
   z-index: 20 !important;
 }
-#stage[data-layout='fullscreen'] .zone-right {
+#stage[data-layout='fullscreen'] .zone-right,
+#stage[data-layout='fullscreen'][data-composition] .zone-right {
   right: 54px !important;
   left: auto !important;
-  top: 172px !important;
+  top: calc(36px + var(--fs-bar-h) * 1.2 * var(--card-scale) + 18px) !important;
   bottom: auto !important;
   width: 400px !important;
   display: flex !important;
@@ -2362,7 +2380,7 @@ html[data-score-position='bottom'] #stage[data-layout='fullscreen'] .zone-main {
   top: var(--arena-frame-top, 172px) !important;
   transform: translateX(-50%) scale(var(--card-scale)) !important;
   transform-origin: 50% 0 !important;
-  width: 980px !important;
+  width: var(--arena-frame-w, 980px) !important;
   height: var(--arena-frame-h, 530px) !important;
   /* A TV theme wins when the operator has picked one; with `none` the frame must follow the look,
      not fall back to a fixed broadcast green that every pro look then wore. */
@@ -4730,6 +4748,78 @@ html[data-score-bar='floating'] #stage .sb-bowl {
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
+.pms-squad-photo-wrapper {
+  flex-shrink: 0;
+  margin-right: 12px;
+}
+
+.pms-squad-photo {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  background: #1e293b;
+}
+
+.pms-squad-initials {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-heading, sans-serif);
+  font-size: 14px;
+  font-weight: 900;
+  color: #ffffff;
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.pms-squad-info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.pms-squad-name {
+  font-family: var(--font-heading, sans-serif);
+  font-size: 15px;
+  font-weight: 800;
+  color: #ffffff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pms-squad-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.pms-squad-role {
+  font-size: 11px;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.pms-squad-badge {
+  font-size: 10px;
+  font-weight: 900;
+  color: #000;
+  background: #eab308;
+  padding: 1px 6px;
+  border-radius: 3px;
+  letter-spacing: 0.02em;
+}
+
+/* Legacy squad classes for backwards compat */
 .pms-player-no {
   font-family: var(--font-numbers, sans-serif);
   font-size: 18px;
@@ -4757,14 +4847,42 @@ html[data-score-bar='floating'] #stage .sb-bowl {
 
 
 /* Upgrade Popup ------------------------------------------------------------------------------ */
+/* Free-tier advertising, deliberately on the audience feed: a nudge only the operator sees converts
+   nobody. What it must not do is blackout the broadcast, so it is a compact lower-third with no
+   dimming backdrop. `--ad-gap` is how much of the bottom band that layout already owns, so the ad
+   lands in the free strip between the player band and the score bar wherever the bar happens to be. */
+#stage {
+  --ad-gap: 60px;
+}
+#stage[data-layout='classic'] {
+  --ad-gap: 70px;
+}
+#stage[data-layout='fullscreen'] {
+  --ad-gap: 90px;
+}
+#stage[data-layout='ticker'] {
+  --ad-gap: 210px;
+}
+html[data-score-position='bottom'] #stage {
+  --ad-gap: 190px;
+}
+html[data-score-position='bottom'] #stage[data-layout='classic'],
+html[data-score-position='bottom'] #stage[data-layout='ticker'] {
+  --ad-gap: 210px;
+}
+html[data-score-position='bottom'] #stage[data-layout='fullscreen'] {
+  --ad-gap: 300px;
+}
 
 .c-upgrade-popup {
   position: absolute;
   inset: 0;
   z-index: 9999;
   display: none;
-  align-items: center;
+  align-items: flex-end;
   justify-content: center;
+  padding-bottom: var(--ad-gap, 150px);
+  box-sizing: border-box;
   /* Hidden means gone, not transparent: an ad that only fades would still eat every click
      meant for the overlay underneath. */
   pointer-events: none;
@@ -4775,12 +4893,10 @@ html[data-score-bar='floating'] #stage .sb-bowl {
   pointer-events: none;
 }
 
+/* The old full-canvas `rgba(0,0,0,0.6)` + blur backdrop dimmed the entire broadcast every twelve
+   seconds. The ad carries its own panel now, so nothing sits between it and the picture. */
 .upgrade-popup-backdrop {
-  position: absolute;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(4px);
-  pointer-events: none;
+  display: none;
 }
 
 .upgrade-popup-box {
@@ -4788,12 +4904,12 @@ html[data-score-bar='floating'] #stage .sb-bowl {
   pointer-events: auto;
   background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
   border: 2px solid #f97316;
-  border-radius: 20px;
-  padding: 40px 36px;
-  max-width: 480px;
-  width: 90%;
+  border-radius: 16px;
+  padding: 16px 22px;
+  max-width: 640px;
+  width: fit-content;
   text-align: center;
-  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.5), 0 0 40px rgba(249, 115, 22, 0.15);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.75), 0 0 28px rgba(249, 115, 22, 0.2);
   animation: popupEntrance 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -4809,37 +4925,37 @@ html[data-score-bar='floating'] #stage .sb-bowl {
 }
 
 .upgrade-popup-icon {
-  font-size: 48px;
-  margin-bottom: 12px;
+  font-size: 26px;
+  margin-bottom: 4px;
 }
 
 .upgrade-popup-title {
   font-family: var(--font-heading, 'Space Grotesk', sans-serif);
-  font-size: 22px;
+  font-size: 19px;
   font-weight: 800;
   color: #f97316;
-  margin-bottom: 10px;
+  margin-bottom: 6px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
 
 .upgrade-popup-text {
-  font-size: 14px;
+  font-size: 13px;
   color: #94a3b8;
-  line-height: 1.6;
-  margin-bottom: 24px;
+  line-height: 1.45;
+  margin-bottom: 12px;
 }
 
 .upgrade-popup-actions {
   display: flex;
-  gap: 12px;
+  gap: 10px;
   justify-content: center;
-  margin-bottom: 16px;
+  margin-bottom: 8px;
 }
 
 .upgrade-popup-btn {
-  padding: 10px 20px;
-  border-radius: 10px;
+  padding: 7px 16px;
+  border-radius: 9px;
   font-size: 13px;
   font-weight: 700;
   cursor: pointer;

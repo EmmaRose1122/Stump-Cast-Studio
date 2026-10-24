@@ -227,7 +227,8 @@
           "image": "img.player-photo",
           "attr": "src"
         }
-      }
+      },
+      "minConfidenceFields": ["team1", "team2"]
     },
     "overs": {
       "urlPattern": "^https?://(?:www\\.)?crex\\.(com|live)/.*/overs/[a-zA-Z0-9_-]+",

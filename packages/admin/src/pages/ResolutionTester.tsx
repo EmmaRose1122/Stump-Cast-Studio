@@ -3,13 +3,15 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../lib/api';
 import { ProLooksModal } from '../shell/ProLooksModal';
 
-export const ResolutionTester = ({ onClose }: { onClose?: () => void }) => {
+export const ResolutionTester = ({ onClose, matchId }: { onClose?: () => void; matchId?: string }) => {
   const qc = useQueryClient();
   const [mode, setMode] = useState<'fit' | 'actual'>('fit');
   const [reload, setReload] = useState(0);
   const [showProLooks, setShowProLooks] = useState(false);
   const settings = useQuery({ queryKey: ['settings'], queryFn: api.settings });
   const currentLayout = settings.data?.layout ?? 'arena';
+  const onStreamMatchId = settings.data?.onStreamMatchId;
+  const effectiveMatchId = matchId ?? onStreamMatchId;
 
   const saveSettings = useMutation({
     mutationFn: api.saveSettings,
@@ -33,7 +35,9 @@ export const ResolutionTester = ({ onClose }: { onClose?: () => void }) => {
   }, []);
 
   const overlayBase = window.location.port === '5175' ? 'http://127.0.0.1:5174/' : `${window.location.origin}/overlay/`;
-  const overlayUrl = `${overlayBase}?fixture=test&layout=${currentLayout}&preview=1&resolution=1&reload=${reload}`;
+  const overlayUrl = effectiveMatchId
+    ? `${overlayBase}?match=${encodeURIComponent(effectiveMatchId)}&layout=${currentLayout}&preview=1&resolution=1&reload=${reload}`
+    : `${overlayBase}?fixture=test&layout=${currentLayout}&preview=1&resolution=1&reload=${reload}`;
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-slate-100 text-slate-800">

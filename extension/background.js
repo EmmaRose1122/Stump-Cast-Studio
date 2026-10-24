@@ -471,6 +471,22 @@
               rrr: "miniscore.requiredRunRate",
               thisOver: "miniscore.recentOvsStats"
             }
+          },
+          {
+            urlRegex: "/api/mcenter/comm/\\d+",
+            map: {
+              title: "${matchHeader.team1.name} vs ${matchHeader.team2.name}, ${matchHeader.matchDescription}, ${matchHeader.seriesDesc}",
+              team1: "matchHeader.team1.name",
+              team2: "matchHeader.team2.name",
+              format: "matchHeader.matchFormat",
+              toss: "${matchHeader.tossResults.tossWinnerName} won the toss and chose to ${matchHeader.tossResults.decision}",
+              "inn1.team": "miniscore.matchScoreDetails.inningsScoreList[0].batTeamName",
+              "inn1.score": "${miniscore.matchScoreDetails.inningsScoreList[0].score}/${miniscore.matchScoreDetails.inningsScoreList[0].wickets}",
+              "inn1.overs": "miniscore.matchScoreDetails.inningsScoreList[0].overs",
+              "inn2.team": "miniscore.matchScoreDetails.inningsScoreList[1].batTeamName",
+              "inn2.score": "${miniscore.matchScoreDetails.inningsScoreList[1].score}/${miniscore.matchScoreDetails.inningsScoreList[1].wickets}",
+              "inn2.overs": "miniscore.matchScoreDetails.inningsScoreList[1].overs"
+            }
           }
         ],
         domLists: {
@@ -572,7 +588,8 @@
             image: "img",
             attr: "src"
           }
-        }
+        },
+        minConfidenceFields: ["team1", "team2"]
       },
       overs: {
         urlPattern: "^https?://(?:www\\.|m\\.)?cricbuzz\\.com/.*/overs/\\d+",
@@ -7738,6 +7755,180 @@
     lang: CommentaryLanguageSchema.optional()
   });
 
+  // ../shared/src/commentary-advanced.ts
+  var CommentatorGenderSchema = external_exports.enum(["male", "female"]);
+  var CommentatorRoleSchema = external_exports.enum(["play_by_play", "color", "duo"]);
+  var CommentatorPersonaSchema = external_exports.object({
+    id: external_exports.string(),
+    name: external_exports.string(),
+    gender: CommentatorGenderSchema,
+    role: CommentatorRoleSchema,
+    /** The Gemini TTS voice name for this persona */
+    voiceName: external_exports.string(),
+    /** Language/script this persona excels at */
+    primaryLanguage: external_exports.enum(["hi", "ur", "en"]),
+    /** Personality traits that affect phrasing */
+    style: external_exports.object({
+      /** How excited they get on big moments (0-1) */
+      excitement: external_exports.number().min(0).max(1),
+      /** How much technical detail they add (0-1) */
+      technicality: external_exports.number().min(0).max(1),
+      /** How conversational/casual they are (0-1) */
+      conversational: external_exports.number().min(0).max(1),
+      /** Favorite catchphrases they sprinkle in */
+      catchphrases: external_exports.array(external_exports.string())
+    }),
+    /** Urdu-specific voice settings */
+    urduVoice: external_exports.object({
+      male: external_exports.string().optional(),
+      female: external_exports.string().optional()
+    }).optional()
+  });
+  var CommentaryPairSchema = external_exports.object({
+    id: external_exports.string(),
+    name: external_exports.string(),
+    playByPlay: CommentatorPersonaSchema,
+    color: CommentatorPersonaSchema,
+    /** When this pair comments together */
+    chemistry: external_exports.enum(["professional", "friendly", "banter"])
+  });
+  var AdvancedCommentaryConfigSchema = external_exports.object({
+    enabled: external_exports.boolean().default(true),
+    autoEvents: external_exports.boolean().default(true),
+    continuousMode: external_exports.boolean().default(true),
+    language: external_exports.enum(["hi", "ur", "en"]).default("ur"),
+    ai: external_exports.boolean().default(true),
+    rate: external_exports.number().min(0.5).max(2).default(1),
+    pitch: external_exports.number().min(0.5).max(2).default(1),
+    volume: external_exports.number().min(0).max(1).default(1),
+    /** Selected commentator pair for duo mode */
+    selectedPair: external_exports.string().optional(),
+    /** Individual voice overrides for each persona */
+    voiceOverrides: external_exports.record(external_exports.string(), external_exports.string()).default({}),
+    /** Minimum gap between commentary lines (ms) */
+    minGapMs: external_exports.number().min(1e3).max(3e4).default(8e3),
+    /** Enable conversational filler between balls */
+    fillerLines: external_exports.boolean().default(true),
+    /** Enable tactical analysis during quiet periods */
+    tacticalAnalysis: external_exports.boolean().default(true)
+  });
+  var CommentaryContextSchema = external_exports.object({
+    matchState: external_exports.any(),
+    lastEvent: external_exports.any().nullable(),
+    lastBall: external_exports.any().nullable(),
+    overProgress: external_exports.number(),
+    partnershipRuns: external_exports.number(),
+    partnershipBalls: external_exports.number(),
+    requiredRunRate: external_exports.number().nullable(),
+    currentRunRate: external_exports.number(),
+    wicketsInHand: external_exports.number(),
+    powerplayActive: external_exports.boolean(),
+    deathOversActive: external_exports.boolean(),
+    momentum: external_exports.enum(["batting", "bowling", "neutral"]),
+    pressureLevel: external_exports.enum(["low", "medium", "high", "extreme"])
+  });
+  var GeneratedCommentarySchema = external_exports.object({
+    id: external_exports.string(),
+    text: external_exports.string(),
+    speaker: CommentatorPersonaSchema,
+    eventType: external_exports.string().optional(),
+    timestamp: external_exports.number(),
+    lang: external_exports.enum(["hi", "ur", "en"]),
+    context: CommentaryContextSchema
+  });
+  var COMMENTATOR_PERSONAS = [
+    {
+      id: "raza_male_play",
+      name: "Raza Ahmed",
+      gender: "male",
+      role: "play_by_play",
+      voiceName: "Kore",
+      primaryLanguage: "ur",
+      style: {
+        excitement: 0.8,
+        technicality: 0.6,
+        conversational: 0.4,
+        catchphrases: ["\u0634\u0627\u0646\u062F\u0627\u0631!", "\u06A9\u06CC\u0627 \u0628\u0627\u062A \u06C1\u06D2!", "\u0632\u0628\u0631\u062F\u0633\u062A!", "\u0645\u0627 \u0634\u0627\u0621 \u0627\u0644\u0644\u06C1!"]
+      },
+      urduVoice: { male: "Kore", female: "Puck" }
+    },
+    {
+      id: "ali_male_color",
+      name: "Ali Hassan",
+      gender: "male",
+      role: "color",
+      voiceName: "Puck",
+      primaryLanguage: "ur",
+      style: {
+        excitement: 0.6,
+        technicality: 0.9,
+        conversational: 0.7,
+        catchphrases: ["\u0630\u06C1\u0646 \u0645\u06CC\u06BA \u0631\u06A9\u06BE\u0648", "\u062A\u06A9\u0646\u06CC\u06A9\u06CC \u0637\u0648\u0631 \u067E\u0631", "\u0627\u0633\u062A\u0631\u0627\u062A\u0698\u06CC \u06CC\u06C1 \u06C1\u06D2", "\u0645\u06CC\u062F\u0627\u0646 \u06A9\u06CC \u0635\u0648\u0631\u062A \u062D\u0627\u0644"]
+      },
+      urduVoice: { male: "Puck", female: "Charon" }
+    },
+    {
+      id: "zara_female_play",
+      name: "Zara Khan",
+      gender: "female",
+      role: "play_by_play",
+      voiceName: "Aoede",
+      primaryLanguage: "ur",
+      style: {
+        excitement: 0.85,
+        technicality: 0.5,
+        conversational: 0.6,
+        catchphrases: ["\u06A9\u06CC\u0627 \u0634\u0627\u0679!", "\u0628\u06C1\u062A \u062E\u0648\u0628!", "\u0644\u0627\u062C\u0648\u0627\u0628!", "\u062F\u0644 \u0628\u0627\u063A \u0628\u0627\u063A \u06C1\u0648 \u06AF\u06CC\u0627!"]
+      },
+      urduVoice: { male: "Fenrir", female: "Aoede" }
+    },
+    {
+      id: "sana_female_color",
+      name: "Sana Malik",
+      gender: "female",
+      role: "color",
+      voiceName: "Charon",
+      primaryLanguage: "ur",
+      style: {
+        excitement: 0.5,
+        technicality: 0.85,
+        conversational: 0.8,
+        catchphrases: ["\u062F\u06CC\u06A9\u06BE\u062A\u06D2 \u06C1\u06CC\u06BA", "\u0627\u0633\u062A\u0631\u0627\u062A\u0698\u06CC", "\u0645\u06CC\u062F\u0627\u0646 \u0645\u06CC\u06BA \u062A\u0628\u062F\u06CC\u0644\u06CC", "\u0628\u0648\u0644\u0631 \u06A9\u06D2 \u0644\u06CC\u06D2 \u0686\u06CC\u0644\u0646\u062C"]
+      },
+      urduVoice: { male: "Orus", female: "Charon" }
+    }
+  ];
+  var COMMENTARY_PAIRS = [
+    {
+      id: "raza_ali",
+      name: "Raza & Ali (Classic Duo)",
+      playByPlay: COMMENTATOR_PERSONAS.find((p) => p.id === "raza_male_play"),
+      color: COMMENTATOR_PERSONAS.find((p) => p.id === "ali_male_color"),
+      chemistry: "professional"
+    },
+    {
+      id: "zara_sana",
+      name: "Zara & Sana (Ladies' View)",
+      playByPlay: COMMENTATOR_PERSONAS.find((p) => p.id === "zara_female_play"),
+      color: COMMENTATOR_PERSONAS.find((p) => p.id === "sana_female_color"),
+      chemistry: "friendly"
+    },
+    {
+      id: "raza_zara",
+      name: "Raza & Zara (Mixed Pair)",
+      playByPlay: COMMENTATOR_PERSONAS.find((p) => p.id === "raza_male_play"),
+      color: COMMENTATOR_PERSONAS.find((p) => p.id === "zara_female_play"),
+      chemistry: "banter"
+    },
+    {
+      id: "ali_sana",
+      name: "Ali & Sana (Tactical Mix)",
+      playByPlay: COMMENTATOR_PERSONAS.find((p) => p.id === "ali_male_color"),
+      color: COMMENTATOR_PERSONAS.find((p) => p.id === "sana_female_color"),
+      chemistry: "professional"
+    }
+  ];
+
   // src/adapters/config.ts
   var innings = (n) => [`inn${n}.team`, `inn${n}.score`, `inn${n}.overs`];
   var FIELD_KEYS = [
@@ -8111,7 +8302,8 @@
             image: "img.player-photo",
             attr: "src"
           }
-        }
+        },
+        minConfidenceFields: ["team1", "team2"]
       },
       overs: {
         urlPattern: "^https?://(?:www\\.)?crex\\.(com|live)/.*/overs/[a-zA-Z0-9_-]+",
@@ -8692,41 +8884,15 @@
     async fetchAllPages(matchId, baseUrl) {
       const pageTypes = getPageTypesForUrl(baseUrl);
       if (pageTypes.length === 0) return;
-      const startedAt = this.deps.now();
-      const pages = [];
       for (const { type: pageType, pathSuffix } of pageTypes) {
         const pageUrl = buildPageUrl(baseUrl, pathSuffix);
         const tabId = await this.deps.tabs.open(pageUrl);
         if (tabId == null) {
-          pages.push({ pageType, url: pageUrl, rawUpdate: null, confidence: 0, error: "Failed to open tab" });
+          console.warn(`Failed to open tab for ${pageType}: ${pageUrl}`);
           continue;
         }
-        await new Promise((r) => setTimeout(r, 2e3));
-        const result = await fetchPageContent(this.deps, tabId, pageType, pageUrl);
-        pages.push(result);
-        await this.deps.tabs.close(tabId);
         await new Promise((r) => setTimeout(r, 500));
       }
-      const completedAt = this.deps.now();
-      await this.send({
-        type: "update",
-        update: {
-          source: "multi-page-fetch",
-          matchId,
-          url: baseUrl,
-          capturedAt: completedAt,
-          confidence: pages.reduce((sum, p) => sum + p.confidence, 0) / pages.length,
-          fields: {
-            teams: [],
-            innings: [],
-            batters: [],
-            thisOver: [],
-            lastBalls: [],
-            multiPageData: pages
-          },
-          missing: []
-        }
-      });
     }
   };
   var CRICBUZZ_PAGE_TYPES = [
@@ -8772,47 +8938,6 @@
       return `${u.origin}${basePath}${pathSuffix}`;
     } catch {
       return baseUrl;
-    }
-  }
-  async function fetchPageContent(deps, tabId, pageType, url) {
-    try {
-      const script = `
-      (function() {
-        try {
-          const config = ${JSON.stringify(pageType.includes("cricbuzz") ? cricbuzzConfig : crexConfig)};
-          // Run the same extraction logic as content script
-          const result = {
-            pageType: '${pageType}',
-            url: '${url}',
-            html: document.documentElement.outerHTML,
-            title: document.title,
-          };
-          return result;
-        } catch (e) {
-          return { error: e.message };
-        }
-      })();
-    `;
-      const results = await chrome.scripting.executeScript({
-        target: { tabId },
-        func: () => {
-          return { html: document.documentElement.outerHTML, title: document.title };
-        }
-      });
-      return {
-        pageType,
-        url,
-        rawUpdate: results[0]?.result ?? { error: "No result" },
-        confidence: 1
-      };
-    } catch (err) {
-      return {
-        pageType,
-        url,
-        rawUpdate: null,
-        confidence: 0,
-        error: err instanceof Error ? err.message : String(err)
-      };
     }
   }
   var isAllowedMatchUrl = (raw) => {

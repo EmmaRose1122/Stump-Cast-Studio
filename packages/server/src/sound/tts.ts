@@ -5,10 +5,23 @@ import path from 'node:path';
 import type { CommentaryLanguage } from '@stumpcast/shared';
 import { pcmToWav } from './wav';
 
-export type TtsEngine = 'gemini' | 'system' | 'none';
+export type TtsEngine = 'gemini' | 'xtts' | 'system' | 'none';
+
+interface AbortSignalLike {
+  aborted: boolean;
+  addEventListener: (type: 'abort', listener: () => void) => void;
+  removeEventListener: (type: 'abort', listener: () => void) => void;
+  dispatchEvent: (event: Event) => boolean;
+}
 
 /** Gemini's TTS preview model: it reads Hindi, Urdu and English, which a desktop voice may not. */
 const DEFAULT_TTS_MODEL = 'gemini-2.5-flash-preview-tts';
+/** Available Gemini TTS voices with gender/style info for persona matching. */
+const GEMINI_VOICES = {
+  male: ['Kore', 'Puck', 'Fenrir', 'Orus'],
+  female: ['Aoede', 'Charon', 'Zephyr', 'Leda'],
+  all: ['Kore', 'Puck', 'Charon', 'Aoede', 'Fenrir', 'Orus', 'Zephyr', 'Leda'],
+} as const;
 /** Prebuilt voices; the choice is stylistic, the model handles the script. */
 const DEFAULT_VOICE = 'Kore';
 /** Gemini returns 16-bit mono PCM at this rate. */
@@ -28,6 +41,9 @@ const SCRIPT_CULTURES: Record<CommentaryLanguage, string[]> = {
 const MIN_USEFUL_BYTES = 1_024;
 /** Refused requests are retried once; a wrong key or model is not worth a second call. */
 const RETRY_DELAY_MS = 400;
+/** XTTS-v2 endpoint for high-quality voice cloning */
+const XTTS_ENDPOINT = process.env.XTTS_ENDPOINT ?? 'https://api-inference.huggingface.co/models/coqui/XTTS-v2';
+const XTTS_TIMEOUT_MS = 15_000;
 
 interface GeminiAttempt {
   wav: Buffer | null;
@@ -57,6 +73,8 @@ export interface TtsOptions {
   timeoutMs?: number;
   fetchFn?: typeof fetch;
   endpoint?: string;
+  /** Hugging Face token for XTTS-v2 fallback */
+  xttsToken?: () => string | null | Promise<string | null>;
   /** Test seam for the platform speech engines. Null means "this engine is not installed". */
   run?: (file: string, args: string[], env?: Record<string, string>) => Promise<Buffer | null>;
   platform?: NodeJS.Platform;
@@ -65,6 +83,7 @@ export interface TtsOptions {
 interface TrackedLine {
   text: string;
   lang: CommentaryLanguage;
+  voice?: string;
 }
 
 /** PowerShell gets the line through the environment, never through the command string. */
@@ -118,6 +137,7 @@ export class CommentaryTts {
   /** Which engine a new line would use right now. `none` means captions only. */
   async engine(lang: CommentaryLanguage = 'hi'): Promise<TtsEngine> {
     if (await this.key()) return 'gemini';
+    if (await this.xttsToken()) return 'xtts';
     return this.systemEngine(lang);
   }
 
@@ -164,12 +184,12 @@ export class CommentaryTts {
   }
 
   /** Remember a line so the overlay can ask for its audio by id. */
-  register(id: string, text: string, lang: CommentaryLanguage = 'hi'): void {
+  register(id: string, text: string, lang: CommentaryLanguage = 'hi', voice?: string): void {
     if (this.lines.size >= MAX_TRACKED) {
       const oldest = this.lines.keys().next();
       if (!oldest.done) this.lines.delete(oldest.value);
     }
-    this.lines.set(id, { text, lang });
+    this.lines.set(id, { text, lang, voice });
   }
 
   /** WAV bytes for a registered line, synthesised on first ask and cached on disk afterwards. */
@@ -191,20 +211,24 @@ export class CommentaryTts {
   }
 
   /** Speaks an arbitrary line straight away, used by the "test voice" button. */
-  async speakNow(text: string, lang: CommentaryLanguage = 'hi'): Promise<Buffer | null> {
-    return this.synthesise({ text, lang }, path.join(this.cacheDir, `${this.cacheKey({ text, lang })}.wav`));
+  async speakNow(text: string, lang: CommentaryLanguage = 'hi', voice?: string): Promise<Buffer | null> {
+    return this.synthesise({ text, lang, voice }, path.join(this.cacheDir, `${this.cacheKey({ text, lang, voice })}.wav`));
   }
 
   private cacheKey(l: TrackedLine): string {
+    const voice = l.voice ?? this.voiceName;
     return createHash('sha1')
-      .update(`${l.lang}|${this.voiceName}|${l.text}`)
+      .update(`${l.lang}|${voice}|${l.text}`)
       .digest('hex');
   }
 
-  /** The stored config calls the default voice "default"; no engine knows that name. */
   private get voiceName(): string {
     const v = this.chosenVoice;
     return !v || v === 'default' ? DEFAULT_VOICE : v;
+  }
+
+  private getLineVoice(line: TrackedLine): string {
+    return line.voice ?? this.voiceName;
   }
 
   /** A desktop voice is named, not "Kore": the system engine takes it only when one was chosen. */
@@ -244,6 +268,12 @@ export class CommentaryTts {
       return this.remember(gemini, file);
     }
     const reason = this.lastFailure;
+    // Try XTTS-v2 as fallback for high-quality multilingual TTS
+    const xtts = await this.xtts(line);
+    if (xtts) {
+      this.lastFailure = null;
+      return this.remember(xtts, file);
+    }
     // A stored key used to switch the desktop voice off completely, so one rate-limited request
     // cost the line and the broadcast went silent mid-over.
     if ((await this.systemEngine(line.lang)) !== 'system') return null;
@@ -305,6 +335,59 @@ export class CommentaryTts {
     return null;
   }
 
+  /** High-quality multilingual TTS via Hugging Face XTTS-v2 as fallback. */
+  private async xtts(line: TrackedLine): Promise<Buffer | null> {
+    const token = await this.xttsToken();
+    if (!token) return null;
+    const fetchFn = this.opts.fetchFn ?? fetch;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), XTTS_TIMEOUT_MS);
+    try {
+      const res = await fetchFn(XTTS_ENDPOINT, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          inputs: line.text,
+          parameters: {
+            language: line.lang === 'ur' ? 'ur' : line.lang === 'hi' ? 'hi' : 'en',
+            speaker_wav: null,
+          },
+        }),
+        signal: controller.signal as unknown as AbortSignal,
+      });
+      if (!res.ok) {
+        const detail = await res.text().catch(() => '');
+        this.lastFailure = `XTTS HTTP ${res.status}: ${detail.slice(0, 180)}`;
+        return null;
+      }
+      const arrayBuffer = await res.arrayBuffer();
+      const wav = Buffer.from(arrayBuffer);
+      if (wav.length < MIN_USEFUL_BYTES) return null;
+      this.lastFailure = null;
+      return wav;
+    } catch (err) {
+      const aborted = controller.signal.aborted;
+      this.lastFailure = aborted
+        ? `XTTS timed out after ${XTTS_TIMEOUT_MS} ms`
+        : `XTTS request failed: ${err instanceof Error ? err.name : String(err)}`;
+      return null;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  private async xttsToken(): Promise<string | null> {
+    try {
+      const token = await this.opts.xttsToken?.();
+      return token ?? null;
+    } catch {
+      return null;
+    }
+  }
+
   private async geminiAttempt(line: TrackedLine): Promise<GeminiAttempt> {
     const key = await this.key();
     if (!key) return { wav: null, retryable: false, reason: 'No Gemini key stored', tookMs: 0 };
@@ -312,6 +395,7 @@ export class CommentaryTts {
     const fetchFn = this.opts.fetchFn ?? fetch;
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), this.opts.timeoutMs ?? DEFAULT_TIMEOUT_MS);
+    const voiceName = this.getLineVoice(line);
     const init = {
       method: 'POST',
       headers: { 'content-type': 'application/json', 'x-goog-api-key': key },
@@ -320,7 +404,7 @@ export class CommentaryTts {
         generationConfig: {
           responseModalities: ['AUDIO'],
           speechConfig: {
-            voiceConfig: { prebuiltVoiceConfig: { voiceName: this.voiceName } },
+            voiceConfig: { prebuiltVoiceConfig: { voiceName } },
           },
         },
       }),

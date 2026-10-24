@@ -462,6 +462,22 @@
             "rrr": "miniscore.requiredRunRate",
             "thisOver": "miniscore.recentOvsStats"
           }
+        },
+        {
+          "urlRegex": "/api/mcenter/comm/\\d+",
+          "map": {
+            "title": "${matchHeader.team1.name} vs ${matchHeader.team2.name}, ${matchHeader.matchDescription}, ${matchHeader.seriesDesc}",
+            "team1": "matchHeader.team1.name",
+            "team2": "matchHeader.team2.name",
+            "format": "matchHeader.matchFormat",
+            "toss": "${matchHeader.tossResults.tossWinnerName} won the toss and chose to ${matchHeader.tossResults.decision}",
+            "inn1.team": "miniscore.matchScoreDetails.inningsScoreList[0].batTeamName",
+            "inn1.score": "${miniscore.matchScoreDetails.inningsScoreList[0].score}/${miniscore.matchScoreDetails.inningsScoreList[0].wickets}",
+            "inn1.overs": "miniscore.matchScoreDetails.inningsScoreList[0].overs",
+            "inn2.team": "miniscore.matchScoreDetails.inningsScoreList[1].batTeamName",
+            "inn2.score": "${miniscore.matchScoreDetails.inningsScoreList[1].score}/${miniscore.matchScoreDetails.inningsScoreList[1].wickets}",
+            "inn2.overs": "miniscore.matchScoreDetails.inningsScoreList[1].overs"
+          }
         }
       ],
       "domLists": {
@@ -563,7 +579,8 @@
           "image": "img",
           "attr": "src"
         }
-      }
+      },
+      "minConfidenceFields": ["team1", "team2"]
     },
     "overs": {
       "urlPattern": "^https?://(?:www\\.|m\\.)?cricbuzz\\.com/.*/overs/\\d+",

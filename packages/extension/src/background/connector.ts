@@ -676,48 +676,18 @@ export class Connector {
     const pageTypes = getPageTypesForUrl(baseUrl);
     if (pageTypes.length === 0) return;
 
-    const startedAt = this.deps.now();
-    const pages: PageResult[] = [];
-
+    // Open each page in a minimized tab - the content script will process each page
+    // and send score-update messages naturally. We just need to open the tabs.
     for (const { type: pageType, pathSuffix } of pageTypes) {
       const pageUrl = buildPageUrl(baseUrl, pathSuffix);
       const tabId = await this.deps.tabs.open(pageUrl);
       if (tabId == null) {
-        pages.push({ pageType, url: pageUrl, rawUpdate: null, confidence: 0, error: 'Failed to open tab' });
+        console.warn(`Failed to open tab for ${pageType}: ${pageUrl}`);
         continue;
       }
-
-      await new Promise((r) => setTimeout(r, 2000)); // Wait for page load
-
-      const result = await fetchPageContent(this.deps, tabId, pageType, pageUrl);
-      pages.push(result);
-
-      await this.deps.tabs.close(tabId);
-      await new Promise((r) => setTimeout(r, 500)); // Brief pause between tabs
+      // Brief pause between tabs to avoid overwhelming the browser
+      await new Promise((r) => setTimeout(r, 500));
     }
-
-    const completedAt = this.deps.now();
-    
-    // Send merged result to server
-    await this.send({
-      type: 'update',
-      update: {
-        source: 'multi-page-fetch',
-        matchId,
-        url: baseUrl,
-        capturedAt: completedAt,
-        confidence: pages.reduce((sum, p) => sum + p.confidence, 0) / pages.length,
-        fields: {
-          teams: [],
-          innings: [],
-          batters: [],
-          thisOver: [],
-          lastBalls: [],
-          multiPageData: pages,
-        },
-        missing: [],
-      },
-    });
   }
 }
 

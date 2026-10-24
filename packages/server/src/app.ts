@@ -20,6 +20,7 @@ import {
   DEFAULT_LOOK,
   CommentaryLanguageSchema,
   type CommentaryItem,
+  type GeneratedCommentary,
   type Settings,
   type EngineEvent,
   type MatchState,
@@ -32,6 +33,7 @@ import { AutoAssets } from './assets/AutoAssets';
 import { registerSoundRoutes } from './sound/routes';
 import { SoundService } from './sound/SoundService';
 import { CommentaryService } from './sound/CommentaryService';
+import { AdvancedCommentaryService } from './sound/AdvancedCommentaryService';
 import { CommentaryTts } from './sound/tts';
 import { GeminiCommentator } from './ai/gemini';
 import { registerAssetRoutes } from './assets/routes';
@@ -62,15 +64,15 @@ const SETTINGS_KEY = 'app';
 const GEMINI_KEY = 'gemini_api_key';
 const OPENAI_KEY = 'openai_api_key';
 const CRICKET_KEY = 'cricket_api_key';
-export const APP_VERSION = '1.0.8';
+export const APP_VERSION = '1.0.9';
 
 /** One engine tick waiting on the broadcast delay, with the commentary already written for it. */
 interface PendingRelease {
   state: MatchState;
   events: EngineEvent[];
-  spoken: (CommentaryItem | null)[];
+  spoken: (GeneratedCommentary | null)[];
   /** Ball-by-ball line for a state that produced no event of its own. */
-  ball: CommentaryItem | null;
+  ball: GeneratedCommentary | null;
 }
 
 export interface StumpCastApp {
@@ -502,22 +504,31 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
     auto?: { autoFor(type: string, m: Settings['sounds']['auto']): string | null };
   } = {};
 
-  const commentary = new CommentaryService();
+  const secrets = new SecretStore({ dataDir: path.join(config.dataDir, 'secrets') });
+
+  const ttsOptions = {
+    getApiKey: () => secrets.getSecret(GEMINI_KEY) ?? process.env.GEMINI_API_KEY ?? null,
+    cacheDir: config.dataDir,
+    voice: () => 'Kore',
+    xttsToken: () => secrets.getSecret('xtts_token') ?? process.env.HUGGINGFACE_TOKEN ?? null,
+  };
+
+  const advancedCommentary = new AdvancedCommentaryService(
+    {},
+    Date.now,
+    ttsOptions
+  );
   /** Updates are narrated one at a time, in arrival order. */
   let commentaryQueue: Promise<void> = Promise.resolve();
 
-  const secrets = new SecretStore({ dataDir: path.join(config.dataDir, 'secrets') });
   // The audio is made here rather than in the overlay: an OBS browser source has no speech
   // engine, so captions were all it could ever show.
-  const tts = new CommentaryTts({
-    getApiKey: () => secrets.getSecret(GEMINI_KEY) ?? process.env.GEMINI_API_KEY ?? null,
-    cacheDir: config.dataDir,
-    voice: () => commentary.getConfig().voice,
-  });
+  const tts = new CommentaryTts(ttsOptions);
   /** Every line that goes out is remembered, so the overlay can ask for its audio by id. */
-  const say = (item: CommentaryItem, scope: Audience = 'preview'): CommentaryItem => {
-    tts.register(item.id, item.text, item.lang ?? commentary.getConfig().language);
-    hub.broadcast('commentary', 'speak', item, scope);
+  const say = (item: GeneratedCommentary, scope: Audience = 'preview'): GeneratedCommentary => {
+    const voiceOverride = advancedCommentary.getConfig().voiceOverrides[item.speaker.id] ?? item.speaker.voiceName;
+    tts.register(item.id, item.text, item.lang, voiceOverride);
+    hub.broadcast('commentary', 'speak', item);
     // Rendering a sentence takes seconds and the overlay asks for it only once the line is on air;
     // starting that work here — while the line is still inside the broadcast delay — is what stops
     // a long line from being cut off by the overlay's wait for the audio. Only done when something
@@ -556,14 +567,14 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
           // The operator may delete the match while its line is still being written. Anything
           // pushed after that would put the deleted match back on air at release.
           const alive = () => Boolean(engine.getState(s.id));
-          const spoken: (CommentaryItem | null)[] = [];
+          const spoken: (GeneratedCommentary | null)[] = [];
           for (const e of events) {
-            const item = await commentary.onEventAsync(e, s);
+            const item = await advancedCommentary.onEventAsync(e, s);
             if (item && alive()) say(item);
             spoken.push(item);
           }
           // Between the big moments the voice keeps describing deliveries instead of falling silent.
-          const ball = spoken.some((i) => i !== null) ? null : await commentary.onBallAsync(s);
+          const ball = spoken.some((i) => i !== null) ? null : await advancedCommentary.onBallAsync(s);
           if (ball && alive()) say(ball);
           if (!alive()) return;
           delay.push({ state: s, events, spoken, ball });
@@ -610,7 +621,10 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
   const gemini = new GeminiCommentator({
     getApiKey: () => secrets.getSecret(GEMINI_KEY) ?? process.env.GEMINI_API_KEY ?? null,
   });
-  commentary.setGenerator((req) => gemini.line(req), () => Boolean(secrets.getSecret(GEMINI_KEY)));
+  advancedCommentary.setGenerator(
+    (req) => gemini.line({ state: req.state as MatchState, moment: req.moment, lang: req.lang }),
+    () => Boolean(secrets.getSecret(GEMINI_KEY))
+  );
   const apiVendor = new CricketDataApiVendor();
   const api = new ApiProvider({
     vendorAdapter: apiVendor,
@@ -1158,30 +1172,38 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
 
   // ---- commentary & TTS (E3) ----------------------------------------------------------
   fastify.get('/api/commentary/status', async () => ({
-    config: commentary.getConfig(),
-    history: commentary.getHistory(),
-    ai: { enabled: commentary.getConfig().ai, active: commentary.aiActive, hasKey: Boolean(secrets.getSecret(GEMINI_KEY)) },
+    config: advancedCommentary.getConfig(),
+    history: advancedCommentary.getHistory(),
+    ai: { enabled: advancedCommentary.getConfig().ai, active: advancedCommentary.aiActive, hasKey: Boolean(secrets.getSecret(GEMINI_KEY)) },
     tts: {
-      engine: await tts.engine(commentary.getConfig().language),
+      engine: await tts.engine(advancedCommentary.getConfig().language),
       // Why the last line was not spoken: "captions only" without a reason is undiagnosable.
       lastError: tts.lastError(),
     },
+    personas: advancedCommentary.getPersonas(),
+    pairs: advancedCommentary.getPairs(),
+    urduVoices: advancedCommentary.getUrduVoices(),
   }));
   fastify.post('/api/commentary/config', async (req, reply) => {
     const body = z
       .object({
         enabled: z.boolean().optional(),
         autoEvents: z.boolean().optional(),
-        voice: z.string().optional(),
+        continuousMode: z.boolean().optional(),
         language: CommentaryLanguageSchema.optional(),
         ai: z.boolean().optional(),
         rate: z.number().min(0.5).max(2).optional(),
         pitch: z.number().min(0.5).max(2).optional(),
         volume: z.number().min(0).max(1).optional(),
+        selectedPair: z.string().optional(),
+        voiceOverrides: z.record(z.string(), z.string()).optional(),
+        minGapMs: z.number().min(1000).max(30000).optional(),
+        fillerLines: z.boolean().optional(),
+        tacticalAnalysis: z.boolean().optional(),
       })
       .safeParse(req.body);
     if (!body.success) return reply.code(400).send({ error: 'Invalid commentary config' });
-    return commentary.updateConfig(body.data);
+    return advancedCommentary.updateConfig(body.data);
   });
   // The Gemini key lives in the encrypted SecretStore, never in the settings row.
   fastify.post('/api/commentary/key', async (req, reply) => {
@@ -1195,17 +1217,30 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
     return { ok: true, hasKey: false };
   });
 
+  // XTTS token for Hugging Face fallback
+  fastify.post('/api/commentary/xtts-key', async (req, reply) => {
+    const body = z.object({ key: z.string().trim().min(1).max(1024) }).safeParse(req.body);
+    if (!body.success) return reply.code(400).send({ error: 'A Hugging Face token is required' });
+    secrets.setSecret('xtts_token', body.data.key.trim());
+    return { ok: true, hasKey: true };
+  });
+  fastify.delete('/api/commentary/xtts-key', async () => {
+    secrets.deleteSecret('xtts_token');
+    return { ok: true, hasKey: false };
+  });
+
   // Unified API keys status and storage for Gemini, OpenAI, Cricket Data API
   fastify.get('/api/ai/keys', async () => ({
     gemini: { hasKey: Boolean(secrets.getSecret(GEMINI_KEY)) },
     openai: { hasKey: Boolean(secrets.getSecret(OPENAI_KEY)) },
     cricket: { hasKey: Boolean(api.getApiKey()) },
+    xtts: { hasKey: Boolean(secrets.getSecret('xtts_token') ?? process.env.HUGGINGFACE_TOKEN) },
   }));
 
   fastify.post('/api/ai/keys', async (req, reply) => {
     const body = z
       .object({
-        provider: z.enum(['gemini', 'openai', 'cricket']),
+        provider: z.enum(['gemini', 'openai', 'cricket', 'xtts']),
         key: z.string().trim().min(1).max(1024),
       })
       .safeParse(req.body);
@@ -1219,6 +1254,8 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
       secrets.setSecret(OPENAI_KEY, cleanKey);
     } else if (body.data.provider === 'cricket') {
       api.setApiKey(cleanKey);
+    } else if (body.data.provider === 'xtts') {
+      secrets.setSecret('xtts_token', cleanKey);
     }
     return { ok: true, provider: body.data.provider, hasKey: true };
   });
@@ -1228,6 +1265,7 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
     if (provider === 'gemini') secrets.deleteSecret(GEMINI_KEY);
     else if (provider === 'openai') secrets.deleteSecret(OPENAI_KEY);
     else if (provider === 'cricket') secrets.deleteSecret(CRICKET_KEY);
+    else if (provider === 'xtts') secrets.deleteSecret('xtts_token');
     else return reply.code(400).send({ error: 'Unknown provider' });
     return { ok: true, provider, hasKey: false };
   });
@@ -1236,12 +1274,34 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
       .object({
         text: z.string().min(1).max(500),
         eventType: z.string().optional(),
+        speakerId: z.string().optional(),
       })
       .safeParse(req.body);
     if (!body.success) return reply.code(400).send({ error: 'Text is required (max 500 chars)' });
     // The operator asked for this line out loud, so it goes to every audience at once — it is not
     // part of the delayed match feed and must not wait for it.
-    return say(commentary.speak(body.data.text, body.data.eventType), 'all');
+    return say(advancedCommentary.speak(body.data.text, body.data.eventType, body.data.speakerId), 'all');
+  });
+  // Test voice endpoint for trying out different personas
+  fastify.post('/api/commentary/test-voice', async (req, reply) => {
+    const body = z
+      .object({
+        text: z.string().min(1).max(500),
+        personaId: z.string().optional(),
+        voiceName: z.string().optional(),
+      })
+      .safeParse(req.body);
+    if (!body.success) return reply.code(400).send({ error: 'Text is required (max 500 chars)' });
+    const persona = body.data.personaId ? advancedCommentary.getPersonaById(body.data.personaId) : undefined;
+    const voiceName = body.data.voiceName ?? persona?.voiceName ?? advancedCommentary.getConfig().voiceOverrides['default'] ?? 'Kore';
+    const wav = await tts.speakNow(body.data.text, advancedCommentary.getConfig().language, voiceName);
+    if (!wav) {
+      return reply.code(404).send({ error: 'No voice available', reason: tts.lastError() });
+    }
+    return reply
+      .header('content-type', 'audio/wav')
+      .header('cache-control', 'public, max-age=86400')
+      .send(wav);
   });
   // The overlay asks for a line's audio by id. First ask pays for the synthesis, the rest are
   // served from the cache; a 404 means this machine has no voice and the overlay stays silent

@@ -1,4 +1,4 @@
-import type { MatchState, Team } from '@stumpcast/shared';
+import type { MatchState, Team, SquadPlayer } from '@stumpcast/shared';
 import { assetUrl, attachImage, teamAssetId } from '../assets';
 import { OverlayComponent } from '../component';
 
@@ -182,23 +182,73 @@ export class PreMatchScreen extends OverlayComponent {
   private renderSquad(area: HTMLElement, team: Team): void {
     const el = document.createElement('div');
     el.className = 'pms-scene pms-scene-squad';
-    const squad = (team.players ?? []).filter((n) => n.trim().length > 0);
-    const names = squad
-      .map((n) => `<li class="pms-squad-player">${escapeHtml(n.toUpperCase())}</li>`)
-      .join('');
+
+    // Use rich squad data with avatars if available, fallback to players array
+    const squad = (team.squad ?? []).filter((p) => p.name.trim().length > 0);
+    const hasSquadData = squad.length > 0;
+    const fallbackPlayers = hasSquadData ? [] : ((team.players ?? []).filter((n) => n.trim().length > 0));
+
+    const initials = (name: string) =>
+      name
+        .split(/\s+/)
+        .map((p) => p.charAt(0))
+        .join('')
+        .slice(0, 2)
+        .toUpperCase();
+
+    const squadHtml = hasSquadData
+      ? squad.map((player) => {
+          const playerInitials = initials(player.name);
+          const roleHtml = player.role ? `<span class="pms-squad-role">${escapeHtml(player.role)}</span>` : '';
+          const captainHtml = player.captain ? `<span class="pms-squad-badge">C</span>` : '';
+          const keeperHtml = player.keeper ? `<span class="pms-squad-badge">WK</span>` : '';
+          return `
+            <li class="pms-squad-player">
+              <div class="pms-squad-photo-wrapper"><span class="pms-squad-photo pms-squad-initials">${escapeHtml(playerInitials)}</span></div>
+              <div class="pms-squad-info">
+                <span class="pms-squad-name">${escapeHtml(player.name.toUpperCase())}</span>
+                <div class="pms-squad-meta">${roleHtml}${captainHtml}${keeperHtml}</div>
+              </div>
+            </li>
+          `;
+        }).join('')
+      : fallbackPlayers.map((name) => `<li class="pms-squad-player"><span class="pms-squad-name">${escapeHtml(name.toUpperCase())}</span></li>`).join('');
+
     el.innerHTML = `
       <div class="pms-squad-container">
         <div class="pms-squad-header">
           <div class="pms-squad-crest"></div>
           <div>
             <h2 class="pms-squad-team-name">${escapeHtml(team.name.toUpperCase())} PLAYING XI</h2>
-            <span class="pms-squad-sub">${squad.length > 0 ? `${squad.length} NAMED` : 'LINE-UP NOT ANNOUNCED IN THE FEED'}</span>
+            <span class="pms-squad-sub">${hasSquadData || fallbackPlayers.length > 0 ? `${(hasSquadData ? squad : fallbackPlayers).length} NAMED` : 'LINE-UP NOT ANNOUNCED IN THE FEED'}</span>
           </div>
         </div>
-        ${squad.length > 0 ? `<ol class="pms-squad-list">${names}</ol>` : ''}
+        ${(hasSquadData || fallbackPlayers.length > 0) ? `<ol class="pms-squad-list">${squadHtml}</ol>` : ''}
       </div>
     `;
     this.setCrest(el.querySelector<HTMLElement>('.pms-squad-crest')!, team.short);
+
+    // Attach images for squad photos (external URLs from Cricbuzz/Crex)
+    if (hasSquadData) {
+      const wrappers = el.querySelectorAll<HTMLElement>('.pms-squad-photo-wrapper');
+      squad.forEach((player, index) => {
+        if (player.imageUrl) {
+          const wrapper = wrappers[index];
+          if (wrapper) {
+            const initialsEl = wrapper.querySelector('.pms-squad-initials');
+            if (initialsEl) {
+              // Replace initials with image using attachImage pattern
+              wrapper.replaceChildren();
+              wrapper.classList.remove('has-image');
+              const initialsText = initialsEl.textContent || '';
+              wrapper.textContent = initialsText;
+              attachImage(wrapper as HTMLElement, player.imageUrl);
+            }
+          }
+        }
+      });
+    }
+
     area.appendChild(el);
   }
 

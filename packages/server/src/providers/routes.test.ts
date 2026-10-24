@@ -102,6 +102,7 @@ describe('ApiProvider HTTP routes', () => {
       gemini: { hasKey: false },
       openai: { hasKey: false },
       cricket: { hasKey: false },
+      xtts: { hasKey: false },
     });
 
     // 2. Save Gemini key

@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import clsx from 'clsx';
 import { useEffect, useRef, useState } from 'react';
-import { api, ApiError } from '../lib/api';
+import { api, ApiError, keysApi } from '../lib/api';
 import { monitor, listOutputDevices } from '../lib/monitor';
 import { soundsApi, type SoundOverview } from '../lib/sounds';
 import { useAdmin } from '../store';
@@ -12,11 +12,17 @@ const errText = (e: unknown) => (e instanceof Error ? e.message : 'Something wen
 type CommPatch = Partial<{
   enabled: boolean;
   autoEvents: boolean;
+  continuousMode: boolean;
   rate: number;
   pitch: number;
   volume: number;
   language: 'hi' | 'ur' | 'en';
   ai: boolean;
+  selectedPair: string;
+  voiceOverrides: Record<string, string>;
+  minGapMs: number;
+  fillerLines: boolean;
+  tacticalAnalysis: boolean;
 }>;
 
 const CROWD_SOUND_MAP: Record<string, string> = {
@@ -143,6 +149,7 @@ export const SoundsPage = () => {
   const data = q.data;
 
   const settings = useQuery({ queryKey: ['settings'], queryFn: api.settings });
+  const aiKeys = useQuery({ queryKey: ['ai-keys'], queryFn: keysApi.status, refetchInterval: 10000 });
   const saveSettings = useMutation({
     mutationFn: api.saveSettings,
     onSuccess: () => {
@@ -160,6 +167,8 @@ export const SoundsPage = () => {
 
   const [customCommentary, setCustomCommentary] = useState('');
   const [geminiKey, setGeminiKey] = useState('');
+  const [xttsKey, setXttsKey] = useState('');
+  const [testVoiceText, setTestVoiceText] = useState('یہ ٹیسٹ آواز ہے، آپ کی کمنٹری کی آواز ایسی لگے گی۔');
   const commQuery = useQuery({
     queryKey: ['commentary'],
     queryFn: async () => {
@@ -168,21 +177,46 @@ export const SoundsPage = () => {
         config: {
           enabled: boolean;
           autoEvents: boolean;
+          continuousMode: boolean;
           rate: number;
           pitch: number;
           volume: number;
           language?: 'hi' | 'ur' | 'en';
           ai?: boolean;
+          selectedPair?: string;
+          voiceOverrides?: Record<string, string>;
+          minGapMs?: number;
+          fillerLines?: boolean;
+          tacticalAnalysis?: boolean;
         };
         history: Array<{
           id: string;
           text: string;
+          speaker?: { id: string; name: string; gender: 'male' | 'female'; voiceName: string };
           eventType?: string;
           timestamp: number;
           lang?: 'hi' | 'ur' | 'en';
         }>;
         ai?: { enabled: boolean; active: boolean; hasKey: boolean };
-        tts?: { engine: 'gemini' | 'system' | 'none'; lastError: string | null };
+        tts?: { engine: 'gemini' | 'xtts' | 'system' | 'none'; lastError: string | null };
+        personas?: Array<{
+          id: string;
+          name: string;
+          gender: 'male' | 'female';
+          role: 'play_by_play' | 'color' | 'duo';
+          voiceName: string;
+          primaryLanguage: 'hi' | 'ur' | 'en';
+          style: { excitement: number; technicality: number; conversational: number; catchphrases: string[] };
+        }>;
+        pairs?: Array<{
+          id: string;
+          name: string;
+          playByPlay: { id: string; name: string; gender: 'male' | 'female' };
+          color: { id: string; name: string; gender: 'male' | 'female' };
+          chemistry: 'professional' | 'friendly' | 'banter';
+        }>;
+        urduVoices?: { male: string[]; female: string[] };
+        xtts?: { hasKey: boolean };
       };
     },
     refetchInterval: 3000,
@@ -214,6 +248,32 @@ export const SoundsPage = () => {
     onError,
   });
 
+  const saveXttsKey = useMutation({
+    mutationFn: async (key: string | null) => {
+      const res = await fetch('/api/commentary/xtts-key', {
+        method: key === null ? 'DELETE' : 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: key === null ? undefined : JSON.stringify({ key }),
+      });
+      const body = (await res.json().catch(() => ({}))) as { error?: string };
+      if (!res.ok) throw new ApiError(res.status, body.error ?? `Server replied ${res.status}`);
+      return body;
+    },
+    onSuccess: (_, vars) => {
+      void qc.invalidateQueries({ queryKey: ['commentary'] });
+      void qc.invalidateQueries({ queryKey: ['ai-keys'] });
+      toast({
+        title: vars === null ? 'XTTS token removed' : 'Hugging Face token saved',
+        description:
+          vars === null
+            ? 'XTTS-v2 fallback disabled.'
+            : 'High-quality XTTS-v2 fallback is active. Token stored encrypted.',
+        kind: 'success',
+      });
+    },
+    onError,
+  });
+
   const updateCommConfig = useMutation({
     mutationFn: async (patch: CommPatch) => {
       const res = await fetch('/api/commentary/config', {
@@ -231,12 +291,36 @@ export const SoundsPage = () => {
     onError,
   });
 
+  const testVoice = useMutation({
+    mutationFn: async ({ text, personaId, voiceName }: { text: string; personaId?: string; voiceName?: string }) => {
+      const res = await fetch('/api/commentary/test-voice', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ text, personaId, voiceName }),
+      });
+      if (!res.ok) {
+        const body = (await res.json().catch(() => ({}))) as { error?: string; reason?: string };
+        throw new ApiError(res.status, body.error ?? body.reason ?? `Server replied ${res.status}`);
+      }
+      return res.arrayBuffer();
+    },
+    onSuccess: (audioBuffer) => {
+      if (typeof window !== 'undefined' && audioBuffer.byteLength > 0) {
+        const audio = new Audio();
+        audio.src = URL.createObjectURL(new Blob([audioBuffer], { type: 'audio/wav' }));
+        audio.volume = commQuery.data?.config?.volume ?? 1;
+        audio.play().catch(() => undefined);
+      }
+    },
+    onError,
+  });
+
   const speakText = useMutation({
-    mutationFn: async ({ text, eventType }: { text: string; eventType?: string }) => {
+    mutationFn: async ({ text, eventType, speakerId }: { text: string; eventType?: string; speakerId?: string }) => {
       const res = await fetch('/api/commentary/speak', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ text, eventType }),
+        body: JSON.stringify({ text, eventType, speakerId }),
       });
       const body = (await res.json().catch(() => ({}))) as { error?: string };
       if (!res.ok) throw new ApiError(res.status, body.error ?? `Server replied ${res.status}`);
@@ -1051,6 +1135,260 @@ export const SoundsPage = () => {
             </div>
           </div>
         )}
+
+        {/* ADVANCED COMMENTARY ENGINE - Personas & Voice Selection */}
+        <div className="mt-6 rounded-xl border border-purple-200 bg-white p-5 shadow-sm">
+          <div className="flex flex-wrap items-center justify-between border-b border-purple-100 pb-3 gap-3">
+            <div className="flex items-center gap-2">
+              <span className="text-xl">🎭</span>
+              <div>
+                <h2 className="font-heading text-sm font-bold uppercase tracking-wider text-purple-950">
+                  ADVANCED COMMENTARY ENGINE - PERSONAS & VOICES
+                </h2>
+                <p className="text-xs text-slate-500">
+                  Select commentator pairs, assign voices per persona, and preview Urdu male/female voices.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Commentator Pair Selection */}
+          <div className="mt-4 space-y-4">
+            <div className="space-y-2">
+              <label className="text-xs font-semibold text-muted">Commentator Pair (Duo Mode)</label>
+              <select
+                value={commConfig?.selectedPair ?? ''}
+                onChange={(e) => updateCommConfig.mutate({ selectedPair: e.target.value || undefined })}
+                className="w-full max-w-md rounded-lg border border-border bg-white px-2 py-1.5 text-xs font-semibold"
+              >
+                <option value="">Single Commentator (Auto)</option>
+                {commQuery.data?.pairs?.map((pair) => (
+                  <option key={pair.id} value={pair.id}>
+                    {pair.name} — {pair.playByPlay.name} & {pair.color.name} ({pair.chemistry})
+                  </option>
+                ))}
+              </select>
+              <p className="text-[10px] text-muted">
+                Duo mode alternates between play-by-play and color commentator for natural conversation.
+              </p>
+            </div>
+
+            {/* Continuous Commentary Settings */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-b border-border/40 pb-4">
+              <label className="flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={commConfig?.continuousMode ?? true}
+                  onChange={(e) => updateCommConfig.mutate({ continuousMode: e.target.checked })}
+                  className="size-4 rounded accent-purple-500"
+                />
+                Continuous Commentary (Ball-by-Ball)
+              </label>
+              <label className="flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={commConfig?.fillerLines ?? true}
+                  onChange={(e) => updateCommConfig.mutate({ fillerLines: e.target.checked })}
+                  className="size-4 rounded accent-purple-500"
+                />
+                Atmospheric Filler Lines
+              </label>
+              <label className="flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={commConfig?.tacticalAnalysis ?? true}
+                  onChange={(e) => updateCommConfig.mutate({ tacticalAnalysis: e.target.checked })}
+                  className="size-4 rounded accent-purple-500"
+                />
+                Tactical Analysis
+              </label>
+            </div>
+
+            {/* Min Gap Slider */}
+            <div className="space-y-1">
+              <div className="flex justify-between text-xs font-semibold">
+                <span className="text-muted">Min Gap Between Lines:</span>
+                <span className="text-purple-400">{(commConfig?.minGapMs ?? 8000) / 1000}s</span>
+              </div>
+              <input
+                type="range"
+                min="3"
+                max="30"
+                step="1"
+                value={(commConfig?.minGapMs ?? 8000) / 1000}
+                onChange={(e) => updateCommConfig.mutate({ minGapMs: Number(e.target.value) * 1000 })}
+                className="w-full accent-purple-500"
+              />
+              <p className="text-[10px] text-muted">Minimum seconds between auto-commentary lines to avoid overlapping.</p>
+            </div>
+          </div>
+
+          {/* Voice Assignment Per Persona */}
+          <div className="mt-6 border-t border-purple-100 pt-4">
+            <span className="text-xs font-bold text-muted uppercase tracking-wider">
+              Voice Assignment Per Persona (Urdu Optimized)
+            </span>
+            <p className="text-[10px] text-slate-500 mt-1">
+              Each persona gets its own voice. Gemini voices: <strong>Male:</strong> Kore, Puck, Fenrir, Orus | <strong>Female:</strong> Aoede, Charon, Zephyr, Leda
+            </p>
+            <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {commQuery.data?.personas?.map((persona) => (
+                <div key={persona.id} className="rounded-xl border border-purple-100 bg-[#fafaff] p-3">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="flex size-6 items-center justify-center rounded-lg bg-purple-100 text-xs font-bold text-purple-700">
+                      {persona.gender === 'male' ? '♂' : '♀'}
+                    </span>
+                    <div>
+                      <h4 className="text-xs font-bold text-slate-900">{persona.name}</h4>
+                      <span className="text-[10px] text-slate-500 capitalize">{persona.role.replace('_', ' ')}</span>
+                    </div>
+                  </div>
+                  <select
+                    value={commConfig?.voiceOverrides?.[persona.id] ?? persona.voiceName}
+                    onChange={(e) => {
+                      const overrides = { ...(commConfig?.voiceOverrides ?? {}), [persona.id]: e.target.value };
+                      updateCommConfig.mutate({ voiceOverrides: overrides });
+                    }}
+                    className="w-full rounded-lg border border-border bg-white px-2 py-1.5 text-xs font-semibold"
+                  >
+                    {commQuery.data?.urduVoices?.male.map((v) => (
+                      <option key={v} value={v}>
+                        {v} {persona.gender === 'male' ? '(Male)' : ''}
+                      </option>
+                    ))}
+                    {commQuery.data?.urduVoices?.female.map((v) => (
+                      <option key={v} value={v}>
+                        {v} {persona.gender === 'female' ? '(Female)' : ''}
+                      </option>
+                    ))}
+                    {['Kore', 'Puck', 'Charon', 'Aoede', 'Fenrir', 'Orus', 'Zephyr', 'Leda']
+                      .filter((v) => !commQuery.data?.urduVoices?.male.includes(v) && !commQuery.data?.urduVoices?.female.includes(v))
+                      .map((v) => (
+                        <option key={v} value={v}>
+                          {v}
+                        </option>
+                      ))}
+                  </select>
+                  <button
+                    onClick={() => testVoice.mutate({ text: testVoiceText, personaId: persona.id })}
+                    disabled={testVoice.isPending}
+                    className="mt-2 w-full rounded-lg bg-purple-500/10 border border-purple-300 px-2 py-1.5 text-xs font-semibold text-purple-800 hover:bg-purple-500/20 transition"
+                  >
+                    {testVoice.isPending ? '🔄 Playing...' : '🔊 Test This Voice'}
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Urdu Voice Selection UI */}
+          <div className="mt-6 border-t border-purple-100 pt-4">
+            <span className="text-xs font-bold text-muted uppercase tracking-wider">
+              Urdu Voice Library (Male / Female)
+            </span>
+            <p className="text-[10px] text-slate-500 mt-1">
+              Available high-quality voices for Urdu narration. Select to preview.
+            </p>
+            <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="rounded-xl border border-blue-100 bg-blue-50 p-3">
+                <h4 className="text-xs font-bold text-blue-900 mb-2 flex items-center gap-1">♂ Male Urdu Voices</h4>
+                <div className="flex flex-wrap gap-1.5">
+                  {commQuery.data?.urduVoices?.male.map((voice) => (
+                    <button
+                      key={voice}
+                      onClick={() => testVoice.mutate({ text: testVoiceText, voiceName: voice })}
+                      disabled={testVoice.isPending}
+                      className="rounded-lg border border-blue-300 bg-white px-2.5 py-1 text-xs font-medium text-blue-800 hover:bg-blue-100 hover:border-blue-400 transition disabled:opacity-50"
+                    >
+                      {voice}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="rounded-xl border border-pink-100 bg-pink-50 p-3">
+                <h4 className="text-xs font-bold text-pink-900 mb-2 flex items-center gap-1">♀ Female Urdu Voices</h4>
+                <div className="flex flex-wrap gap-1.5">
+                  {commQuery.data?.urduVoices?.female.map((voice) => (
+                    <button
+                      key={voice}
+                      onClick={() => testVoice.mutate({ text: testVoiceText, voiceName: voice })}
+                      disabled={testVoice.isPending}
+                      className="rounded-lg border border-pink-300 bg-white px-2.5 py-1 text-xs font-medium text-pink-800 hover:bg-pink-100 hover:border-pink-400 transition disabled:opacity-50"
+                    >
+                      {voice}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* XTTS-v2 Fallback Configuration */}
+          <div className="mt-6 border-t border-purple-100 pt-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <span className="text-xl">🤗</span>
+                <div>
+                  <h4 className="font-heading text-xs font-bold uppercase tracking-wider text-purple-950">
+                    Hugging Face XTTS-v2 Fallback
+                  </h4>
+                  <p className="text-[10px] text-slate-500">
+                    High-quality multilingual TTS when Gemini is unavailable or for voice cloning.
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="password"
+                  value={xttsKey}
+                  onChange={(e) => setXttsKey(e.target.value)}
+                  placeholder={commQuery.data?.tts?.engine === 'xtts' ? '•••••••• (active)' : 'hf_...'}
+                  className="min-w-[200px] rounded-lg border border-border bg-white px-2 py-1.5 text-xs"
+                />
+                <button
+                  onClick={() => {
+                    if (xttsKey.trim().length < 8) {
+                      toast({ title: 'Enter a Hugging Face token (at least 8 characters)', kind: 'error' });
+                      return;
+                    }
+                    saveXttsKey.mutate(xttsKey.trim());
+                    setXttsKey('');
+                  }}
+                  disabled={saveXttsKey.isPending}
+                  className="rounded-lg bg-purple-500 px-3 py-1.5 text-xs font-bold text-white disabled:opacity-50"
+                >
+                  Save
+                </button>
+                {aiKeys.data?.xtts?.hasKey && (
+                  <button
+                    onClick={() => saveXttsKey.mutate(null)}
+                    disabled={saveXttsKey.isPending}
+                    className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold disabled:opacity-50"
+                  >
+                    Remove
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Test Voice Input */}
+          <div className="mt-4 flex flex-wrap gap-2">
+            <input
+              value={testVoiceText}
+              onChange={(e) => setTestVoiceText(e.target.value)}
+              placeholder="Test text for voice preview (Urdu/Hindi/English)..."
+              className="flex-1 min-w-[280px] rounded-lg border border-purple-200 bg-white px-3 py-2 text-xs text-slate-800 focus:border-purple-500 focus:outline-none"
+            />
+            <button
+              onClick={() => testVoice.mutate({ text: testVoiceText })}
+              disabled={!testVoiceText.trim() || testVoice.isPending}
+              className="flex items-center gap-1.5 rounded-lg bg-purple-500 px-4 py-2 text-xs font-bold text-white uppercase hover:bg-purple-600 disabled:opacity-50 transition shadow-sm"
+            >
+              <span>🔊</span> TEST VOICE
+            </button>
+          </div>
+        </div>
       </div>
 
       <Dialog

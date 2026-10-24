@@ -38,7 +38,7 @@ export class ExtensionProvider implements MatchProvider {
   // ---- inbound ----------------------------------------------------------------------------
 
   ingest(update: RawUpdate): void {
-    // Handle multi-page fetch results
+    // Handle multi-page fetch results (HTML sent from connector for server-side processing)
     if (update.source === 'multi-page-fetch' && update.fields.multiPageData) {
       this.handleMultiPageFetch(update);
       return;
@@ -52,10 +52,21 @@ export class ExtensionProvider implements MatchProvider {
       };
       return;
     }
-    this.latest.set(update.matchId, update);
-    this.receivedAt.set(update.matchId, this.now());
-    for (const cb of this.subs.get(update.matchId) ?? []) cb(update);
-    for (const cb of this.updateListeners) cb(update);
+
+    // Merge with existing data for the same match (e.g., live page + squads page)
+    const existing = this.latest.get(update.matchId);
+    if (existing) {
+      const merged = this.mergeUpdates(existing, update);
+      this.latest.set(update.matchId, merged);
+      this.receivedAt.set(update.matchId, this.now());
+      for (const cb of this.subs.get(update.matchId) ?? []) cb(merged);
+      for (const cb of this.updateListeners) cb(merged);
+    } else {
+      this.latest.set(update.matchId, update);
+      this.receivedAt.set(update.matchId, this.now());
+      for (const cb of this.subs.get(update.matchId) ?? []) cb(update);
+      for (const cb of this.updateListeners) cb(update);
+    }
   }
 
   private handleMultiPageFetch(update: RawUpdate): void {
@@ -75,6 +86,127 @@ export class ExtensionProvider implements MatchProvider {
       for (const cb of this.subs.get(update.matchId) ?? []) cb(merged);
       for (const cb of this.updateListeners) cb(merged);
     }
+  }
+
+  /** Merge two updates for the same match, preferring non-empty values from each. */
+  private mergeUpdates(existing: RawUpdate, incoming: RawUpdate): RawUpdate {
+    const ef = existing.fields;
+    const inf = incoming.fields;
+
+    // Merge teams: combine squads, logos, players
+    const mergedTeams = this.mergeTeams(ef.teams, inf.teams);
+
+    // Merge batters: prefer incoming if it has more data
+    const mergedBatters = this.mergeBatters(ef.batters, inf.batters);
+
+    // Merge bowler: prefer incoming if it has more data
+    const mergedBowler = this.mergeBowler(ef.bowler, inf.bowler);
+
+    // Merge innings: combine all innings
+    const mergedInnings = this.mergeInnings(ef.innings, inf.innings);
+
+    // Use incoming for scalar fields if they have values, otherwise keep existing
+    const pick = <T>(incomingVal: T | undefined, existingVal: T | undefined): T | undefined =>
+      incomingVal !== undefined && incomingVal !== null ? incomingVal : existingVal;
+
+    return {
+      ...incoming, // Use incoming as base (newer timestamp, etc.)
+      fields: {
+        ...inf,
+        teams: mergedTeams,
+        batters: mergedBatters,
+        bowler: mergedBowler,
+        innings: mergedInnings,
+        title: pick(inf.title, ef.title),
+        status: pick(inf.status, ef.status),
+        venue: pick(inf.venue, ef.venue),
+        toss: pick(inf.toss, ef.toss),
+        partnership: pick(inf.partnership, ef.partnership),
+        target: pick(inf.target, ef.target),
+        crr: pick(inf.crr, ef.crr),
+        rrr: pick(inf.rrr, ef.rrr),
+        day: pick(inf.day, ef.day),
+        session: pick(inf.session, ef.session),
+        resultText: pick(inf.resultText, ef.resultText),
+        commentaryLast: pick(inf.commentaryLast, ef.commentaryLast),
+        format: pick(inf.format, ef.format),
+        oversLimit: pick(inf.oversLimit, ef.oversLimit),
+        preMatch: pick(inf.preMatch, ef.preMatch),
+        thisOver: inf.thisOver?.length ? inf.thisOver : ef.thisOver,
+        lastBalls: inf.lastBalls?.length ? inf.lastBalls : ef.lastBalls,
+      },
+      // Keep higher confidence
+      confidence: Math.max(existing.confidence, incoming.confidence),
+      missing: [...new Set([...existing.missing, ...incoming.missing])],
+    };
+  }
+
+  private mergeTeams(
+    existing: RawUpdate['fields']['teams'],
+    incoming: RawUpdate['fields']['teams']
+  ): RawUpdate['fields']['teams'] {
+    const byName = new Map<string, RawUpdate['fields']['teams'][0]>();
+    for (const t of [...existing, ...incoming]) {
+      const key = t.name.toLowerCase();
+      const existingTeam = byName.get(key);
+      if (!existingTeam) {
+        byName.set(key, t);
+      } else {
+        // Merge squad data, logo, players
+        byName.set(key, {
+          ...existingTeam,
+          ...t,
+          logoUrl: t.logoUrl || existingTeam.logoUrl,
+          squad: t.squad?.length ? t.squad : existingTeam.squad,
+          players: t.players?.length ? t.players : existingTeam.players,
+        });
+      }
+    }
+    return [...byName.values()];
+  }
+
+  private mergeBatters(
+    existing: RawUpdate['fields']['batters'],
+    incoming: RawUpdate['fields']['batters']
+  ): RawUpdate['fields']['batters'] {
+    if (incoming.length > existing.length) return incoming;
+    if (existing.length > incoming.length) return existing;
+    // Same length, prefer incoming if it has more complete data
+    for (let i = 0; i < incoming.length; i++) {
+      const inc = incoming[i];
+      const ex = existing[i];
+      if (inc && ex && (inc.imageUrl && !ex.imageUrl)) return incoming;
+      if (inc && ex && (inc.runs > ex.runs)) return incoming;
+    }
+    return existing;
+  }
+
+  private mergeBowler(
+    existing: RawUpdate['fields']['bowler'],
+    incoming: RawUpdate['fields']['bowler']
+  ): RawUpdate['fields']['bowler'] {
+    if (!incoming) return existing;
+    if (!existing) return incoming;
+    // Prefer incoming if it has more complete data
+    return (incoming.imageUrl && !existing.imageUrl) || (incoming.wkts >= existing.wkts) ? incoming : existing;
+  }
+
+  private mergeInnings(
+    existing: RawUpdate['fields']['innings'],
+    incoming: RawUpdate['fields']['innings']
+  ): RawUpdate['fields']['innings'] {
+    if (incoming.length === 0) return existing;
+    if (existing.length === 0) return incoming;
+    // Combine unique innings by team
+    const byTeam = new Map<string, RawUpdate['fields']['innings'][0]>();
+    for (const inn of [...existing, ...incoming]) {
+      const key = inn.team.toLowerCase();
+      const ex = byTeam.get(key);
+      if (!ex || (inn.runs > ex.runs) || (inn.wkts > ex.wkts) || (inn.overs > ex.overs)) {
+        byTeam.set(key, inn);
+      }
+    }
+    return [...byTeam.values()];
   }
 
   private mergeMultiPageData(baseUpdate: RawUpdate, pages: unknown[]): RawUpdate {
