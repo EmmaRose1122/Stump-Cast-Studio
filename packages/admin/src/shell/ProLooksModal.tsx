@@ -1,6 +1,6 @@
 import React from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { getLook, whatsappUrl } from '@stumpcast/shared';
+import { ALL_PRO_LOOKS, getLook, whatsappUrl } from '@stumpcast/shared';
 import { useAdmin } from '../store';
 import { useServerOrigin } from '../lib/api';
 import { LookPreview } from './LookPreview';
@@ -14,7 +14,7 @@ export interface ProLookItem {
   gradient: string;
 }
 
-export const PRO_LOOKS_CATALOG: ProLookItem[] = [
+const BROADCAST_LOOKS: ProLookItem[] = [
   {
     id: 'k01',
     name: 'Stadium Gold',
@@ -249,6 +249,19 @@ export const PRO_LOOKS_CATALOG: ProLookItem[] = [
   },
 ];
 
+const broadcastLookIds = new Set(BROADCAST_LOOKS.map((look) => look.id));
+export const PRO_LOOKS_CATALOG: ProLookItem[] = [
+  ...BROADCAST_LOOKS,
+  ...ALL_PRO_LOOKS.filter((look) => !broadcastLookIds.has(look.id)).map((look) => ({
+    id: look.id,
+    name: look.name,
+    badge: look.id.toUpperCase(),
+    themeColor: look.tokens.colors.accent ?? '#2563eb',
+    tags: look.tags ?? [],
+    gradient: '',
+  })),
+];
+
 export const ProLooksModal = ({
   isOpen,
   open,
@@ -314,7 +327,7 @@ export const ProLooksModal = ({
       });
       if (res.ok) {
         toast({
-          title: 'Licence key activated! All 29 Pro Looks are now unlocked.',
+          title: `Licence key activated! All ${PRO_LOOKS_CATALOG.length} Pro Looks are now unlocked.`,
           kind: 'success',
         });
         setKeyInput('');
@@ -421,7 +434,7 @@ export const ProLooksModal = ({
             <div className="flex items-center gap-2 rounded-lg bg-emerald-50 border border-emerald-200 px-3.5 py-2 text-xs font-medium text-emerald-800">
               <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
               <span>
-                <b>Pro Licence Verified:</b> All 29 Pro Broadcast Looks are fully unlocked and ready to activate permanently on your broadcast overlay.
+                <b>Pro Licence Verified:</b> All {PRO_LOOKS_CATALOG.length} Pro Broadcast Looks are fully unlocked and ready to activate permanently on your broadcast overlay.
               </span>
             </div>
           ) : (
@@ -430,7 +443,7 @@ export const ProLooksModal = ({
                 <div className="flex items-center gap-2 text-orange-900">
                   <span className="text-base">🔑</span>
                   <span>
-                    <b>Free Plan:</b> By default you have access to the default look (Ink &amp; Gold). Pro users with a licence key unlock all 29 bespoke looks permanently on-air.
+                    <b>Free Plan:</b> By default you have access to the default look (Ink &amp; Gold). Pro users with a licence key unlock all {PRO_LOOKS_CATALOG.length} bespoke looks permanently on-air.
                   </span>
                 </div>
                 <div className="flex items-center gap-2">

@@ -3,7 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import WebSocket from 'ws';
-import { graphiteTeal } from '@stumpcast/shared';
+import { ALL_PRO_LOOKS, graphiteTeal } from '@stumpcast/shared';
 import { buildApp, type StumpCastApp } from './app';
 import { loadConfig } from './config';
 
@@ -71,7 +71,8 @@ describe('looks API', () => {
       catalog: { id: string; plan: string; locked: boolean }[];
     };
     expect(body.licensed).toBe(false);
-    expect(body.catalog.length).toBeGreaterThan(20);
+    expect(body.catalog).toHaveLength(ALL_PRO_LOOKS.length);
+    expect(new Set(body.catalog.map((look) => look.id)).size).toBe(ALL_PRO_LOOKS.length);
     expect(body.catalog.every((l) => l.plan !== 'pro' || l.locked)).toBe(true);
   });
 

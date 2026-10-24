@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { whatsappUrl } from '@stumpcast/shared';
+import { ALL_PRO_LOOKS, whatsappUrl } from '@stumpcast/shared';
 import clsx from 'clsx';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -508,7 +508,7 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
                 <div className="flex items-center gap-1.5 mt-0.5 text-[11px] text-slate-500 font-medium">
                   <span className="text-slate-600 font-semibold tracking-wide">Live Broadcast Engine</span>
                   <span className="text-slate-300">·</span>
-                  <span className="font-mono text-orange-600 font-bold">v1.1.0</span>
+                  <span className="font-mono text-orange-600 font-bold">v{runningVersion || '1.1.0'}</span>
                 </div>
               </div>
             </div>
@@ -728,7 +728,7 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
               <p className="text-slate-700">
                 You're seeing the <span className="font-bold text-blue-900">basic look</span> — the default look included in the free plan.{' '}
                 <span className="font-bold text-orange-600">Pro channels get their own professional broadcast look</span>{' '}
-                — 29 ready-made looks to choose from, each given to one channel only.
+                — {ALL_PRO_LOOKS.length} ready-made looks to choose from, each given to one channel only.
               </p>
             </div>
 

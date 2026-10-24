@@ -2,7 +2,7 @@ import { eq } from 'drizzle-orm';
 import {
   ALL_AVAILABLE_LOOKS,
   ALL_LOOKS,
-  PRO_LOOKS_23,
+  ALL_PRO_LOOKS,
   LookSchema,
   describeLook,
   type Look,
@@ -63,7 +63,7 @@ export class LookService {
   }
 
   catalog(): readonly Look[] {
-    return PRO_LOOKS_23;
+    return ALL_PRO_LOOKS;
   }
 
   get(id: string): Look | undefined {

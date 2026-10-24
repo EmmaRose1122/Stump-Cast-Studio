@@ -1,4 +1,4 @@
-import { whatsappUrl, type MatchState } from '@stumpcast/shared';
+import { ALL_PRO_LOOKS, whatsappUrl, type MatchState } from '@stumpcast/shared';
 import { OverlayComponent } from '../component';
 
 /** The gap between two appearances is re-rolled inside this band on every cycle (never a fixed period). */
@@ -50,7 +50,7 @@ export class UpgradePopup extends OverlayComponent {
       <div class="upgrade-popup-box">
         <div class="upgrade-popup-icon">&#9733;</div>
         <h3 class="upgrade-popup-title">Go Pro on StumpCast Studio</h3>
-        <p class="upgrade-popup-text">Remove this watermark and unlock all 29+ professional TV Looks with a Pro licence.</p>
+        <p class="upgrade-popup-text">Remove this watermark and unlock all ${ALL_PRO_LOOKS.length} professional TV Looks with a Pro licence.</p>
         <div class="upgrade-popup-actions">
           <button class="upgrade-popup-btn upgrade-popup-btn-primary" type="button">Get License Key</button>
           <button class="upgrade-popup-btn upgrade-popup-btn-close" type="button">Dismiss</button>

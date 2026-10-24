@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { slug, whatsappUrl, type Settings, type Team } from '@stumpcast/shared';
+import { ALL_PRO_LOOKS, slug, whatsappUrl, type Settings, type Team } from '@stumpcast/shared';
 import clsx from 'clsx';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -189,7 +189,7 @@ export const SettingsPage = () => {
       if (res.ok) {
         toast({
           title: 'Licence key activated successfully!',
-          description: 'All 29+ Pro Looks unlocked and watermark removed.',
+          description: `All ${ALL_PRO_LOOKS.length} Pro Looks unlocked and watermark removed.`,
           kind: 'success',
         });
         setLicenceInput('');
@@ -373,7 +373,7 @@ export const SettingsPage = () => {
           </span>
           <p className="text-xs text-slate-700 sm:text-sm">
             You're seeing the <span className="font-bold text-orange-600">basic look</span> — the default look included in the free plan.{' '}
-            <span className="text-blue-800 font-medium">Pro channels get their own professional broadcast look</span> — 29 ready-made looks to choose from, each given to one channel only.
+            <span className="text-blue-800 font-medium">Pro channels get their own professional broadcast look</span> — {ALL_PRO_LOOKS.length} ready-made looks to choose from, each given to one channel only.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -437,7 +437,7 @@ export const SettingsPage = () => {
                 onClick={() => setShowProLooks(true)}
                 className="rounded-lg border border-blue-200 bg-blue-50 px-3.5 py-1.5 text-xs font-bold text-blue-700 hover:bg-blue-100 transition shadow-xs"
               >
-                Browse 29+ Pro Looks
+                Browse {ALL_PRO_LOOKS.length} Pro Looks
               </button>
             )}
           </div>

@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { ALL_AVAILABLE_LOOKS, DEFAULT_DIRECTOR_RULES, DirectorRuleSchema } from '@stumpcast/shared';
+import {
+  ALL_AVAILABLE_LOOKS,
+  ALL_PRO_LOOKS,
+  DEFAULT_DIRECTOR_RULES,
+  DirectorRuleSchema,
+} from '@stumpcast/shared';
 import type { DirectorRule } from '@stumpcast/shared';
 import { PRO_LOOKS_CATALOG } from './shell/ProLooksModal';
 import {
@@ -82,6 +87,8 @@ describe('Pro Looks catalog', () => {
     const badges = PRO_LOOKS_CATALOG.map((l) => l.badge);
     expect(new Set(ids).size).toBe(ids.length);
     expect(new Set(badges).size).toBe(badges.length);
+    expect(new Set(ids)).toEqual(new Set(ALL_PRO_LOOKS.map((look) => look.id)));
+    expect(PRO_LOOKS_CATALOG).toHaveLength(ALL_PRO_LOOKS.length);
     for (const id of ids) expect(ALL_AVAILABLE_LOOKS.some((look) => look.id === id)).toBe(true);
   });
 });

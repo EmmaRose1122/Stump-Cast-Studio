@@ -94,8 +94,10 @@ export const PRO_LOOKS_23: readonly Look[] = [
   scVoltCarbonJson,
 ].map((j) => LookSchema.parse(j));
 
+/** Every Pro look, including the original built-ins and the broadcast look packs. */
+export const ALL_PRO_LOOKS: readonly Look[] = [...PRO_LOOKS, ...PRO_LOOKS_23];
+
 export const ALL_AVAILABLE_LOOKS: readonly Look[] = [...ALL_LOOKS, ...PRO_LOOKS_23];
 
 export const getLook = (id: string): Look | undefined =>
   ALL_LOOKS.find((l) => l.id === id) ?? PRO_LOOKS_23.find((l) => l.id === id);
-

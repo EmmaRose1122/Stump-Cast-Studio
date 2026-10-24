@@ -1,7 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import clsx from 'clsx';
 import { useEffect, useState } from 'react';
-import { DEFAULT_DIRECTOR_RULES, whatsappUrl, type DirectorRule, type DirectorTrigger } from '@stumpcast/shared';
+import {
+  ALL_PRO_LOOKS,
+  DEFAULT_DIRECTOR_RULES,
+  whatsappUrl,
+  type DirectorRule,
+  type DirectorTrigger,
+} from '@stumpcast/shared';
 import { api, useServerOrigin } from '../lib/api';
 import {
   ALL_CARDS,
@@ -128,7 +134,7 @@ export const GraphicsPage = () => {
               PRO EDITION ACTIVE
             </span>
             <p className="text-xs text-white sm:text-sm">
-              <span className="font-bold text-blue-400">All 29 Pro Broadcast Looks Unlocked!</span> Seamlessly theme Arena + Video, Full Screen, TV Strip, and Classic broadcast overlays with your bespoke look.
+              <span className="font-bold text-blue-400">All {ALL_PRO_LOOKS.length} Pro Broadcast Looks Unlocked!</span> Seamlessly theme Arena + Video, Full Screen, TV Strip, and Classic broadcast overlays with your bespoke look.
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -148,7 +154,7 @@ export const GraphicsPage = () => {
             </span>
             <p className="text-xs text-slate-700 sm:text-sm">
               You're seeing the <span className="font-bold text-orange-600">basic look</span> — the default look included in the free plan.{' '}
-              <span className="text-blue-800 font-medium">Pro channels with a licence key get all 29 broadcast looks</span> with full Arena + Video support.
+              <span className="text-blue-800 font-medium">Pro channels with a licence key get all {ALL_PRO_LOOKS.length} broadcast looks</span> with full Arena + Video support.
             </p>
           </div>
           <div className="flex items-center gap-2">

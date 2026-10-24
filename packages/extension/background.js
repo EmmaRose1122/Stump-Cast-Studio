@@ -6987,6 +6987,7 @@
     sc_arctic_mint_default,
     sc_volt_carbon_default
   ].map((j) => LookSchema.parse(j));
+  var ALL_PRO_LOOKS = [...PRO_LOOKS, ...PRO_LOOKS_23];
   var ALL_AVAILABLE_LOOKS = [...ALL_LOOKS, ...PRO_LOOKS_23];
 
   // ../shared/src/layouts.ts
