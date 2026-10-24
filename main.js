@@ -56,7 +56,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 4500);
   }
 
-  // 3. Dynamic GitHub Release Check (Fallback to local v1.0.7)
+  // 3. Dynamic GitHub Release Check (Fallback to local v1.1.0)
   const downloadBtn = document.getElementById('main-download-btn');
   const ctaDownloadBtn = document.getElementById('download-cta-btn');
   const versionDisplay = document.getElementById('latest-version-display');
@@ -64,22 +64,36 @@ document.addEventListener('DOMContentLoaded', () => {
   // Connected to your GitHub releases for dynamic updates
   const GITHUB_REPO = 'EmmaRose1122/Stump-Cast-Studio';
 
+  const isNewer = (lat, cur) => {
+    const pa = lat.replace(/^v/, '').split('.').map(Number);
+    const pb = cur.replace(/^v/, '').split('.').map(Number);
+    for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+      const a = pa[i] ?? 0;
+      const b = pb[i] ?? 0;
+      if (a > b) return true;
+      if (a < b) return false;
+    }
+    return false;
+  };
+
   if (GITHUB_REPO) {
     fetch(`https://api.github.com/repos/${GITHUB_REPO}/releases/latest`)
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         if (data && data.tag_name) {
           const ver = data.tag_name.replace(/^v/, '');
-          if (versionDisplay) versionDisplay.textContent = `v${ver} for Windows`;
-          const exeAsset = data.assets?.find((a) => a.name.endsWith('.exe'));
-          if (exeAsset) {
-            if (downloadBtn) downloadBtn.href = exeAsset.browser_download_url;
-            if (ctaDownloadBtn) ctaDownloadBtn.href = exeAsset.browser_download_url;
+          if (isNewer(ver, '1.1.0')) {
+            if (versionDisplay) versionDisplay.textContent = `v${ver} for Windows`;
+            const exeAsset = data.assets?.find((a) => a.name.endsWith('.exe'));
+            if (exeAsset) {
+              if (downloadBtn) downloadBtn.href = exeAsset.browser_download_url;
+              if (ctaDownloadBtn) ctaDownloadBtn.href = exeAsset.browser_download_url;
+            }
           }
         }
       })
       .catch(() => {
-        // Fallback default remains v1.0.7
+        // Fallback default remains v1.1.0
       });
   }
 });
