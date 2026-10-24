@@ -52,15 +52,20 @@ export class ScorePop extends OverlayComponent {
     this.scoreEl.textContent = scoreText(state.score);
 
     const striker = state.batters.find((b) => b.onStrike);
-    this.detailEl.textContent =
-      striker && striker.name !== '—' ? `${striker.name} ${striker.runs} (${striker.balls})` : '';
+    const w = state.lastWicket;
+    if (chip.kind === 'wicket' && w) {
+      this.detailEl.textContent = `WICKET • ${w.name.toUpperCase()} ${w.runs} (${w.balls})`;
+    } else {
+      this.detailEl.textContent =
+        striker && striker.name !== '—' ? `${striker.name} ${striker.runs} (${striker.balls})` : '';
+    }
     this.oversEl.textContent = `${state.score.overs}.${state.score.balls} OV`;
 
     const root = this.root;
     root.hidden = false;
     this.onVisibility(true);
     gsap.killTweensOf(root);
-    gsap.fromTo(root, { opacity: 0, y: -8 }, { opacity: 1, y: 0, duration: 0.16, ease: 'power2.out' });
+    gsap.fromTo(root, { opacity: 0, y: -24 }, { opacity: 1, y: 0, duration: 0.2, ease: 'power2.out' });
     if (this.timer) clearTimeout(this.timer);
     this.timer = setTimeout(() => this.dismiss(), POP_MS);
   }

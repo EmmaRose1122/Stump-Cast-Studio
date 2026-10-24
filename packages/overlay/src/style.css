@@ -548,10 +548,11 @@ html[data-player-card='mirrored'] .pc-card:nth-child(2).pc-strike {
 .zone-top {
   left: 0;
   right: 0;
-  top: 450px;
+  top: 24px;
   display: flex;
   justify-content: center;
   pointer-events: none;
+  z-index: 10001;
 }
 .c-banner {
   display: flex;
@@ -562,6 +563,8 @@ html[data-player-card='mirrored'] .pc-card:nth-child(2).pc-strike {
   border-radius: var(--radius-card, 12px);
   font-family: var(--font-heading, sans-serif);
   border-left: 14px solid var(--color-accent);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.85);
+  z-index: 10001;
 }
 .bn-label {
   font-size: 120px;
@@ -5445,13 +5448,11 @@ html[data-score-position='bottom'] #stage[data-layout='fullscreen'] {
   }
 }
 
-/* Score pop-up (the arena player band took over the centre performance strip's slot) ---------- */
+/* Score pop-up (ball-by-ball callout for 4, 6, Wicket, extras) ------------------------------ */
 .c-score-pop {
   display: none;
 }
-/* Visible in every layout: it used to be arena-only, so switching layout left the operator with
-   no ball-by-ball figure at all. Anchored bottom-centre by default, above whatever the layout
-   parks along the bottom edge. */
+/* Always anchored top-center across all layouts: appears on top of the overlay and scoreboard */
 .c-score-pop:not([hidden]) {
   display: grid;
   grid-template-columns: auto auto minmax(0, 1fr) auto;
@@ -5459,45 +5460,38 @@ html[data-score-position='bottom'] #stage[data-layout='fullscreen'] {
   gap: 26px;
   position: absolute;
   left: 50%;
-  bottom: 56px;
-  width: min(1180px, 76%);
+  top: 24px !important;
+  bottom: auto !important;
+  width: min(1180px, 80%);
   box-sizing: border-box;
   transform: translateX(-50%);
-  padding: 14px 26px;
-  background: linear-gradient(90deg, rgba(6, 10, 18, 0.97) 0%, rgba(10, 18, 28, 0.93) 55%, rgba(6, 10, 18, 0.86) 100%);
-  border: 1px solid var(--color-accent, rgba(245, 158, 11, 0.6));
-  border-left: 10px solid var(--color-accent, #f59e0b);
-  border-radius: 12px;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.75);
+  padding: 14px 28px;
+  background: linear-gradient(90deg, rgba(6, 10, 18, 0.98) 0%, rgba(10, 18, 28, 0.96) 55%, rgba(6, 10, 18, 0.94) 100%);
+  border: 1.5px solid var(--color-accent, rgba(245, 158, 11, 0.8));
+  border-left: 12px solid var(--color-accent, #f59e0b);
+  border-radius: 14px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.88), 0 0 28px rgba(0, 0, 0, 0.6);
   font-family: var(--font-heading, sans-serif);
-  z-index: 30;
+  z-index: 10000 !important;
   pointer-events: none;
 }
-/* ticker parks a full-width strip on the bottom edge; classic parks the scorebar bottom-left;
-   fullscreen can park the scorebar on the bottom edge. The pop clears all of them. */
+/* Across all layouts (ticker, classic, fullscreen, arena), keep the pop strictly at the top of the overlay */
 [data-layout='ticker'] .c-score-pop:not([hidden]),
 [data-layout='classic'] .c-score-pop:not([hidden]),
 #stage[data-layout='ticker'] .c-score-pop:not([hidden]),
-#stage[data-layout='classic'] .c-score-pop:not([hidden]) {
-  bottom: 190px;
-}
+#stage[data-layout='classic'] .c-score-pop:not([hidden]),
 html[data-score-position='bottom'] [data-layout='fullscreen'] .c-score-pop:not([hidden]),
-html[data-score-position='bottom'] #stage[data-layout='fullscreen'] .c-score-pop:not([hidden]) {
-  bottom: 330px;
-}
-/* Ball-to-ball score, in the band directly under the centre video. Deliberately wider than the
-   980px video so it reads as its own broadcast strip rather than a caption of the frame. */
+html[data-score-position='bottom'] #stage[data-layout='fullscreen'] .c-score-pop:not([hidden]),
 #stage[data-layout='arena'] .c-score-pop:not([hidden]),
 [data-layout='arena'] .c-score-pop:not([hidden]),
 #stage[data-layout='arena'][data-composition] .c-score-pop:not([hidden]) {
-  bottom: auto;
-  top: calc(172px + 530px * var(--card-scale) + 10px);
-  width: 1180px;
-  transform: translateX(-50%) scale(var(--card-scale));
-  transform-origin: 50% 0;
+  top: 24px !important;
+  bottom: auto !important;
+  z-index: 10000 !important;
+  width: min(1180px, calc(100% - 96px));
 }
 #stage .c-score-pop[hidden] {
-  display: none;
+  display: none !important;
 }
 .sp-ball {
   display: flex;
@@ -5767,7 +5761,6 @@ html[data-score-position='bottom'] #stage[data-layout='fullscreen'] .c-score-pop
 }
 
 /* Ticker layout: the crawl is the whole point of that layout, so it must never be still. */
-#stage[data-layout='ticker'] .c-score-pop,
 #stage[data-layout='ticker'] .sb-situation {
   animation: ticker-crawl 22s linear infinite;
 }
@@ -5803,4 +5796,107 @@ html[data-score-position='bottom'] #stage[data-layout='fullscreen'] .c-score-pop
 #stage[data-layout='arena'] .c-stream-frame,
 #stage[data-layout='arena'][data-composition] .c-stream-frame {
   top: var(--arena-frame-top) !important;
+}
+
+/* Arena right-cluster variant -----------------------------------------------------------------
+   The reference "cluster" look drops the left rail entirely: the video runs down the left at
+   roughly 57% of the canvas and the match context sits over the stats in a two-column cluster on
+   the right. `left-stats` and `right-stats` keep the symmetric rails they had, so no existing look
+   changes shape. */
+html[data-middle-layout^='right-cluster'] #stage[data-layout='arena'] {
+  --arena-cluster-rail: 620px;
+  /* `--cluster-fit` is measured in main.ts against the row the bar/band leaves free. A
+     left-anchored frame only has to clear the right cluster, not a rail on both sides. */
+  --arena-gutter: calc(
+    1920px - 48px - 12px - var(--arena-cluster-rail) * var(--side-scale, var(--card-scale)) *
+      var(--cluster-fit, 1) - 48px
+  );
+  --arena-frame-w: max(320px, min(1287px, calc(var(--arena-gutter) / var(--card-scale))));
+}
+html[data-middle-layout^='right-cluster'] #stage[data-layout='arena'] .zone-left,
+html[data-middle-layout^='right-cluster'] #stage[data-layout='arena'][data-composition] .zone-left {
+  display: none !important;
+}
+html[data-middle-layout^='right-cluster'] #stage[data-layout='arena'] .c-stream-frame,
+html[data-middle-layout^='right-cluster'] #stage[data-layout='arena'][data-composition] .c-stream-frame {
+  left: 48px !important;
+  transform: scale(var(--card-scale)) !important;
+  transform-origin: 0 0 !important;
+}
+html[data-middle-layout^='right-cluster'] #stage[data-layout='arena'] .c-player-band,
+html[data-middle-layout^='right-cluster'] #stage[data-layout='arena'][data-composition] .c-player-band {
+  left: 48px !important;
+  transform: scale(var(--card-scale)) !important;
+  transform-origin: 0 0 !important;
+}
+html[data-middle-layout^='right-cluster'] #stage[data-layout='arena'] .zone-right,
+html[data-middle-layout^='right-cluster'] #stage[data-layout='arena'][data-composition] .zone-right {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-content: start;
+  gap: 10px;
+  width: var(--arena-cluster-rail) !important;
+  transform: scale(
+    calc(var(--side-scale, var(--card-scale)) * var(--cluster-fit, 1))
+  ) !important;
+  transform-origin: 100% 0 !important;
+}
+
+/* A look that declares a stat theme expects those cells on air. The arena rule that flattens the
+   tiles to transparent is (1,3,0); these carry the arena + column arms so the declared theme wins. */
+html[data-stat-theme^='light'] #stage[data-layout='arena'] .c-stats .st-tile,
+html[data-stat-theme='broadcast-white'] #stage[data-layout='arena'] .c-stats .st-tile,
+html[data-stat-theme='mono-light'] #stage[data-layout='arena'] .c-stats .st-tile {
+  background: #ffffff !important;
+  color: #0f172a !important;
+}
+html[data-stat-theme^='dark'] #stage[data-layout='arena'] .c-stats .st-tile,
+html[data-stat-theme^='led'] #stage[data-layout='arena'] .c-stats .st-tile,
+html[data-stat-theme='glass-sky'] #stage[data-layout='arena'] .c-stats .st-tile {
+  background: #0b1424 !important;
+  color: #ffffff !important;
+}
+
+/* The cluster halves the rail width, so the predictor tightens up instead of colliding. */
+html[data-middle-layout^='right-cluster'] #stage[data-layout='arena'] .wpr-card {
+  grid-template-columns: auto auto minmax(20px, 1fr) auto auto;
+  gap: 5px;
+  padding: 6px 8px;
+}
+html[data-middle-layout^='right-cluster'] #stage[data-layout='arena'] .wpr-pct {
+  font-size: 15px;
+}
+html[data-middle-layout^='right-cluster'] #stage[data-layout='arena'] .wpr-team {
+  font-size: 10px;
+}
+html[data-middle-layout^='right-cluster'] #stage[data-layout='arena'] .wpr-avatar {
+  width: 22px;
+  height: 22px;
+  margin-left: -8px;
+}
+html[data-middle-layout^='right-cluster'] #stage[data-layout='arena'] .wpr-avatar:first-child {
+  margin-left: 0;
+}
+html[data-middle-layout^='right-cluster'] #stage[data-layout='arena'] .wpr-crest {
+  width: 22px;
+  height: 15px;
+}
+
+/* Arena band photos ---------------------------------------------------------------------------
+   Source photos are 512px squares, but the band's cutout slot was 55x69, so `object-fit: cover`
+   cropped them; the 116px band row also held only 71px cards. A square slot fills the row and needs
+   no crop at all. Arena-band only: fullscreen badges keep their cutout/clip treatment. */
+#stage[data-layout='arena'] .c-player-band .pc-card {
+  --pc-photo: 72px;
+  min-height: var(--arena-band-h, 116px);
+  padding: 10px 12px 10px 8px;
+  gap: 0 10px;
+}
+#stage[data-layout='arena'] .c-player-band .pc-card .pc-photo {
+  height: var(--pc-photo) !important;
+  width: var(--pc-photo);
+  margin-top: 0 !important;
+  align-self: center !important;
+  clip-path: none !important;
+  border-radius: 10px !important;
 }

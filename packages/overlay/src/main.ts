@@ -167,12 +167,21 @@ const placePlayers = (layout: LayoutName, look: Look): void => {
 /**
  * Arena's middle keeps the video between the side rails; each Pro look chooses which rail holds
  * stats and which holds ball-by-ball context. Components are re-parented, never duplicated.
+ *
+ * `right-cluster` is the wide reference variant: no left rail at all, the video runs down the left
+ * and the match context sits over the stats in a two-column cluster on the right.
  */
 function placeArenaPanels(layout: LayoutName, look: Look): void {
   if (layout === 'arena') {
     const statsPanels = [stats.element, projected.element, extras.element, winPredictor.element];
     const matchPanels = [thisBall.element, matchCentre.element, thisOver.element];
-    const statsOnLeft = look.layoutVariant.middleLayout.startsWith('left-stats');
+    const middle = look.layoutVariant.middleLayout;
+    if (middle.startsWith('right-cluster')) {
+      zones.left.replaceChildren();
+      zones.right.append(...matchPanels, ...statsPanels);
+      return;
+    }
+    const statsOnLeft = middle.startsWith('left-stats');
     zones.left.append(...(statsOnLeft ? statsPanels : matchPanels));
     zones.right.append(...(statsOnLeft ? matchPanels : statsPanels));
   } else {
@@ -187,6 +196,35 @@ function placeArenaPanels(layout: LayoutName, look: Look): void {
     );
   }
 }
+/**
+ * The cluster rail is content-sized, so at the operator's side scale it can run past the score bar
+ * (or the player band when the bar is on top). Scaling the stack down to the free row keeps the
+ * bottom cards off the bar without shrinking the video window.
+ */
+const fitArenaCluster = (): void => {
+  const isCluster = (document.documentElement.dataset.middleLayout ?? '').startsWith('right-cluster');
+  if (!isCluster || stageEl.dataset.layout !== 'arena') {
+    stageEl.style.removeProperty('--cluster-fit');
+    return;
+  }
+  const sideScale =
+    Number.parseFloat(getComputedStyle(stageEl).getPropertyValue('--side-scale')) || 1;
+  // The stage is scaled to the preview window, so its rect and the rails' rects are in viewport
+  // px while `scrollHeight` is in layout px. Measure everything in the stage's own space.
+  const stageScale = stageEl.getBoundingClientRect().width / 1920 || 1;
+  const natural = zones.right.scrollHeight * sideScale * stageScale;
+  if (!Number.isFinite(natural) || natural <= 0) return;
+  const zoneTop = zones.right.getBoundingClientRect().top;
+  const rows = ['.c-scorebar', '.c-player-band']
+    .map((sel) => stageEl.querySelector<HTMLElement>(sel))
+    .filter((el): el is HTMLElement => !!el && el.getClientRects().length > 0)
+    .map((el) => el.getBoundingClientRect())
+    .filter((r) => r.height > 0 && r.top > zoneTop + 1)
+    .map((r) => r.top);
+  const limit = rows.length ? Math.min(...rows) : stageEl.getBoundingClientRect().bottom;
+  const fit = Math.min(1, Math.max(0.45, (limit - zoneTop - 8 * stageScale) / natural));
+  stageEl.style.setProperty('--cluster-fit', fit.toFixed(4));
+};
 const scoreBar = new ScoreBar();
 const thisOver = new ThisOver();
 const thisBall = new ThisBall();
@@ -235,6 +273,9 @@ resultScreen.mount(stageEl, look);
 preMatchScreen.mount(stageEl, look);
 placePlayers(store.get().settings.layout, store.get().look);
 placeArenaPanels(store.get().settings.layout, store.get().look);
+fitArenaCluster();
+// Panel content (balls, partnership figures, extras) changes the natural height of the cluster.
+new ResizeObserver(() => fitArenaCluster()).observe(zones.right);
 
 const cards = new CardManager(zones.card, look, CARD_DEFS, {
   fetchHistory: async (id) => {
@@ -343,6 +384,7 @@ store.subscribe((s, prev) => {
     for (const c of components) c.setLook(s.look);
     placePlayers(s.settings.layout, s.look);
     placeArenaPanels(s.settings.layout, s.look);
+    fitArenaCluster();
   }
   if (s.look !== prev.look) cards.setLook(s.look);
   if (s.active !== prev.active) cards.apply(s.active);
@@ -368,6 +410,7 @@ store.subscribe((s, prev) => {
       zones.bottom.append(winProb.element);
     }
     placeArenaPanels(s.settings.layout, s.look);
+    fitArenaCluster();
     syncOnAirScreen(s);
   }
   const match = store.current();
