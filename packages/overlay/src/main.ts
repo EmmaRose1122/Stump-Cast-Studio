@@ -165,11 +165,8 @@ const placePlayers = (layout: LayoutName, look: Look): void => {
   }
 };
 /**
- * Arena's middle is three columns, the way the reference broadcast builds it: the stats stack on
- * the left, the video window in the middle, and the ball-by-ball plus match centre on the right.
- * Every component still owns exactly one DOM node, so this only re-parents them. Other layouts keep
- * the rails they had. Declared as a function so it is hoisted: it is called while the module is
- * still initialising, before `stats` and friends are assigned.
+ * Arena's middle keeps the video between the side rails; each Pro look chooses which rail holds
+ * stats and which holds ball-by-ball context. Components are re-parented, never duplicated.
  */
 function placeArenaPanels(layout: LayoutName, look: Look): void {
   if (layout === 'arena') {

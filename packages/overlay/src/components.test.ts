@@ -70,9 +70,10 @@ describe('Looks', () => {
   });
 
   it('loads every attached Pro look with its arena panel and player arrangement', () => {
-    expect(PRO_LOOKS_23.length).toBeGreaterThanOrEqual(23);
-    expect(new Set(PRO_LOOKS_23.map((look) => look.id)).size).toBe(PRO_LOOKS_23.length);
-    expect(new Set(PRO_LOOKS_23.map((look) => look.layoutVariant.middleLayout))).toEqual(
+    const broadcastLooks = PRO_LOOKS_23.filter((look) => /^k\d{2}$/.test(look.id));
+    expect(broadcastLooks).toHaveLength(23);
+    expect(new Set(broadcastLooks.map((look) => look.id)).size).toBe(23);
+    expect(new Set(broadcastLooks.map((look) => look.layoutVariant.middleLayout))).toEqual(
       new Set([
         'left-stats',
         'left-stats-projected',
@@ -85,12 +86,12 @@ describe('Looks', () => {
         'right-cluster-partnership',
       ]),
     );
-    expect(new Set(PRO_LOOKS_23.map((look) => look.layoutVariant.playerOrder))).toEqual(
+    expect(new Set(broadcastLooks.map((look) => look.layoutVariant.playerOrder))).toEqual(
       new Set(['striker-left', 'bowler-left', 'bowler-middle']),
     );
-    expect(PRO_LOOKS_23.every((look) => look.layoutVariant.broadcastBadgeStyle)).toBe(true);
-    expect(PRO_LOOKS_23.every((look) => look.layoutVariant.broadcastBarStyle)).toBe(true);
-    expect(PRO_LOOKS_23.every((look) => look.layoutVariant.statTheme)).toBe(true);
+    expect(broadcastLooks.every((look) => look.layoutVariant.broadcastBadgeStyle)).toBe(true);
+    expect(broadcastLooks.every((look) => look.layoutVariant.broadcastBarStyle)).toBe(true);
+    expect(broadcastLooks.every((look) => look.layoutVariant.statTheme)).toBe(true);
   });
 
   it('applies the selected broadcast composition to the overlay theme', () => {

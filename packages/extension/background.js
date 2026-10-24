@@ -5076,7 +5076,47 @@
         "right-cluster-video",
         "right-cluster-partnership"
       ]).default("left-stats"),
-      playerOrder: external_exports.enum(["striker-left", "bowler-left", "bowler-middle"]).default("striker-left")
+      playerOrder: external_exports.enum(["striker-left", "bowler-left", "bowler-middle"]).default("striker-left"),
+      broadcastBadgeStyle: external_exports.enum([
+        "cutout-left",
+        "cutout-right",
+        "round-left",
+        "round-right",
+        "square-left",
+        "square-right"
+      ]).optional(),
+      broadcastBarStyle: external_exports.enum([
+        "flat",
+        "floating",
+        "floating-white",
+        "flat-led",
+        "slanted-led",
+        "arrow",
+        "notched",
+        "slanted",
+        "slanted-mono",
+        "notched-mono",
+        "notched-sunset",
+        "flat-aurora"
+      ]).optional(),
+      statTheme: external_exports.enum([
+        "light",
+        "light-green",
+        "dark-cyan",
+        "dark-magenta",
+        "dark-lime",
+        "broadcast-white",
+        "led-amber",
+        "led-green",
+        "light-orange",
+        "light-pink",
+        "light-yellow",
+        "light-silver",
+        "glass-sky",
+        "light-rose",
+        "light-red",
+        "mono-light"
+      ]).optional()
     }),
     motion: external_exports.object({
       entrance: external_exports.enum([
@@ -5493,19 +5533,17 @@
       playerCardStyle: "cutout",
       boundaryStyle: "split-bar",
       middleLayout: "left-stats",
-      playerOrder: "bowler-left"
+      playerOrder: "bowler-left",
+      broadcastBadgeStyle: "cutout-left",
+      broadcastBarStyle: "flat",
+      statTheme: "light"
     },
     motion: {
       entrance: "slide",
       easing: "power2.out",
       durationMs: 480
     },
-    tags: [
-      "slide entrances",
-      "scores on top",
-      "pill score bar",
-      "cut-out player photos"
-    ]
+    tags: ["slide entrances", "scores on top", "pill score bar", "cut-out player photos"]
   };
 
   // ../shared/src/looks-data/k02.json
@@ -5544,7 +5582,10 @@
       playerCardStyle: "badge-right",
       boundaryStyle: "edge-flash",
       middleLayout: "right-cluster-recent",
-      playerOrder: "striker-left"
+      playerOrder: "striker-left",
+      broadcastBadgeStyle: "round-right",
+      broadcastBarStyle: "floating",
+      statTheme: "light-green"
     },
     motion: {
       entrance: "rise",
@@ -5595,19 +5636,17 @@
       playerCardStyle: "round-badge",
       boundaryStyle: "split-bar",
       middleLayout: "left-stats",
-      playerOrder: "striker-left"
+      playerOrder: "striker-left",
+      broadcastBadgeStyle: "round-left",
+      broadcastBarStyle: "flat",
+      statTheme: "dark-cyan"
     },
     motion: {
       entrance: "glitch",
       easing: "power2.out",
       durationMs: 450
     },
-    tags: [
-      "glitch entrances",
-      "scores at the bottom",
-      "pill score bar",
-      "round photo badges"
-    ]
+    tags: ["glitch entrances", "scores at the bottom", "pill score bar", "round photo badges"]
   };
 
   // ../shared/src/looks-data/k04.json
@@ -5646,19 +5685,17 @@
       playerCardStyle: "mirrored",
       boundaryStyle: "glow-ring",
       middleLayout: "left-stats",
-      playerOrder: "bowler-left"
+      playerOrder: "bowler-left",
+      broadcastBadgeStyle: "cutout-right",
+      broadcastBarStyle: "arrow",
+      statTheme: "dark-magenta"
     },
     motion: {
       entrance: "iris",
       easing: "power2.inOut",
       durationMs: 520
     },
-    tags: [
-      "iris entrances",
-      "scores on top",
-      "arrow score bar",
-      "mirrored player cards"
-    ]
+    tags: ["iris entrances", "scores on top", "arrow score bar", "mirrored player cards"]
   };
 
   // ../shared/src/looks-data/k05.json
@@ -5697,19 +5734,17 @@
       playerCardStyle: "badge-right",
       boundaryStyle: "edge-flash",
       middleLayout: "right-stats",
-      playerOrder: "bowler-middle"
+      playerOrder: "bowler-middle",
+      broadcastBadgeStyle: "round-right",
+      broadcastBarStyle: "floating",
+      statTheme: "dark-lime"
     },
     motion: {
       entrance: "blinds",
       easing: "power2.out",
       durationMs: 460
     },
-    tags: [
-      "blinds entrances",
-      "scores on top",
-      "floating score cards",
-      "photo badges on the right"
-    ]
+    tags: ["blinds entrances", "scores on top", "floating score cards", "photo badges on the right"]
   };
 
   // ../shared/src/looks-data/k08.json
@@ -5748,7 +5783,10 @@
       playerCardStyle: "cutout",
       boundaryStyle: "banner-sweep",
       middleLayout: "left-stats",
-      playerOrder: "striker-left"
+      playerOrder: "striker-left",
+      broadcastBadgeStyle: "cutout-left",
+      broadcastBarStyle: "floating-white",
+      statTheme: "broadcast-white"
     },
     motion: {
       entrance: "curtain",
@@ -5799,19 +5837,17 @@
       playerCardStyle: "mirrored",
       boundaryStyle: "spark",
       middleLayout: "left-stats-projected",
-      playerOrder: "bowler-left"
+      playerOrder: "bowler-left",
+      broadcastBadgeStyle: "cutout-right",
+      broadcastBarStyle: "flat-led",
+      statTheme: "led-amber"
     },
     motion: {
       entrance: "flip",
       easing: "power2.out",
       durationMs: 500
     },
-    tags: [
-      "flip entrances",
-      "scores at the bottom",
-      "flat score bar",
-      "mirrored player cards"
-    ]
+    tags: ["flip entrances", "scores at the bottom", "flat score bar", "mirrored player cards"]
   };
 
   // ../shared/src/looks-data/k10.json
@@ -5850,19 +5886,17 @@
       playerCardStyle: "cutout",
       boundaryStyle: "split-bar",
       middleLayout: "left-stats",
-      playerOrder: "bowler-middle"
+      playerOrder: "bowler-middle",
+      broadcastBadgeStyle: "cutout-left",
+      broadcastBarStyle: "slanted-led",
+      statTheme: "led-green"
     },
     motion: {
       entrance: "unfold",
       easing: "power3.out",
       durationMs: 520
     },
-    tags: [
-      "unfold entrances",
-      "scores on top",
-      "slanted score bar",
-      "cut-out player photos"
-    ]
+    tags: ["unfold entrances", "scores on top", "slanted score bar", "cut-out player photos"]
   };
 
   // ../shared/src/looks-data/k11.json
@@ -5901,19 +5935,17 @@
       playerCardStyle: "mirrored",
       boundaryStyle: "spark",
       middleLayout: "right-cluster-video",
-      playerOrder: "bowler-middle"
+      playerOrder: "bowler-middle",
+      broadcastBadgeStyle: "cutout-right",
+      broadcastBarStyle: "arrow",
+      statTheme: "light-orange"
     },
     motion: {
       entrance: "skew",
       easing: "expo.out",
       durationMs: 480
     },
-    tags: [
-      "skew entrances",
-      "scores at the bottom",
-      "arrow score bar",
-      "mirrored player cards"
-    ]
+    tags: ["skew entrances", "scores at the bottom", "arrow score bar", "mirrored player cards"]
   };
 
   // ../shared/src/looks-data/k12.json
@@ -5952,19 +5984,17 @@
       playerCardStyle: "badge-right",
       boundaryStyle: "glow-ring",
       middleLayout: "left-stats",
-      playerOrder: "striker-left"
+      playerOrder: "striker-left",
+      broadcastBadgeStyle: "round-right",
+      broadcastBarStyle: "arrow",
+      statTheme: "light-pink"
     },
     motion: {
       entrance: "pop",
       easing: "back.out(1.5)",
       durationMs: 460
     },
-    tags: [
-      "pop entrances",
-      "scores at the bottom",
-      "arrow score bar",
-      "photo badges on the right"
-    ]
+    tags: ["pop entrances", "scores at the bottom", "arrow score bar", "photo badges on the right"]
   };
 
   // ../shared/src/looks-data/k13.json
@@ -6003,19 +6033,17 @@
       playerCardStyle: "mirrored",
       boundaryStyle: "edge-flash",
       middleLayout: "right-stats-striker",
-      playerOrder: "bowler-left"
+      playerOrder: "bowler-left",
+      broadcastBadgeStyle: "cutout-right",
+      broadcastBarStyle: "arrow",
+      statTheme: "light-yellow"
     },
     motion: {
       entrance: "drop",
       easing: "power2.out",
       durationMs: 480
     },
-    tags: [
-      "drop entrances",
-      "scores on top",
-      "arrow score bar",
-      "mirrored player cards"
-    ]
+    tags: ["drop entrances", "scores on top", "arrow score bar", "mirrored player cards"]
   };
 
   // ../shared/src/looks-data/k14.json
@@ -6054,19 +6082,17 @@
       playerCardStyle: "round-badge",
       boundaryStyle: "sweeping",
       middleLayout: "left-stats-partnership",
-      playerOrder: "bowler-left"
+      playerOrder: "bowler-left",
+      broadcastBadgeStyle: "round-left",
+      broadcastBarStyle: "flat",
+      statTheme: "light"
     },
     motion: {
       entrance: "fade",
       easing: "power2.out",
       durationMs: 500
     },
-    tags: [
-      "fade entrances",
-      "scores on top",
-      "pill score bar",
-      "round photo badges"
-    ]
+    tags: ["fade entrances", "scores on top", "pill score bar", "round photo badges"]
   };
 
   // ../shared/src/looks-data/k15.json
@@ -6105,19 +6131,17 @@
       playerCardStyle: "round-badge",
       boundaryStyle: "corner-tag",
       middleLayout: "right-cluster-video",
-      playerOrder: "striker-left"
+      playerOrder: "striker-left",
+      broadcastBadgeStyle: "round-left",
+      broadcastBarStyle: "notched",
+      statTheme: "light-silver"
     },
     motion: {
       entrance: "swing",
       easing: "power2.out",
       durationMs: 520
     },
-    tags: [
-      "swing entrances",
-      "scores at the bottom",
-      "notched score bar",
-      "round photo badges"
-    ]
+    tags: ["swing entrances", "scores at the bottom", "notched score bar", "round photo badges"]
   };
 
   // ../shared/src/looks-data/k16.json
@@ -6156,19 +6180,17 @@
       playerCardStyle: "cutout",
       boundaryStyle: "glow-ring",
       middleLayout: "left-stats",
-      playerOrder: "bowler-middle"
+      playerOrder: "bowler-middle",
+      broadcastBadgeStyle: "cutout-left",
+      broadcastBarStyle: "flat",
+      statTheme: "glass-sky"
     },
     motion: {
       entrance: "blur",
       easing: "power2.out",
       durationMs: 550
     },
-    tags: [
-      "blur entrances",
-      "scores on top",
-      "glass score bar",
-      "cut-out player photos"
-    ]
+    tags: ["blur entrances", "scores on top", "glass score bar", "cut-out player photos"]
   };
 
   // ../shared/src/looks-data/k17.json
@@ -6207,19 +6229,17 @@
       playerCardStyle: "round-badge",
       boundaryStyle: "corner-tag",
       middleLayout: "left-stats",
-      playerOrder: "bowler-left"
+      playerOrder: "bowler-left",
+      broadcastBadgeStyle: "round-left",
+      broadcastBarStyle: "flat",
+      statTheme: "light-rose"
     },
     motion: {
       entrance: "zoom-out",
       easing: "power3.out",
       durationMs: 520
     },
-    tags: [
-      "zoom-out entrances",
-      "scores at the bottom",
-      "glass score bar",
-      "round photo badges"
-    ]
+    tags: ["zoom-out entrances", "scores at the bottom", "glass score bar", "round photo badges"]
   };
 
   // ../shared/src/looks-data/k18.json
@@ -6258,19 +6278,17 @@
       playerCardStyle: "mirrored",
       boundaryStyle: "edge-flash",
       middleLayout: "right-stats-projected",
-      playerOrder: "striker-left"
+      playerOrder: "striker-left",
+      broadcastBadgeStyle: "cutout-right",
+      broadcastBarStyle: "notched",
+      statTheme: "light-green"
     },
     motion: {
       entrance: "slide-right",
       easing: "power2.out",
       durationMs: 480
     },
-    tags: [
-      "slide-right entrances",
-      "scores on top",
-      "notched score bar",
-      "mirrored player cards"
-    ]
+    tags: ["slide-right entrances", "scores on top", "notched score bar", "mirrored player cards"]
   };
 
   // ../shared/src/looks-data/k19.json
@@ -6309,7 +6327,10 @@
       playerCardStyle: "cutout",
       boundaryStyle: "spark",
       middleLayout: "right-cluster-recent",
-      playerOrder: "bowler-left"
+      playerOrder: "bowler-left",
+      broadcastBadgeStyle: "cutout-left",
+      broadcastBarStyle: "slanted",
+      statTheme: "light-red"
     },
     motion: {
       entrance: "stretch",
@@ -6360,19 +6381,17 @@
       playerCardStyle: "round-badge",
       boundaryStyle: "edge-flash",
       middleLayout: "left-stats",
-      playerOrder: "striker-left"
+      playerOrder: "striker-left",
+      broadcastBadgeStyle: "square-left",
+      broadcastBarStyle: "slanted",
+      statTheme: "light-orange"
     },
     motion: {
       entrance: "diamond",
       easing: "power2.inOut",
       durationMs: 500
     },
-    tags: [
-      "diamond entrances",
-      "scores on top",
-      "slanted score bar",
-      "round photo badges"
-    ]
+    tags: ["diamond entrances", "scores on top", "slanted score bar", "round photo badges"]
   };
 
   // ../shared/src/looks-data/k21.json
@@ -6411,19 +6430,17 @@
       playerCardStyle: "cutout",
       boundaryStyle: "gold-flare",
       middleLayout: "left-stats",
-      playerOrder: "bowler-middle"
+      playerOrder: "bowler-middle",
+      broadcastBadgeStyle: "cutout-left",
+      broadcastBarStyle: "slanted-mono",
+      statTheme: "mono-light"
     },
     motion: {
       entrance: "zoom",
       easing: "back.out(1.4)",
       durationMs: 480
     },
-    tags: [
-      "zoom entrances",
-      "scores at the bottom",
-      "slanted score bar",
-      "cut-out player photos"
-    ]
+    tags: ["zoom entrances", "scores at the bottom", "slanted score bar", "cut-out player photos"]
   };
 
   // ../shared/src/looks-data/k22.json
@@ -6462,7 +6479,10 @@
       playerCardStyle: "badge-right",
       boundaryStyle: "edge-flash",
       middleLayout: "left-stats",
-      playerOrder: "striker-left"
+      playerOrder: "striker-left",
+      broadcastBadgeStyle: "square-right",
+      broadcastBarStyle: "notched-mono",
+      statTheme: "mono-light"
     },
     motion: {
       entrance: "spin",
@@ -6513,7 +6533,10 @@
       playerCardStyle: "badge-right",
       boundaryStyle: "burst",
       middleLayout: "left-stats",
-      playerOrder: "bowler-middle"
+      playerOrder: "bowler-middle",
+      broadcastBadgeStyle: "round-right",
+      broadcastBarStyle: "notched-sunset",
+      statTheme: "light-pink"
     },
     motion: {
       entrance: "drop",
@@ -6564,19 +6587,17 @@
       playerCardStyle: "badge-right",
       boundaryStyle: "glow-ring",
       middleLayout: "right-cluster-partnership",
-      playerOrder: "bowler-middle"
+      playerOrder: "bowler-middle",
+      broadcastBadgeStyle: "round-right",
+      broadcastBarStyle: "flat-aurora",
+      statTheme: "light"
     },
     motion: {
       entrance: "zoom",
       easing: "back.out(1.4)",
       durationMs: 480
     },
-    tags: [
-      "zoom entrances",
-      "scores on top",
-      "flat score bar",
-      "photo badges on the right"
-    ]
+    tags: ["zoom entrances", "scores on top", "flat score bar", "photo badges on the right"]
   };
 
   // ../shared/src/looks-data/k25.json
@@ -6615,19 +6636,17 @@
       playerCardStyle: "round-badge",
       boundaryStyle: "edge-flash",
       middleLayout: "left-stats",
-      playerOrder: "striker-left"
+      playerOrder: "striker-left",
+      broadcastBadgeStyle: "square-left",
+      broadcastBarStyle: "notched-mono",
+      statTheme: "mono-light"
     },
     motion: {
       entrance: "pop",
       easing: "back.out(1.5)",
       durationMs: 460
     },
-    tags: [
-      "pop entrances",
-      "scores on top",
-      "notched score bar",
-      "round photo badges"
-    ]
+    tags: ["pop entrances", "scores on top", "notched score bar", "round photo badges"]
   };
 
   // ../shared/src/looks-data/sc-monsoon-night.json

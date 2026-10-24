@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "StumpCast Studio Connector",
-  "version": "1.0.9",
+  "version": "1.1.0",
   "description": "Reads the cricket match page you already have open and sends the score to StumpCast Studio on this computer.",
   "host_permissions": [
     "*://*.cricbuzz.com/*",
