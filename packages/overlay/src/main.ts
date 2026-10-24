@@ -430,25 +430,37 @@ if (params.debug) mountDebug(store);
 // Audio plays in the OBS browser source only. Every preview surface — the admin Preview and
 // pop-out windows, the look gallery, the resolution tester, fixture renders — is a real browser
 // tab, and constructing the engine there preloaded the whole sound library on WebSocket connect.
-// A download manager on the operator's PC turns those ungestured mp3 GETs into "Save As" dialogs,
-// so previews now load no audio at all. The Sounds page is where audio is auditioned.
-const audio =
-  params.preview || params.fixture || params.look || params.gallery || params.debug
-    ? null
-    : new OverlayAudio(createBrowserEngine(), location.origin);
-if (audio) {
-  // Normal browsers hold audio until a click; OBS does not need this.
-  // In preview mode, we also need an unlock button for browsers.
+// A download manager (IDM) on the operator's PC turns those ungestured mp3 GETs into a "Save As"
+// dialog per file, over and over. OBS advertises itself in the UA and injects `window.obsstudio`;
+// anywhere else the engine is only built on an explicit click, so nothing is fetched until then.
+const isObsSource = /OBS/i.test(navigator.userAgent) || 'obsstudio' in window;
+const isReviewSurface = Boolean(
+  params.preview || params.fixture || params.look || params.gallery || params.debug,
+);
+let audio: OverlayAudio | null =
+  !isReviewSurface && isObsSource ? new OverlayAudio(createBrowserEngine(), location.origin) : null;
+if (!isReviewSurface) {
+  // Normal browsers hold audio until a click; OBS does not need this. In OBS the button is hidden
+  // unless the engine reports it needs a gesture; on a plain broadcast URL in a browser it is the
+  // opt-in itself (pop-out window, or the URL opened in Chrome), so nothing is fetched before it.
   const btn = document.createElement('button');
   btn.textContent = 'Click to enable audio';
   btn.className = 'audio-unlock';
-  btn.hidden = true;
+  btn.hidden = isObsSource;
   btn.addEventListener('click', () => {
-    void audio.unlock().then(() => (btn.hidden = !audio.needsUnlock));
+    const engine = audio ?? new OverlayAudio(createBrowserEngine(), location.origin);
+    audio = engine;
+    // A rejected unlock (autoplay policy) must not stop the library load: the operator asked for
+    // audio, so fetch it and let the next gesture/resume actually start playback.
+    void engine
+      .unlock()
+      .catch(() => undefined)
+      .then(() => engine.sync())
+      .finally(() => (btn.hidden = !engine.needsUnlock));
   });
   document.body.append(btn);
   setInterval(() => {
-    btn.hidden = !audio.needsUnlock;
+    btn.hidden = audio ? !audio.needsUnlock : false;
   }, 1000);
 }
 
