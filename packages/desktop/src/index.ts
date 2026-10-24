@@ -615,7 +615,7 @@ const runUpdateCheck = async (customUrl?: string) => {
 					currentVersion,
 					releaseNotes:
 						releaseNotesText(res.updateInfo.releaseNotes) ||
-						'• Live cricket scoring and broadcast stability updates\n• Automatic in-app installer updates\n• Red, White & Blue studio broadcast look',
+						'• Live Commentary Audio routing (exclusive to Preview & Pop-out windows, no background echo)\n• Stadium Crowd Audio Station with individual sound track volume sliders (0%-100%), mute & reset\n• Calibrated Win Predictor with accurate batting and chasing team match analytics\n• Audio Monitor headphone output control and toggle\n• Direct in-app update installer to version 1.1.0',
 					downloadUrl: '',
 				};
 			}
@@ -628,7 +628,7 @@ const runUpdateCheck = async (customUrl?: string) => {
 		const targetUrl =
 			customUrl ||
 			(serverUrl
-				? `${serverUrl}/api/app/update-check`
+				? `${serverUrl}/api/app/update-check?current=${encodeURIComponent(currentVersion)}`
 				: 'https://api.github.com/repos/EmmaRose1122/Stump-Cast-Studio/releases/latest');
 		const res = await fetch(targetUrl, {
 			signal: AbortSignal.timeout(5000),
@@ -646,14 +646,15 @@ const runUpdateCheck = async (customUrl?: string) => {
 				html_url?: string;
 			};
 			if (data.latestVersion) {
+				const isNewer = isVersionNewer(data.latestVersion, currentVersion);
 				return {
-					updateAvailable: Boolean(data.updateAvailable),
+					updateAvailable: Boolean(data.updateAvailable ?? isNewer),
 					version: data.latestVersion,
 					latestVersion: data.latestVersion,
 					currentVersion,
 					releaseNotes:
 						data.releaseNotes ||
-						'• High-speed Cricbuzz & Crex match state scrapers\n• Red, White & Blue studio broadcast overlays\n• Direct in-app update installer',
+						'• Live Commentary Audio routing (exclusive to Preview & Pop-out windows, no background echo)\n• Stadium Crowd Audio Station with individual sound track volume sliders (0%-100%), mute & reset\n• Calibrated Win Predictor with accurate batting and chasing team match analytics\n• Audio Monitor headphone output control and toggle\n• Direct in-app update installer to version 1.1.0',
 					downloadUrl: data.downloadUrl ?? '',
 				};
 			}

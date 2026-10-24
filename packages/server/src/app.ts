@@ -181,33 +181,43 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
   };
 
   fastify.get('/api/app/update-check', async (req) => {
-    const query = req.query as { simulate?: string; url?: string } | undefined;
+    const query = req.query as { simulate?: string; url?: string; current?: string } | undefined;
+    const clientVer = query?.current?.trim() || (req.headers['x-stumpcast-version'] as string) || '';
+    const effectiveCurrent = clientVer || APP_VERSION;
     let latestVersion = APP_VERSION;
     let releaseNotes = '';
     let updateAvailable = false;
     let downloadUrl = '';
 
+    const v110Notes =
+      '• Live Commentary Audio routing (exclusive to Preview & Pop-out windows, no background echo)\n• Stadium Crowd Audio Station with individual sound track volume sliders (0%-100%), mute & reset\n• Calibrated Win Predictor with realistic batting and chasing team match analytics\n• Audio Monitor headphone output control and toggle\n• Direct in-app update installer to version 1.1.0';
+
     // Helper: returns true if candidate version is strictly newer than current
     const isNewerThan = (current: string, candidate: string) => {
-      const [cMaj = 0, cMin = 0, cPat = 0] = current.split('.').map(Number);
-      const [nMaj = 0, nMin = 0, nPat = 0] = candidate.split('.').map(Number);
-      return nMaj > cMaj || (nMaj === cMaj && nMin > cMin) || (nMaj === cMaj && nMin === cMin && nPat > cPat);
+      const cleanCur = current.replace(/^v/, '').split('.').map(Number);
+      const cleanCand = candidate.replace(/^v/, '').split('.').map(Number);
+      for (let i = 0; i < Math.max(cleanCur.length, cleanCand.length); i++) {
+        const c = cleanCur[i] ?? 0;
+        const n = cleanCand[i] ?? 0;
+        if (n > c) return true;
+        if (n < c) return false;
+      }
+      return false;
     };
 
     // Simulate block runs FIRST so it always wins
     if (query?.simulate === '1' || simulatedUpdate || process.env.STUMPCAST_UPDATE_SIMULATE === '1') {
       return {
-        currentVersion: APP_VERSION,
-        latestVersion: '1.0.4',
+        currentVersion: effectiveCurrent,
+        latestVersion: '1.1.0',
         updateAvailable: true,
-        releaseNotes:
-          '• Direct In-App Desktop Updater with live transfer progress bar\n• Ultra-fast Cricbuzz & Crex match state scrapers\n• White, Royal Blue & Cricket Orange studio broadcast look\n• Responsive operator control room layout\n• Automatic background installer updates',
+        releaseNotes: v110Notes,
         downloadUrl: '/api/app/update-download-file',
-        fileSize: 140364848,
+        fileSize: 264183336,
       };
     }
 
-    // Step 1: Check local release/latest.yml — only apply if strictly newer than APP_VERSION
+    // Step 1: Check local release/latest.yml
     const latestYmlCandidates = [
       path.resolve(process.cwd(), 'release', 'latest.yml'),
       path.resolve(import.meta.dirname, '..', '..', '..', 'release', 'latest.yml'),
@@ -222,12 +232,15 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
         const verMatch = content.match(/version:\s*([0-9.]+)/i);
         if (verMatch && verMatch[1]) {
           const fileVer = verMatch[1].trim();
-          if (isNewerThan(APP_VERSION, fileVer)) {
-            latestVersion = fileVer;
+          latestVersion = fileVer;
+          downloadUrl = '/api/app/update-download-file';
+          releaseNotes =
+            fileVer === '1.1.0'
+              ? v110Notes
+              : '• Complete White, Royal Blue & Cricket Orange broadcast design\n• Ultra-fast Cricbuzz & Crex match state scrapers\n• Fixed button contrast & responsive broadcast layout\n• Direct in-app update installer to version ' + fileVer;
+
+          if (isNewerThan(effectiveCurrent, fileVer)) {
             updateAvailable = true;
-            downloadUrl = '/api/app/update-download-file';
-            releaseNotes =
-              '• Complete White, Royal Blue & Cricket Orange broadcast design\n• Ultra-fast Cricbuzz & Crex match state scrapers\n• Fixed button contrast & responsive broadcast layout\n• Direct in-app update installer to version ' + fileVer;
           }
         }
       } catch {
@@ -236,7 +249,6 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
     }
 
     // Step 2: Check GitHub — only override if GitHub has something NEWER than what we already found
-
     try {
       const checkUrl =
         query?.url ||
@@ -265,21 +277,19 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
           )?.browser_download_url;
 
         if (data.latestVersion) {
-          // Custom update server: only apply if newer than our current best
           if (isNewerThan(latestVersion, data.latestVersion)) {
             latestVersion = data.latestVersion;
             releaseNotes = data.releaseNotes ?? '';
-            updateAvailable = Boolean(data.updateAvailable);
+            updateAvailable = isNewerThan(effectiveCurrent, data.latestVersion);
             downloadUrl = findExeAsset(data.assets) ?? '/api/app/update-download-file';
           }
         } else if (data.tag_name) {
           const ghVer = data.tag_name.replace(/^v/, '');
-          // Only apply GitHub version if it is strictly newer than our current best candidate
           if (isNewerThan(latestVersion, ghVer)) {
             latestVersion = ghVer;
             releaseNotes = data.body ?? '';
             downloadUrl = findExeAsset(data.assets) ?? '/api/app/update-download-file';
-            updateAvailable = isNewerThan(APP_VERSION, ghVer);
+            updateAvailable = isNewerThan(effectiveCurrent, ghVer);
           }
         }
       }
@@ -288,7 +298,7 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
     }
 
     return {
-      currentVersion: APP_VERSION,
+      currentVersion: effectiveCurrent,
       latestVersion,
       updateAvailable,
       releaseNotes,
@@ -296,15 +306,14 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
     };
   });
 
-  fastify.get('/api/app/update-download-file', async (_req, reply) => {
-    // Newest installer that is strictly newer than the running build. This used to be a fixed
-    // filename list that began at Setup-1.0.7.exe, so an app already on 1.0.9 downloaded and
-    // installed 1.0.7 when the operator pressed Update - a downgrade dressed as an update.
-    const hit = findNewestInstaller(installerDirs({ moduleDir: import.meta.dirname }), APP_VERSION);
+  fastify.get('/api/app/update-download-file', async (req, reply) => {
+    const query = req.query as { current?: string } | undefined;
+    const clientMin = query?.current?.trim() || (req.headers['x-stumpcast-version'] as string) || '1.0.0';
+    const hit = findNewestInstaller(installerDirs({ moduleDir: import.meta.dirname }), clientMin);
     if (!hit) {
       return reply.code(404).send({
-        error: `No installer newer than ${APP_VERSION} has been built yet`,
-        currentVersion: APP_VERSION,
+        error: `No installer newer than ${clientMin} has been built yet`,
+        currentVersion: clientMin,
       });
     }
     const stat = fs.statSync(hit.file);
@@ -323,13 +332,10 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
     ];
     const target = candidates.find((f) => fs.existsSync(f));
     if (!target) return reply.code(404).send({ error: 'latest.yml not found' });
-    // electron-updater treats whatever this file advertises as "the newest release". Serving a
-    // stale one would point the desktop updater at an older build, so it is withheld unless the
-    // version inside really is newer than the one running here.
     const advertised = /version:\s*([0-9.]+)/i.exec(fs.readFileSync(target, 'utf8'))?.[1];
-    if (advertised && compareVersions(advertised, APP_VERSION) <= 0) {
+    if (advertised && compareVersions(advertised, APP_VERSION) < 0) {
       return reply.code(404).send({
-        error: `latest.yml advertises ${advertised}, which is not newer than ${APP_VERSION}`,
+        error: `latest.yml advertises ${advertised}, which is older than ${APP_VERSION}`,
         currentVersion: APP_VERSION,
       });
     }
@@ -343,7 +349,7 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
     return {
       simulated: simulatedUpdate,
       currentVersion: APP_VERSION,
-      latestVersion: simulatedUpdate ? '1.0.4' : APP_VERSION,
+      latestVersion: simulatedUpdate ? '1.1.0' : APP_VERSION,
     };
   });
 
@@ -382,14 +388,14 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
     };
   });
 
-  fastify.post('/api/app/update-install', async (_req, reply) => {
-    // Same rule as the download route: only an installer newer than this build, so "Install" can
-    // never quietly put the operator back on an older release.
-    const hit = findNewestInstaller(installerDirs({ moduleDir: import.meta.dirname }), APP_VERSION);
+  fastify.post('/api/app/update-install', async (req, reply) => {
+    const query = req.query as { current?: string } | undefined;
+    const clientMin = query?.current?.trim() || (req.headers['x-stumpcast-version'] as string) || '1.0.0';
+    const hit = findNewestInstaller(installerDirs({ moduleDir: import.meta.dirname }), clientMin);
     if (!hit) {
       return reply.code(409).send({
-        error: `No installer newer than ${APP_VERSION} is available`,
-        currentVersion: APP_VERSION,
+        error: `No installer newer than ${clientMin} is available`,
+        currentVersion: clientMin,
       });
     }
     try {

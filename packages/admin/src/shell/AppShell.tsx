@@ -224,14 +224,34 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
         }
       }
       try {
-        const res = await fetch('/api/app/update-check');
+        const clientVer = versionQuery.data || (typeof window !== 'undefined' && (window as unknown as { stumpcast?: { version?: string } }).stumpcast?.version) || '';
+        const url = clientVer ? `/api/app/update-check?current=${encodeURIComponent(clientVer)}` : '/api/app/update-check';
+        const res = await fetch(url);
         if (res.ok) {
-          return (await res.json()) as {
+          const data = (await res.json()) as {
             updateAvailable: boolean;
             latestVersion: string;
             currentVersion: string;
             releaseNotes: string;
             downloadUrl: string;
+          };
+          const cur = clientVer || data.currentVersion;
+          const isNewer = (lat: string, curVer: string) => {
+            const pa = lat.replace(/^v/, '').split('.').map(Number);
+            const pb = curVer.replace(/^v/, '').split('.').map(Number);
+            for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+              const a = pa[i] ?? 0;
+              const b = pb[i] ?? 0;
+              if (a > b) return true;
+              if (a < b) return false;
+            }
+            return false;
+          };
+          const hasUpdate = Boolean(data.updateAvailable || (data.latestVersion && cur && isNewer(data.latestVersion, cur)));
+          return {
+            ...data,
+            currentVersion: cur,
+            updateAvailable: hasUpdate,
           };
         }
       } catch {
@@ -1047,7 +1067,7 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
                 </p>
                 <div className="text-xs text-slate-700 whitespace-pre-wrap leading-relaxed space-y-1">
                   {updateQuery.data.releaseNotes ||
-                    '• Clean White, Blue & Orange broadcast studio layout\n• Direct In-App Desktop Updater with live transfer progress bar\n• Fast Cricbuzz & Crex match state scrapers\n• Responsive control room layout'}
+                    '• Live Commentary Audio routing (exclusive to Preview & Pop-out windows, no background echo)\n• Stadium Crowd Audio Station with individual sound track volume sliders (0%-100%), mute & reset\n• Calibrated Win Predictor with accurate batting and chasing team match analytics\n• Audio Monitor headphone output control and toggle\n• Direct in-app update installer to version 1.1.0'}
                 </div>
               </div>
 
