@@ -5064,7 +5064,19 @@
     layoutVariant: external_exports.object({
       scorePosition: external_exports.enum(["top", "bottom"]),
       playerCardStyle: external_exports.enum(["cutout", "badge", "badge-right", "round-badge", "mirrored"]),
-      boundaryStyle: external_exports.string().min(1)
+      boundaryStyle: external_exports.string().min(1),
+      middleLayout: external_exports.enum([
+        "left-stats",
+        "left-stats-projected",
+        "left-stats-partnership",
+        "right-stats",
+        "right-stats-projected",
+        "right-stats-striker",
+        "right-cluster-recent",
+        "right-cluster-video",
+        "right-cluster-partnership"
+      ]).default("left-stats"),
+      playerOrder: external_exports.enum(["striker-left", "bowler-left", "bowler-middle"]).default("striker-left")
     }),
     motion: external_exports.object({
       entrance: external_exports.enum([
@@ -5479,7 +5491,9 @@
     layoutVariant: {
       scorePosition: "top",
       playerCardStyle: "cutout",
-      boundaryStyle: "split-bar"
+      boundaryStyle: "split-bar",
+      middleLayout: "left-stats",
+      playerOrder: "bowler-left"
     },
     motion: {
       entrance: "slide",
@@ -5528,7 +5542,9 @@
     layoutVariant: {
       scorePosition: "bottom",
       playerCardStyle: "badge-right",
-      boundaryStyle: "edge-flash"
+      boundaryStyle: "edge-flash",
+      middleLayout: "right-cluster-recent",
+      playerOrder: "striker-left"
     },
     motion: {
       entrance: "rise",
@@ -5577,7 +5593,9 @@
     layoutVariant: {
       scorePosition: "bottom",
       playerCardStyle: "round-badge",
-      boundaryStyle: "split-bar"
+      boundaryStyle: "split-bar",
+      middleLayout: "left-stats",
+      playerOrder: "striker-left"
     },
     motion: {
       entrance: "glitch",
@@ -5626,7 +5644,9 @@
     layoutVariant: {
       scorePosition: "top",
       playerCardStyle: "mirrored",
-      boundaryStyle: "glow-ring"
+      boundaryStyle: "glow-ring",
+      middleLayout: "left-stats",
+      playerOrder: "bowler-left"
     },
     motion: {
       entrance: "iris",
@@ -5675,7 +5695,9 @@
     layoutVariant: {
       scorePosition: "top",
       playerCardStyle: "badge-right",
-      boundaryStyle: "edge-flash"
+      boundaryStyle: "edge-flash",
+      middleLayout: "right-stats",
+      playerOrder: "bowler-middle"
     },
     motion: {
       entrance: "blinds",
@@ -5724,7 +5746,9 @@
     layoutVariant: {
       scorePosition: "bottom",
       playerCardStyle: "cutout",
-      boundaryStyle: "banner-sweep"
+      boundaryStyle: "banner-sweep",
+      middleLayout: "left-stats",
+      playerOrder: "striker-left"
     },
     motion: {
       entrance: "curtain",
@@ -5773,7 +5797,9 @@
     layoutVariant: {
       scorePosition: "bottom",
       playerCardStyle: "mirrored",
-      boundaryStyle: "spark"
+      boundaryStyle: "spark",
+      middleLayout: "left-stats-projected",
+      playerOrder: "bowler-left"
     },
     motion: {
       entrance: "flip",
@@ -5822,7 +5848,9 @@
     layoutVariant: {
       scorePosition: "top",
       playerCardStyle: "cutout",
-      boundaryStyle: "split-bar"
+      boundaryStyle: "split-bar",
+      middleLayout: "left-stats",
+      playerOrder: "bowler-middle"
     },
     motion: {
       entrance: "unfold",
@@ -5871,7 +5899,9 @@
     layoutVariant: {
       scorePosition: "bottom",
       playerCardStyle: "mirrored",
-      boundaryStyle: "spark"
+      boundaryStyle: "spark",
+      middleLayout: "right-cluster-video",
+      playerOrder: "bowler-middle"
     },
     motion: {
       entrance: "skew",
@@ -5920,7 +5950,9 @@
     layoutVariant: {
       scorePosition: "bottom",
       playerCardStyle: "badge-right",
-      boundaryStyle: "glow-ring"
+      boundaryStyle: "glow-ring",
+      middleLayout: "left-stats",
+      playerOrder: "striker-left"
     },
     motion: {
       entrance: "pop",
@@ -5969,7 +6001,9 @@
     layoutVariant: {
       scorePosition: "top",
       playerCardStyle: "mirrored",
-      boundaryStyle: "edge-flash"
+      boundaryStyle: "edge-flash",
+      middleLayout: "right-stats-striker",
+      playerOrder: "bowler-left"
     },
     motion: {
       entrance: "drop",
@@ -6018,7 +6052,9 @@
     layoutVariant: {
       scorePosition: "top",
       playerCardStyle: "round-badge",
-      boundaryStyle: "sweeping"
+      boundaryStyle: "sweeping",
+      middleLayout: "left-stats-partnership",
+      playerOrder: "bowler-left"
     },
     motion: {
       entrance: "fade",
@@ -6067,7 +6103,9 @@
     layoutVariant: {
       scorePosition: "bottom",
       playerCardStyle: "round-badge",
-      boundaryStyle: "corner-tag"
+      boundaryStyle: "corner-tag",
+      middleLayout: "right-cluster-video",
+      playerOrder: "striker-left"
     },
     motion: {
       entrance: "swing",
@@ -6116,7 +6154,9 @@
     layoutVariant: {
       scorePosition: "top",
       playerCardStyle: "cutout",
-      boundaryStyle: "glow-ring"
+      boundaryStyle: "glow-ring",
+      middleLayout: "left-stats",
+      playerOrder: "bowler-middle"
     },
     motion: {
       entrance: "blur",
@@ -6165,7 +6205,9 @@
     layoutVariant: {
       scorePosition: "bottom",
       playerCardStyle: "round-badge",
-      boundaryStyle: "corner-tag"
+      boundaryStyle: "corner-tag",
+      middleLayout: "left-stats",
+      playerOrder: "bowler-left"
     },
     motion: {
       entrance: "zoom-out",
@@ -6214,7 +6256,9 @@
     layoutVariant: {
       scorePosition: "top",
       playerCardStyle: "mirrored",
-      boundaryStyle: "edge-flash"
+      boundaryStyle: "edge-flash",
+      middleLayout: "right-stats-projected",
+      playerOrder: "striker-left"
     },
     motion: {
       entrance: "slide-right",
@@ -6263,7 +6307,9 @@
     layoutVariant: {
       scorePosition: "bottom",
       playerCardStyle: "cutout",
-      boundaryStyle: "spark"
+      boundaryStyle: "spark",
+      middleLayout: "right-cluster-recent",
+      playerOrder: "bowler-left"
     },
     motion: {
       entrance: "stretch",
@@ -6312,7 +6358,9 @@
     layoutVariant: {
       scorePosition: "top",
       playerCardStyle: "round-badge",
-      boundaryStyle: "edge-flash"
+      boundaryStyle: "edge-flash",
+      middleLayout: "left-stats",
+      playerOrder: "striker-left"
     },
     motion: {
       entrance: "diamond",
@@ -6361,7 +6409,9 @@
     layoutVariant: {
       scorePosition: "bottom",
       playerCardStyle: "cutout",
-      boundaryStyle: "gold-flare"
+      boundaryStyle: "gold-flare",
+      middleLayout: "left-stats",
+      playerOrder: "bowler-middle"
     },
     motion: {
       entrance: "zoom",
@@ -6410,7 +6460,9 @@
     layoutVariant: {
       scorePosition: "bottom",
       playerCardStyle: "badge-right",
-      boundaryStyle: "edge-flash"
+      boundaryStyle: "edge-flash",
+      middleLayout: "left-stats",
+      playerOrder: "striker-left"
     },
     motion: {
       entrance: "spin",
@@ -6459,7 +6511,9 @@
     layoutVariant: {
       scorePosition: "bottom",
       playerCardStyle: "badge-right",
-      boundaryStyle: "burst"
+      boundaryStyle: "burst",
+      middleLayout: "left-stats",
+      playerOrder: "bowler-middle"
     },
     motion: {
       entrance: "drop",
@@ -6508,7 +6562,9 @@
     layoutVariant: {
       scorePosition: "top",
       playerCardStyle: "badge-right",
-      boundaryStyle: "glow-ring"
+      boundaryStyle: "glow-ring",
+      middleLayout: "right-cluster-partnership",
+      playerOrder: "bowler-middle"
     },
     motion: {
       entrance: "zoom",
@@ -6557,7 +6613,9 @@
     layoutVariant: {
       scorePosition: "top",
       playerCardStyle: "round-badge",
-      boundaryStyle: "edge-flash"
+      boundaryStyle: "edge-flash",
+      middleLayout: "left-stats",
+      playerOrder: "striker-left"
     },
     motion: {
       entrance: "pop",
