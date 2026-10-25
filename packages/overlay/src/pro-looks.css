@@ -364,6 +364,46 @@ html[data-design-bar='ticker'] #stage[data-layout] .sb-crest {
 html[data-design-bar='ticker'] #stage[data-layout] .sb-brand-pill {
   display: inline-flex !important;
 }
+/* Arena keeps the ticker on one 124px row; the inline score carries the number so the strip stays
+   a single line instead of stacking a second score block under the team name. */
+html[data-design-bar='ticker'] #stage[data-layout='arena'] .sb-bat .sb-name,
+html[data-design-bar='ticker'] #stage[data-layout='arena'] .sb-bowl .sb-name {
+  font-size: 22px !important;
+}
+html[data-design-bar='ticker'] #stage[data-layout='arena'] .sb-bat .sb-live-row {
+  margin-top: 0 !important;
+  gap: 10px !important;
+}
+html[data-design-bar='ticker'] #stage[data-layout='arena'] .sb-bat .sb-score-inline {
+  font-size: 54px !important;
+}
+html[data-design-bar='ticker'] #stage[data-layout='arena'] .sb-bat .sb-history {
+  font-size: 24px !important;
+}
+html[data-design-bar='ticker'] #stage[data-layout='arena'] .sb-overs-inline .sb-overs-num {
+  font-size: 22px !important;
+}
+html[data-design-bar='ticker'] #stage[data-layout='arena'] .sb-bowl .sb-history {
+  font-size: 38px !important;
+}
+html[data-design-bar='ticker'] #stage[data-layout='arena'] .sb-crest {
+  width: 56px !important;
+  height: 40px !important;
+}
+html[data-design-bar='ticker'] #stage[data-layout='arena'] .sb-meta {
+  min-width: 150px !important;
+  height: auto !important;
+  min-height: 0 !important;
+  align-self: center;
+  padding: 0 10px !important;
+  overflow: hidden;
+}
+html[data-design-bar='ticker'] #stage[data-layout='arena'] .sb-need-val {
+  font-size: 46px !important;
+}
+html[data-design-bar='ticker'] #stage[data-layout='arena'] .sb-brand-pill {
+  display: none !important;
+}
 
 html[data-design-bar='floating'] #stage[data-layout] .c-scorebar {
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);

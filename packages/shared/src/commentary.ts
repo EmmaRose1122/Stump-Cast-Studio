@@ -109,97 +109,81 @@ const HINDI: PhraseBook = {
 
 const URDU: PhraseBook = {
   dot: [
-    'خالی گیند! {o} نے بالکل درست لینت ڈالی۔',
-    'ڈاٹ! {b} کوئی رن نہیں بنا سکے۔',
-    'خوبصورت ڈیلیوری، {b} مایوس نظر آئے۔',
-    'گیند ٹھیک ہوئی لیکن {b} کے ہاتھ سے چھوٹ گئی۔',
-    'کوئی رن نہیں — {o} کا کنٹرول برابر ہے۔',
-    'عمدہ کی گیند تھی، اور {b} نے اسے مزاح کا موقع بنا دیا۔',
-    '{b} نے گیند کو پیٹ میں روکا، {o} کو کچھ نہیں ملا۔',
+    'ڈاٹ بال! {o} نے بہترین لائن اور لینتھ پر گیند رکھی۔',
+    'کوئی رن نہیں بن سکا، {b} گیند کو سمجھ نہ پائے۔',
+    'شاندار گیند! {o} کا پورا کنٹرول، بلے باز بے بس۔',
+    'سیدھی فیلڈر کے ہاتھوں میں، کوئی رن نہیں ملے گا۔',
+    'خوبصورت ڈیلیوری، بلے باز دفاعی انداز اپنانے پر مجبور۔',
   ],
   one: [
-    'ایک رن۔ {b} نے جگہ دیکھی اور دوڑ لگا دی۔',
-    'سنگل لے لیا — سمجھداری بھرا فیصلہ۔',
-    'ایک رن کا اضافہ، ساتھی بھی آگے بڑھ گیا۔',
-    '{b} نے سنگل لے کر اسٹرائیک برقرار رکھی۔',
-    'نرم گیند، ایک رن — رنز کا اکٹھا ہونا شروع ہو گیا۔',
+    'ایک رن! {b} نے گیپ میں کھیل کر سنگل مکمل کیا۔',
+    'آسانی کے ساتھ سنگل، اور اسٹرائیک روٹیٹ ہو گئی۔',
+    'نرم ہاتھوں سے پش کیا، ایک قیمتی رن کا اضافہ۔',
+    'ایک رن کے ساتھ شراکت داری آگے بڑھتی ہوئی۔',
   ],
   two: [
-    'دو رن! فیلڈنگ تھوڑی سست پڑی۔',
-    'ایک دو لے کر {b} نے سٹرائیک بدل لی۔',
-    'دو رن! گہری فیلڈنگ میں گیند تھوڑی دور گئی۔',
+    'گیپ میں کھیلا، دو رنز کی کال اور آسانی سے دو مکمل!',
+    'تیز رننگ بٹوین دی وکٹس! دو رنز حاصل کر لیے۔',
+    'عمدہ پلیسمنٹ، فیلڈر گیند تک پہنچے تب تک دو رنز بن گئے۔',
   ],
   three: [
-    'تین رن! گیند کونے میں گئی اور {b} نے پوری دوڑ لگائی۔',
-    'شاندار پلیسمنٹ — تین رن ملے۔',
-    'تین رن! {b} نے ہمت نہیں ہاری، میدان بھر گیا۔',
+    'گیند ڈیپ میں گئی، زبردست رننگ اور تین رنز مکمل!',
+    'بہترین پلیسمنٹ! بلے بازوں نے دوڑ کر تین رنز بنائے!',
   ],
   four: [
-    'شاباش! چوکا! {b} کا شاٹ براہ راست باؤنڈری پار۔',
-    'واہ! کتنی خوبصورت ڈرائیو، {b} کا چوکا۔',
-    'سرحدی لکیر چھو لی — یہ {b} کا چوکا ہے۔',
-    'گیند کے پیچھے سے نکلی، اور {b} نے چوکا جڑ دیا۔',
-    'یہ چوکا ان کا پہلا نام ہے — {b} کی تیاری دیکھیے!',
-    'عمدہ ہٹا کر مارا، {o} کے لیے ایک لفظ میں چار رن۔',
+    'شاندار چوکا! {b} کا دلکش شاٹ اور گیند باؤنڈری لائن پار کر گئی!',
+    'خوبصورت ٹائمنگ! {b} کے بلے سے نکلی گیند چار رنز کے لیے باہر!',
+    'پرفیکٹ شاٹ! فیلڈر بے بس، {b} کے کھاتے میں ایک اور چوکا!',
+    'کراؤڈ جھوم اٹھا! {b} کی شاندار کور ڈرائیو اور چار رنز!',
   ],
   six: [
-    'چھکا! {b} نے گیند سیدھی اسٹینڈ میں بھیج دی!',
-    'کیا مارا! {o} کی گیند ہوا میں، {b} کا چھکا!',
-    'چھ رن! {b} نے بالکل صاف میڈ وکٹ کے اوپر بھیجا۔',
-    'چھ رن! {b} نے گیند ایسے ماری کہ وکٹ کیپ بھی نہیں پہنچ سکی۔',
-    'چھ رن — {b} نے گیند ایسی ماری کہ ریڈز کے پیچھے ہی رہ گئی۔',
+    'اور یہ شاندار چھکا! {b} نے گیند کو کراؤڈ میں پہنچا دیا!',
+    'بلند و بالا چھکا! {b} کے بلے سے نکلی گیند سیدھی باؤنڈری کے پار، زبردست ہٹ!',
+    'آؤٹ آف دی پارک! کیا زبردست ٹائمنگ ہے {b} کی، مڈ وکٹ کے اوپر سے چھ رنز!',
+    'کمال کا شاٹ! {b} کا فلک آف دی رسٹس اور چھ رنز ملیں گے!',
   ],
-  runs: ['{n} رن ملتے ہیں {b} کو۔'],
+  runs: ['{n} رنز ملیں گے {b} کو۔'],
   wide: [
-    'وائڈ۔ {o} کی گیند تھوڑی باہر رہی۔',
-    'ایکسٹرا رن، بلے باز کو ایک اور گیند ملے گی۔',
-    'وائڈ! {o} کے لیے یہ گیند بے فائدہ رہی۔',
+    'وائڈ بال! {o} کی گیند آف اسٹمپ سے کافی باہر۔',
+    'امپائر کا اشارہ وائڈ بال، ایکسٹرا رن کا اضافہ۔',
   ],
-  wideMany: ['وائڈ، اور {n} ایکسٹرا رن — {o} کو قیمتی گیند گئی۔'],
+  wideMany: ['وائڈ گیند، اور ساتھ میں {n} اضافی رنز، مہنگی ڈلیوری {o} کے لیے۔'],
   noball: [
-    'نو بال! {o} کی لائن چوک گئی۔',
-    'نو بال پر {b} نے بھرپور سزا دی!',
-    'نو بال — {b} کے لیے مفت گیند، اور {o} کے لیے اضافی دباؤ۔',
+    'نو بال! بولر نے کریز اوور اسٹیپ کی، اب فری ہٹ کا موقع!',
+    'نو بال کا اشارہ! {b} کو ملے گی فری ہٹ!',
   ],
   wicket: [
-    'اور یہ وکٹ! {b} آؤٹ — {o} کی گیند نے کام کر دیا۔',
-    'بڑا لمحہ! {b} کا شکار، {o} نے شاندار گیند ڈالی۔',
-    'آؤٹ! {b} کو {o} نے پھنسا لیا۔',
-    'یہ بڑی وکٹ ہے! {b} کا کل کا اننگز یہیں ختم ہو گیا۔',
-    'گلندی گیند تھی، {b} اس کا شکار ہو گئے — {b} آؤٹ!',
+    'اور یہ آؤٹ! بڑی وکٹ گر گئی، {b} پویلین واپس!',
+    'کلین بولڈ! {o} کی جادوئی گیند، وکٹیں بکھر گئیں!',
+    'کیچ آؤٹ! گیند سیدھی فیلڈر کے ہاتھوں میں، {o} کو مل گئی اہم کامیابی!',
+    'بہت بڑا بریک تھرو! {b} کی اننگز کا خاتمہ!',
   ],
   fifty: [
-    'نصف صدی مکمل! {b} کی پرسکون مگر مؤثر اننگز۔',
-    'پچاس رن! {b} نے رن اپ آرامی اور مسلسل بہت اچھا رکھا۔',
-    'آدھی سنچری! {b} کی بیٹنگ میں کلاس اور اعتماد دونوں ہیں۔',
+    'شاندار نصف سنچری مکمل! {b} نے کمال کی بیٹنگ کرتے ہوئے پچاس رنز بنا لیے!',
+    'ففٹی مکمل! بلے باز نے اپنا بلا فضا میں بلند کیا، کراؤڈ داد دے رہا ہے!',
   ],
   hundred: [
-    'سنچری! {b} کی اننگز نے میچ کا رنگ بدل دیا۔',
-    'سو رن! {b} کے لیے یہ اننگز اسٹیڈیم کی زمین کا مال ہے۔',
+    'اور یہ شاندار سنچری! {b} کی تاریخی اور لاجواب بیٹنگ، سو رنز مکمل!',
+    'سنچری! اسٹیڈیم میں کھڑے ہو کر شائقین {b} کو داد دے رہے ہیں!',
   ],
   overEnd: [
-    'اوور {n} مکمل۔ اسکور {s}۔',
-    'یہ اوور ختم — اسکور بورڈ {s}۔',
-    'اوور {n} گزر گیا، سکیم {s} پر پہنچ گئی ہے۔',
+    'اوور {n} مکمل ہوا، اسکور بورڈ پر مجموعی اسکور ہے {s}۔',
+    'اوور ختم، اس وقت ٹیم کا مجموعی اسکور {s} ہے۔',
   ],
-  drs: ['ریویو لیا گیا! فیصلہ اب تھرڈ امپائر کے پاس ہے۔'],
+  drs: ['ریویو لیا گیا ہے! فیصلہ اب تھرڈ امپائر کے پاس جا رہا ہے۔'],
   inningsEnd: [
-    'اننگز ختم! اب اگلی ٹیم میدان میں آئے گی۔',
-    'پہلی اننگز مکمل، اب لے چلنے کا وقت ہے۔',
+    'اننگز کا اختتام! اب دوسری ٹیم ہدف کا تعاقب کرنے میدان میں آئے گی۔',
   ],
   newBatter: [
-    'نئے بلے باز {b} میدان میں آ گئے ہیں۔',
-    'ایک نئے بلے باز {b} کریز پر، اور نئی اننگز کا آغاز ہو گیا۔',
+    'نئے بلے باز {b} کریز پر پہنچ رہے ہیں۔',
   ],
   pressure: [
-    'اب رن ریٹ کا دباؤ بڑھ رہا ہے۔',
-    'اوور کم ہیں اور رن زیادہ — دباؤ واضح محسوس ہو رہا ہے۔',
-    'ہر گیند اب قیمتی ہے، {o} پر دباؤ بڑھتا جا رہا ہے۔',
+    'رن ریٹ کا دباؤ اب بڑھ رہا ہے، ہر گیند فیصلہ کن بن چکی ہے۔',
+    'اوورز کم ہیں اور رنز زیادہ، بیٹنگ سائیڈ پر دباؤ واضح ہے۔',
   ],
   control: [
-    'بیٹنگ قابو میں ہے، رن آ رہے ہیں۔',
-    'رن ریٹ ٹھیک ہے، دباؤ گیندبازوں پر ہے۔',
-    '{b} آرام سے کھیل رہے ہیں اور اوور اپنے حساب سے لے رہے ہیں۔',
+    'بلے باز پورے کنٹرول میں نظر آ رہے ہیں، اسکورنگ ریٹ بہت شاندار ہے۔',
+    'بیٹنگ سائیڈ میچ پر مکمل گرفت مضبوط کر چکی ہے۔',
   ],
 };
 
@@ -268,6 +252,54 @@ const maybeTail = (lang: CommentaryLanguage, s: MatchState): string => {
   return '';
 };
 
+/** Phonetic normalizer: turns English cricket abbreviations into spoken phonetic Urdu/Hindi so TTS engines speak naturally without stuttering. */
+export const normalizeCommentaryForSpeech = (text: string, lang: CommentaryLanguage = 'ur'): string => {
+  if (lang === 'ur') {
+    return text
+      .replace(/\bvs\b/gi, 'بمقابلہ')
+      .replace(/\bPAK\b/gi, 'پاکستان')
+      .replace(/\bENG\b/gi, 'انگلینڈ')
+      .replace(/\bIND\b/gi, 'انڈیا')
+      .replace(/\bAUS\b/gi, 'آسٹریلیا')
+      .replace(/\bNZ\b/gi, 'نیوزی لینڈ')
+      .replace(/\bSA\b/gi, 'جنوبی افریقہ')
+      .replace(/\bWI\b/gi, 'ویسٹ انڈیز')
+      .replace(/\bSL\b/gi, 'سری لنکا')
+      .replace(/\bBAN\b/gi, 'بنگلہ دیش')
+      .replace(/\bAFG\b/gi, 'افغانستان')
+      .replace(/\bLBW\b/gi, 'ایل بی ڈبلیو')
+      .replace(/\bDRS\b/gi, 'ڈی آر ایس')
+      .replace(/\bCRR\b/gi, 'کرنٹ رن ریٹ')
+      .replace(/\bRRR\b/gi, 'مطلوبہ رن ریٹ')
+      .replace(/\bODI\b/gi, 'او ڈی آئی')
+      .replace(/\bT20\b/gi, 'ٹی ٹوئنٹی')
+      .replace(/\bov(?:ers?)?\b/gi, 'اوورز')
+      .replace(/\bwkts?\b/gi, 'وکٹیں')
+      .replace(/\brun(?:s)?\b/gi, 'رنز');
+  }
+  if (lang === 'hi') {
+    return text
+      .replace(/\bvs\b/gi, 'बनाम')
+      .replace(/\bPAK\b/gi, 'पाकिस्तान')
+      .replace(/\bENG\b/gi, 'इंग्लैंड')
+      .replace(/\bIND\b/gi, 'भारत')
+      .replace(/\bAUS\b/gi, 'ऑस्ट्रेलिया')
+      .replace(/\bNZ\b/gi, 'न्यूजीलैंड')
+      .replace(/\bSA\b/gi, 'दक्षिण अफ्रीका')
+      .replace(/\bWI\b/gi, 'वेस्टइंडीज')
+      .replace(/\bSL\b/gi, 'श्रीलंका')
+      .replace(/\bBAN\b/gi, 'बांग्लादेश')
+      .replace(/\bAFG\b/gi, 'अफगानिस्तान')
+      .replace(/\bLBW\b/gi, 'एल बी डब्ल्यू')
+      .replace(/\bDRS\b/gi, 'डी आर एस')
+      .replace(/\bCRR\b/gi, 'करंट रन रेट')
+      .replace(/\bRRR\b/gi, 'जरूरी रन रेट')
+      .replace(/\bODI\b/gi, 'वनडे')
+      .replace(/\bT20\b/gi, 'टी-20');
+  }
+  return text;
+};
+
 /** One short line for a single delivery, so the voice is never silent between the big moments. */
 export function buildBallCommentary(s: MatchState, lang: CommentaryLanguage = 'hi'): string | null {
   const last = s.thisOver[s.thisOver.length - 1] ?? s.lastBalls[s.lastBalls.length - 1];
@@ -277,18 +309,21 @@ export function buildBallCommentary(s: MatchState, lang: CommentaryLanguage = 'h
   const o = s.bowler?.name ?? 'Bowler';
   const tail = maybeTail(lang, s);
 
-  if (last.wicket) return say(lang, book.wicket, { b, o }) + tail;
-  if (last.extras?.type === 'wide')
-    return say(lang, last.extras.runs > 1 ? book.wideMany : book.wide, { o, n: last.extras.runs });
-  if (last.extras?.type === 'noball')
-    return say(lang, book.noball, { b, o }) + (last.runs >= 4 ? ' ' + pick(book.six) : '');
-  if (last.runs === 0) return say(lang, book.dot, { b, o }) + tail;
-  if (last.runs === 1) return say(lang, book.one, { b }) + tail;
-  if (last.runs === 2) return say(lang, book.two, { b }) + tail;
-  if (last.runs === 3) return say(lang, book.three, { b }) + tail;
-  if (last.runs === 4) return say(lang, book.four, { b, o }) + tail;
-  if (last.runs === 6) return say(lang, book.six, { b, o }) + tail;
-  return say(lang, book.runs, { b, n: last.runs });
+  let out: string;
+  if (last.wicket) out = say(lang, book.wicket, { b, o }) + tail;
+  else if (last.extras?.type === 'wide')
+    out = say(lang, last.extras.runs > 1 ? book.wideMany : book.wide, { o, n: last.extras.runs });
+  else if (last.extras?.type === 'noball')
+    out = say(lang, book.noball, { b, o }) + (last.runs >= 4 ? ' ' + pick(book.six) : '');
+  else if (last.runs === 0) out = say(lang, book.dot, { b, o }) + tail;
+  else if (last.runs === 1) out = say(lang, book.one, { b }) + tail;
+  else if (last.runs === 2) out = say(lang, book.two, { b }) + tail;
+  else if (last.runs === 3) out = say(lang, book.three, { b }) + tail;
+  else if (last.runs === 4) out = say(lang, book.four, { b, o }) + tail;
+  else if (last.runs === 6) out = say(lang, book.six, { b, o }) + tail;
+  else out = say(lang, book.runs, { b, n: last.runs });
+
+  return normalizeCommentaryForSpeech(out, lang);
 }
 
 /** Broadcast commentary for an engine event, in the configured language. */
@@ -309,31 +344,43 @@ export function buildEventCommentary(
   const score = state ? `${state.score.runs}-${state.score.wkts}` : '';
   const tail = state ? maybeTail(lang, state) : '';
 
+  let out: string;
   switch (event.type) {
     case 'FOUR':
-      return say(lang, book.four, { b: batter, o: bowler }) + tail;
+      out = say(lang, book.four, { b: batter, o: bowler }) + tail;
+      break;
     case 'SIX':
-      return say(lang, book.six, { b: batter, o: bowler }) + tail;
+      out = say(lang, book.six, { b: batter, o: bowler }) + tail;
+      break;
     case 'WICKET':
-      return say(lang, book.wicket, { b: String(p.out ?? batter), o: bowler }) + tail;
+      out = say(lang, book.wicket, { b: String(p.out ?? batter), o: bowler }) + tail;
+      break;
     case 'FIFTY':
-      return say(lang, book.fifty, { b: batter });
+      out = say(lang, book.fifty, { b: batter });
+      break;
     case 'HUNDRED':
-      return say(lang, book.hundred, { b: batter });
+      out = say(lang, book.hundred, { b: batter });
+      break;
     case 'OVER_END': {
       const overNum =
         p.over !== undefined ? String(p.over) : state ? String(state.score.overs) : '';
-      return say(lang, book.overEnd, { n: overNum, s: score }) + tail;
+      out = say(lang, book.overEnd, { n: overNum, s: score }) + tail;
+      break;
     }
     case 'NEW_BATTER':
-      return say(lang, book.newBatter, { b: String(p.name ?? batter) });
+      out = say(lang, book.newBatter, { b: String(p.name ?? batter) });
+      break;
     case 'MILESTONE':
-      return p.message ? `${p.message}.` : `${batter} — ahlem mod par pahunche.`;
+      out = p.message ? `${p.message}.` : `${batter} — milestone reached.`;
+      break;
     case 'DRS':
-      return say(lang, book.drs);
+      out = say(lang, book.drs);
+      break;
     case 'INNINGS_END':
-      return say(lang, book.inningsEnd);
+      out = say(lang, book.inningsEnd);
+      break;
     default:
-      return p.text ? String(p.text) : `${event.type}`;
+      out = p.text ? String(p.text) : `${event.type}`;
   }
+  return normalizeCommentaryForSpeech(out, lang);
 }

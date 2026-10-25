@@ -188,7 +188,10 @@ export const rawToBaseState = (raw: RawUpdate, updatedAt: string): MatchState =>
   // the fixture order of the names has no relation to who batted first.
   const identityOf = (name: string): string =>
     resolveTeam(name)?.code ?? name.trim().toLowerCase();
-  const innings = f.innings.map((inn, i) => {
+  const format = inferFormat(raw);
+  const isLimited = format !== 'TEST';
+
+  const rawInningsList = f.innings.map((inn, i) => {
     const t =
       teams.find((x) => identityOf(x.name) === identityOf(inn.team)) ??
       teams[Math.min(i % 2, 1)]!;
@@ -200,6 +203,29 @@ export const rawToBaseState = (raw: RawUpdate, updatedAt: string): MatchState =>
       allOut: inn.wkts === 10,
     };
   });
+
+  // Deduplicate: in limited-overs a side only bats once. Drop duplicate rows for the same side
+  // or identical consecutive rows that represent duplicate selector extractions.
+  const innings: typeof rawInningsList = [];
+  for (const item of rawInningsList) {
+    if (isLimited && innings.some((prev) => prev.battingTeamId === item.battingTeamId)) {
+      const idx = innings.findIndex((prev) => prev.battingTeamId === item.battingTeamId);
+      if (idx >= 0) innings[idx] = { ...item, number: idx + 1 };
+      continue;
+    }
+    const prev = innings.at(-1);
+    if (
+      prev &&
+      prev.score.runs === item.score.runs &&
+      prev.score.wkts === item.score.wkts &&
+      prev.score.overs === item.score.overs &&
+      prev.score.balls === item.score.balls
+    ) {
+      continue;
+    }
+    innings.push({ ...item, number: innings.length + 1 });
+  }
+
   const current = innings.at(-1);
   const score = current?.score ?? { runs: 0, wkts: 0, overs: 0, balls: 0 };
 
@@ -252,10 +278,16 @@ export const rawToBaseState = (raw: RawUpdate, updatedAt: string): MatchState =>
   const thisOver = tokensToBalls(f.thisOver, score.overs, strikerId, bowler.playerId);
   const lastBalls = tokensToBalls(f.lastBalls, score.overs, strikerId, bowler.playerId).slice(-6);
 
-  const format = inferFormat(raw);
   // An adapter that had to invent the 0-0 of a match that has not started must not be allowed to
   // present it as a live innings.
   const started = innings.length > 0 && !f.preMatch;
+  const currentInnings = innings.length;
+  const isChase = isLimited
+    ? currentInnings >= 2 && innings[0]?.battingTeamId !== current?.battingTeamId
+    : currentInnings >= 2;
+  const target = isChase ? f.target : undefined;
+  const rrr = isChase ? f.rrr : undefined;
+
   return {
     id: raw.matchId,
     title: f.title ?? `${teams[0].name} v ${teams[1].name}`,
@@ -266,17 +298,17 @@ export const rawToBaseState = (raw: RawUpdate, updatedAt: string): MatchState =>
     toss: parseToss(f.toss, teams),
     teams,
     innings,
-    currentInnings: innings.length,
+    currentInnings,
     battingTeamId: current?.battingTeamId ?? teams[0].id,
     score,
-    target: f.target,
+    target,
     batters,
     bowler,
     lastBalls,
     thisOver,
     partnership: f.partnership ?? { runs: 0, balls: 0 },
     crr: f.crr ?? 0,
-    rrr: f.rrr,
+    rrr,
     day: f.day,
     session: sessionOf(f.session),
     result: f.resultText && inferStatus(raw, true) === 'result' ? f.resultText : undefined,

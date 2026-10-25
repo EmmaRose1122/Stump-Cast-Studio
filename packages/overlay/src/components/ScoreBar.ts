@@ -113,9 +113,12 @@ export class ScoreBar extends OverlayComponent {
     this.e.batShort.textContent = bat.short;
     this.e.bowl.textContent = bowl.name;
     this.e.bowlShort.textContent = bowl.short;
-    const previousBatInnings = s.innings
-      .filter((innings) => innings.battingTeamId === bat.id && innings.number !== s.currentInnings)
-      .map((innings) => scoreText(innings.score));
+    const previousBatInnings =
+      s.format === 'TEST'
+        ? s.innings
+            .filter((innings) => innings.battingTeamId === bat.id && innings.number !== s.currentInnings)
+            .map((innings) => scoreText(innings.score))
+        : [];
     const bowlingInnings = s.innings
       .filter((innings) => innings.battingTeamId === bowl.id)
       .map((innings) => scoreText(innings.score));
@@ -143,15 +146,14 @@ export class ScoreBar extends OverlayComponent {
     this.e.situation.textContent = sit ?? '';
     this.e.situation.hidden = sit === null;
 
-    if (s.target !== undefined) {
-      const needed = Math.max(0, s.target - s.score.runs);
-      if (needed === 0) {
+    if (s.target !== undefined && s.runsNeeded !== undefined && (s.currentInnings >= 2 || s.format === 'TEST')) {
+      if (s.runsNeeded === 0) {
         // A chase that is already won must not read "NEED 0".
         this.e.needLabel.textContent = 'TARGET';
         this.e.needVal.textContent = String(s.target);
       } else {
         this.e.needLabel.textContent = 'NEED';
-        this.e.needVal.textContent = String(needed);
+        this.e.needVal.textContent = String(s.runsNeeded);
       }
     } else if (s.lead !== undefined && s.lead < 0) {
       this.e.needLabel.textContent = 'NEED';
@@ -159,6 +161,9 @@ export class ScoreBar extends OverlayComponent {
     } else if (s.day !== undefined) {
       this.e.needLabel.textContent = `DAY ${s.day}`;
       this.e.needVal.textContent = (s.session || 'STUMPS').toUpperCase();
+    } else if (s.projected !== undefined && (s.currentInnings === 1 || s.target === undefined)) {
+      this.e.needLabel.textContent = 'PROJ';
+      this.e.needVal.textContent = String(s.projected);
     } else {
       this.e.needLabel.textContent = 'STATUS';
       this.e.needVal.textContent = s.status.toUpperCase();

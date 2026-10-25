@@ -239,6 +239,35 @@ describe('ScoreBar', () => {
     expect(situationText(lastOver)).not.toMatch(/off 0/);
     expect(situationText(lastOver)).toContain('need 1 to reach 160');
   });
+
+  it('never displays duplicate batHistory or NEED in 1st innings of limited-overs matches', () => {
+    const bar = new ScoreBar();
+    const stage = mount(bar);
+    const odi1stInn = deriveStats({
+      ...fixtures.t20,
+      format: 'ODI',
+      currentInnings: 1,
+      target: undefined,
+      score: { runs: 125, wkts: 4, overs: 23, balls: 1 },
+      innings: [
+        {
+          number: 1,
+          battingTeamId: fixtures.t20.teams[0]!.id,
+          score: { runs: 125, wkts: 4, overs: 23, balls: 1 },
+          declared: false,
+          allOut: false,
+        },
+      ],
+    });
+    bar.update(odi1stInn);
+    const text = stage.textContent!;
+    expect(text).not.toContain('&');
+    expect(text).not.toMatch(/NEED\s*1/);
+    const needLabel = stage.querySelector('.sb-need-label')?.textContent;
+    const needVal = stage.querySelector('.sb-need-val')?.textContent;
+    expect(needLabel).toBe('PROJ');
+    expect(needVal).toBe(String(odi1stInn.projected));
+  });
 });
 
 describe('ThisOver', () => {

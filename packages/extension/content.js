@@ -8675,6 +8675,13 @@
       }
       const oversOk = row.overs && row.overs.overs <= maxOvers ? row.overs : void 0;
       if (!oversOk) oversUnresolved = true;
+      if (!isTest && row.team && innings2.some((existing) => existing.team && existing.team.toLowerCase() === row.team.toLowerCase())) {
+        return;
+      }
+      const prevRow = rows[i - 1];
+      if (prevRow && row.score.runs === prevRow.score.runs && row.overs?.overs === prevRow.overs?.overs && row.overs?.balls === prevRow.overs?.balls) {
+        return;
+      }
       innings2.push({
         team: row.team,
         runs: row.score.runs,
@@ -9140,9 +9147,9 @@
           "inn1.team": { selectors: [".innings:first-child .team-name"] },
           "inn1.score": { selectors: [".innings:first-child .score"] },
           "inn1.overs": { selectors: [".innings:first-child .overs"] },
-          "inn2.team": { selectors: [".innings:last-child .team-name"] },
-          "inn2.score": { selectors: [".innings:last-child .score"] },
-          "inn2.overs": { selectors: [".innings:last-child .overs"] }
+          "inn2.team": { selectors: [".innings:nth-child(2) .team-name", ".innings:last-child:not(:first-child) .team-name"] },
+          "inn2.score": { selectors: [".innings:nth-child(2) .score", ".innings:last-child:not(:first-child) .score"] },
+          "inn2.overs": { selectors: [".innings:nth-child(2) .overs", ".innings:last-child:not(:first-child) .overs"] }
         }
       },
       squads: {

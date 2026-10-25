@@ -108,13 +108,27 @@ export const deriveStats = (base: MatchState): MatchState => {
     s.ballsLeft = Math.max(0, limit * 6 - bowled);
 
     // Target: provider value, else first-innings total + 1 when chasing.
-    if (s.target === undefined && s.currentInnings === 2 && s.innings[0]) {
-      s.target = s.innings[0].score.runs + 1;
-    }
-    if (s.target !== undefined) {
-      s.runsNeeded = Math.max(0, s.target - s.score.runs);
-      s.rrr = s.ballsLeft > 0 ? round(safeDiv(s.runsNeeded, s.ballsLeft) * 6) : undefined;
-      if (s.runsNeeded === 0) s.rrr = 0;
+    // In limited overs, 1st innings NEVER has a target or runsNeeded.
+    if (s.format !== 'TEST' && s.currentInnings <= 1) {
+      s.target = undefined;
+      s.runsNeeded = undefined;
+      s.rrr = undefined;
+    } else {
+      if (
+        s.target === undefined &&
+        s.currentInnings === 2 &&
+        s.innings[0] &&
+        s.innings[0].battingTeamId !== s.battingTeamId
+      ) {
+        s.target = s.innings[0].score.runs + 1;
+      }
+      if (s.target !== undefined && s.currentInnings >= 2) {
+        s.runsNeeded = Math.max(0, s.target - s.score.runs);
+        s.rrr = s.ballsLeft > 0 ? round(safeDiv(s.runsNeeded, s.ballsLeft) * 6) : undefined;
+        if (s.runsNeeded === 0) s.rrr = 0;
+      } else {
+        s.runsNeeded = undefined;
+      }
     }
 
     if (s.currentInnings === 1 || s.target === undefined) {

@@ -428,6 +428,20 @@ const normalise = (raw: Raw, prev: Prev | undefined, site = 'cricbuzz', url = ''
     // Overs are checked on their own so a broken score selector does not hide a good one.
     const oversOk = row.overs && row.overs.overs <= maxOvers ? row.overs : undefined;
     if (!oversOk) oversUnresolved = true;
+
+    // Prevent duplicate innings: in limited overs a team cannot bat twice, and identical consecutive rows are phantom reads.
+    if (!isTest && row.team && innings.some((existing) => existing.team && existing.team.toLowerCase() === row.team.toLowerCase())) {
+      return;
+    }
+    const prevRow = rows[i - 1];
+    if (
+      prevRow &&
+      row.score.runs === prevRow.score.runs &&
+      row.overs?.overs === prevRow.overs?.overs &&
+      row.overs?.balls === prevRow.overs?.balls
+    ) {
+      return;
+    }
     innings.push({
       team: row.team,
       runs: row.score.runs,

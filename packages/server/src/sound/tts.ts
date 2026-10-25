@@ -138,13 +138,14 @@ export class CommentaryTts {
     this.cacheDir = path.join(opts.cacheDir, 'commentary-tts');
   }
 
-  /** Which engine a new line would use right now. Priority: 1) Hugging Face XTTS, 2) Gemini, 3) Cloud / System */
+  /** Which engine a new line would use right now. Priority: 1) Hugging Face XTTS, 2) Gemini, 3) Cloud Voice, 4) System */
   async engine(lang: CommentaryLanguage = 'hi'): Promise<TtsEngine> {
     if (await this.xttsToken()) return 'xtts';
     if (await this.key()) return 'gemini';
+    if (this.opts.cloudFallback) return 'cloud';
     const sys = await this.systemEngine(lang);
     if (sys === 'system') return 'system';
-    return this.opts.cloudFallback ? 'cloud' : 'none';
+    return 'none';
   }
 
   /**
@@ -284,23 +285,23 @@ export class CommentaryTts {
     }
     const geminiReason = this.lastFailure;
 
-    // Priority 3: Desktop system voice if available for this script
-    if ((await this.systemEngine(line.lang)) === 'system') {
-      const system = await this.system(line, file);
-      if (system && system.length >= MIN_USEFUL_BYTES) {
-        const prior = xttsReason || geminiReason;
-        this.lastFailure = prior ? `${prior} — spoken with this PC's voice instead` : null;
-        return this.remember(system, file);
-      }
-    }
-
-    // Priority 4: High-Definition Cloud Voice fallback (guarantees commentary never fails silently)
+    // Priority 3: High-Definition Cloud Voice (ensures commentary is never robotic and pronunciation is clear)
     if (this.opts.cloudFallback) {
       const cloud = await this.cloudVoice(line);
       if (cloud && cloud.length >= 256) {
         const prior = xttsReason || geminiReason;
         this.lastFailure = prior ? `${prior} — spoken with cloud voice` : null;
         return this.remember(cloud, file);
+      }
+    }
+
+    // Priority 4: Desktop system voice if offline and available
+    if ((await this.systemEngine(line.lang)) === 'system') {
+      const system = await this.system(line, file);
+      if (system && system.length >= MIN_USEFUL_BYTES) {
+        const prior = xttsReason || geminiReason;
+        this.lastFailure = prior ? `${prior} — spoken with this PC's voice instead` : null;
+        return this.remember(system, file);
       }
     }
 
@@ -422,28 +423,55 @@ export class CommentaryTts {
   /** High-Definition Cloud Voice fallback: ensures commentary always speaks smoothly even if external API limits are reached. */
   private async cloudVoice(line: TrackedLine): Promise<Buffer | null> {
     const fetchFn = this.opts.fetchFn ?? fetch;
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 6000);
+    const langCode = line.lang === 'ur' ? 'ur' : line.lang === 'hi' ? 'hi' : 'en';
+    const cleanText = line.text.replace(/[*_#`]/g, '').trim();
+    if (!cleanText) return null;
+
+    // Chunk text under 140 chars at punctuation boundaries so Google TTS never times out or truncates
+    const chunks: string[] = [];
+    if (cleanText.length <= 140) {
+      chunks.push(cleanText);
+    } else {
+      const parts = cleanText.split(/([۔।.!?،,]+)/);
+      let cur = '';
+      for (const p of parts) {
+        if ((cur + p).length <= 140) {
+          cur += p;
+        } else {
+          if (cur.trim()) chunks.push(cur.trim());
+          cur = p;
+        }
+      }
+      if (cur.trim()) chunks.push(cur.trim());
+    }
+
     try {
-      const langCode = line.lang === 'ur' ? 'ur' : line.lang === 'hi' ? 'hi' : 'en';
-      const cleanText = line.text.replace(/[*_#`]/g, '').trim().slice(0, 200);
-      const url = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(cleanText)}&tl=${langCode}&client=tw-ob`;
-      const res = await fetchFn(url, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
-          Referer: 'https://translate.google.com/',
-        },
-        signal: controller.signal as unknown as AbortSignal,
-      });
-      if (!res.ok) return null;
-      const arrayBuffer = await res.arrayBuffer();
-      const buf = Buffer.from(arrayBuffer);
-      if (buf.length < 256) return null;
-      return buf;
+      const buffers: Buffer[] = [];
+      for (const chunk of chunks) {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 6000);
+        try {
+          const url = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(chunk)}&tl=${langCode}&client=tw-ob`;
+          const res = await fetchFn(url, {
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)',
+              Referer: 'https://translate.google.com/',
+            },
+            signal: controller.signal as unknown as AbortSignal,
+          });
+          if (res.ok) {
+            const arrayBuffer = await res.arrayBuffer();
+            const buf = Buffer.from(arrayBuffer);
+            if (buf.length >= 64) buffers.push(buf);
+          }
+        } finally {
+          clearTimeout(timer);
+        }
+      }
+      if (buffers.length === 0) return null;
+      return Buffer.concat(buffers);
     } catch {
       return null;
-    } finally {
-      clearTimeout(timer);
     }
   }
 

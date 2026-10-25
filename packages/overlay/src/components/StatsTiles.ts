@@ -24,7 +24,7 @@ export class StatsTiles extends OverlayComponent {
     const out: Tile[] = [{ label: 'CRR', value: s.crr.toFixed(2) }];
     if (isArena) {
       out.push({ label: pshipLabel, value: `${s.partnership.runs} (${s.partnership.balls})` });
-      if (s.target !== undefined) {
+      if (s.target !== undefined && (s.currentInnings >= 2 || s.format === 'TEST')) {
         out.push({ label: 'TARGET', value: String(s.target) });
       } else if (s.rrr !== undefined) {
         out.push({ label: 'RRR', value: s.rrr.toFixed(2) });
@@ -33,8 +33,9 @@ export class StatsTiles extends OverlayComponent {
           label: s.lead >= 0 ? 'LEAD' : 'TRAIL',
           value: String(Math.abs(s.lead)),
         });
+      } else if (s.projected !== undefined) {
+        out.push({ label: 'PROJECTED', value: String(s.projected) });
       }
-      // Arena has a dedicated PROJECTED SCORE panel for this, so the tile would repeat it.
       out.push({
         label: wktsLabel,
         value: String(s.wicketsLeft ?? Math.max(0, 10 - s.score.wkts)),
@@ -43,8 +44,9 @@ export class StatsTiles extends OverlayComponent {
     }
     if (s.rrr !== undefined) out.push({ label: 'RRR', value: s.rrr.toFixed(2) });
     out.push({ label: 'PARTNERSHIP', value: `${s.partnership.runs} (${s.partnership.balls})` });
-    if (s.target !== undefined) out.push({ label: 'TARGET', value: String(s.target) });
-    else if (s.lead !== undefined) {
+    if (s.target !== undefined && (s.currentInnings >= 2 || s.format === 'TEST')) {
+      out.push({ label: 'TARGET', value: String(s.target) });
+    } else if (s.lead !== undefined) {
       out.push({
         label: s.lead >= 0 ? 'LEAD' : 'TRAIL',
         value: String(Math.abs(s.lead)),

@@ -579,10 +579,10 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
   // The analyst speaks between live updates too, not only when a new ball arrives. It works from
   // the delayed/published state, so the studio never hears a forecast for a ball OBS has not shown.
   const analysisTick = () => {
-    if (analysisBusy || !advancedCommentary.aiActive || !advancedCommentary.analysisDue()) return;
-    const matchId = loadSettings().onStreamMatchId;
+    if (analysisBusy || !advancedCommentary.analysisDue()) return;
+    const matchId = loadSettings().onStreamMatchId || engine.allStates()[0]?.id;
     if (!matchId) return;
-    const state = published.get(matchId);
+    const state = published.get(matchId) ?? engine.getState(matchId);
     if (!state || !['live', 'break', 'innings_break'].includes(state.status)) return;
 
     analysisBusy = true;

@@ -53,8 +53,10 @@ describe('deriveStats on the shared fixtures (hand-calculated)', () => {
     expect(s.crr).toBe(8.52); // 98 / 11.5
     expect(s.ballsLeft).toBe(51); // 120 - 69
     expect(s.wicketsLeft).toBe(8);
-    expect(s.projected).toBe(170); // 98 + 8.52 * 8.5
-    expect(s.projectedPlus2).toBe(187); // 98 + 10.52 * 8.5
+    // Projection blends CRR with the par rate and scales by wickets in hand:
+    // 8.52 * (8/10)^0.4 * 8.5 overs + 98 = 164.2 -> 164.
+    expect(s.projected).toBe(164);
+    expect(s.projectedPlus2).toBe(181); // (7.79 + 2) * 8.5 + 98
     expect(s.rrr).toBeUndefined();
   });
 
@@ -224,6 +226,33 @@ describe('rawToBaseState', () => {
     ]);
     expect(s.battingTeamId).toBe('team-eng');
     expect(s.target).toBeUndefined();
+  });
+
+  it('deduplicates duplicate innings for the same team in limited-overs matches and prevents target/need in 1st innings', () => {
+    const s = rawToBaseState(
+      raw({
+        title: 'Pakistan vs England, 4th Match, Pakistan ODI Tri-Series, 2026',
+        format: 'ODI',
+        teams: [{ name: 'England' }, { name: 'Pakistan' }],
+        innings: [
+          inn('England', 125, 4, 23, 1),
+          inn('England', 125, 4, 23, 1), // duplicate read
+        ],
+        target: 126, // erroneous target reported by feed
+      }),
+      '2026-01-01T00:00:00.000Z',
+    );
+    expect(s.innings).toHaveLength(1);
+    expect(s.currentInnings).toBe(1);
+    expect(s.battingTeamId).toBe('team-eng');
+    expect(s.target).toBeUndefined();
+    expect(s.rrr).toBeUndefined();
+
+    const derived = deriveStats(s);
+    expect(derived.target).toBeUndefined();
+    expect(derived.runsNeeded).toBeUndefined();
+    expect(derived.rrr).toBeUndefined();
+    expect(derived.projected).toBeGreaterThan(0);
   });
 });
 
