@@ -12,6 +12,7 @@ import { QUICK_CARDS, isTypingTarget, resolveShortcut } from './lib/shortcuts';
 import { currentPath } from './lib/router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Gallery } from './pages/Gallery';
+import { ProLook2Page } from './pages/ProLook2';
 import { SettingsPage } from './pages/pages';
 import { AlarmBanner, OnAirIndicator, StatusChip } from './shell/AppShell';
 import { ErrorBoundary } from './shell/ErrorBoundary';
@@ -260,6 +261,20 @@ describe('theme and routing', () => {
     expect(currentPath('')).toBe('/live');
     expect(currentPath('#/graphics')).toBe('/graphics');
     expect(currentPath('#settings')).toBe('/settings');
+  });
+});
+
+describe('Pro Look 2', () => {
+  it('hosts the standalone design page', () => {
+    render(<ProLook2Page />);
+    const frame = screen.getByTestId('pro-look-2-frame');
+    expect(frame.getAttribute('src')).toBe('./pro-look-2/index.html');
+  });
+
+  it('ships all 23 designs without reaching across the network', () => {
+    const html = fs.readFileSync(path.join(import.meta.dirname, '../public/pro-look-2/index.html'), 'utf8');
+    expect(html).not.toMatch(/cdn\.tailwindcss\.com|fonts\.googleapis\.com|fonts\.gstatic\.com/);
+    expect([...html.matchAll(/code: 'K\d\d'/g)]).toHaveLength(23);
   });
 });
 

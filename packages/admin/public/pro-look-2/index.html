@@ -1,0 +1,1852 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>StumpCast Studio · Pro Look 2</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: #070b14;
+      color: #f8fafc;
+      overflow-x: hidden;
+    }
+    .font-cond {
+      font-family: 'Barlow Condensed', 'Impact', 'Arial Narrow', sans-serif;
+      letter-spacing: 0.015em;
+    }
+
+    /* =====================================================================
+       PACKAGES/OVERLAY ARCHITECTURE:
+       CSS Variables (from lookToCssVars) + data-* Attribute Selectors (from applyLook)
+       ===================================================================== */
+    .stage-1280 {
+      width: 1280px;
+      height: 720px;
+      transform-origin: top left;
+      position: absolute;
+      top: 0;
+      left: 0;
+      overflow: hidden;
+      user-select: none;
+    }
+    .bc-canvas {
+      --look-accent: #eab308;
+      --look-accent-alpha: rgba(234, 179, 8, 0.55);
+      --look-secondary: #0e7490;
+      --look-rival-bg: #b91c1c;
+      --look-card-bg: #0e6482;
+      --look-bowler-card-bg: #991b1b;
+      --look-thisball-bg: #ffffff;
+      --look-thisball-txt: #0f172a;
+      --look-cell-bg: #ffffff;
+      --look-cell-txt: #0f172a;
+      --look-hdr-bg: #eab308;
+      --look-hdr-txt: #090d16;
+      --look-footer-bg: #070b12;
+      --look-footer-lbl: #94a3b8;
+      --look-footer-val: #ffffff;
+      --look-main-txt: #ffffff;
+      --look-score-txt: #ffffff;
+      --look-yet-txt: #fde047;
+
+      width: 1280px;
+      height: 720px;
+      position: relative;
+      padding: 12px 16px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      background-color: #080e1a;
+      background-size: cover;
+      background-position: center;
+      font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+    }
+    .bc-canvas-backdrop {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      pointer-events: none;
+      filter: brightness(0.62) contrast(1.06);
+      z-index: 0;
+    }
+
+    /* 3-Row Arena Ordering Driven by data-score-position */
+    .bc-row-score {
+      position: relative;
+      z-index: 20;
+      width: 100%;
+      order: 1;
+    }
+    .bc-row-middle {
+      position: relative;
+      z-index: 15;
+      flex: 1;
+      width: 100%;
+      margin: 10px 0;
+      min-height: 0;
+      order: 2;
+    }
+    .bc-row-players {
+      position: relative;
+      z-index: 20;
+      width: 100%;
+      order: 3;
+    }
+    .bc-canvas[data-score-position="top"] .bc-row-score { order: 1; }
+    .bc-canvas[data-score-position="top"] .bc-row-middle { order: 2; }
+    .bc-canvas[data-score-position="top"] .bc-row-players { order: 3; }
+
+    .bc-canvas[data-score-position="bottom"] .bc-row-players { order: 1; }
+    .bc-canvas[data-score-position="bottom"] .bc-row-middle { order: 2; }
+    .bc-canvas[data-score-position="bottom"] .bc-row-score { order: 3; }
+
+    /* SCORE BAR STYLES (Height 64px, driven by data-bar-style & --look-* vars) */
+    .bc-scorebar-wrap {
+      width: 100%;
+      height: 64px;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-radius: 6px;
+      overflow: hidden;
+      background: #0c1220;
+      border-bottom: 2.5px solid var(--look-accent);
+      border-top: 1.5px solid var(--look-accent-alpha);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.65);
+    }
+    .bc-wing-left {
+      width: 44.5%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      padding: 0 28px 0 14px;
+      clip-path: polygon(0 0, 100% 0, calc(100% - 20px) 100%, 0 100%);
+    }
+    .bc-wing-right {
+      width: 44.5%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      padding: 0 14px 0 28px;
+      clip-path: polygon(20px 0, 100% 0, 100% 100%, 0 100%);
+    }
+    .bc-canvas[data-bar-style="arrow"] .bc-wing-left {
+      clip-path: polygon(0 0, calc(100% - 18px) 0, 100% 50%, calc(100% - 18px) 100%, 0 100%);
+    }
+    .bc-canvas[data-bar-style="arrow"] .bc-wing-right {
+      clip-path: polygon(18px 0, 100% 0, 100% 100%, 18px 100%, 0 50%);
+    }
+    .bc-canvas[data-bar-style*="slanted"] .bc-wing-left {
+      clip-path: polygon(0 0, 100% 0, calc(100% - 28px) 100%, 0 100%);
+    }
+    .bc-canvas[data-bar-style*="slanted"] .bc-wing-right {
+      clip-path: polygon(28px 0, 100% 0, 100% 100%, 0 100%);
+    }
+    .bc-canvas[data-bar-style*="notched"] .bc-scorebar-wrap {
+      clip-path: polygon(10px 0%, calc(100% - 10px) 0%, 100% 50%, calc(100% - 10px) 100%, 10px 100%, 0% 50%);
+    }
+    .bc-center-trapezoid {
+      position: absolute;
+      left: 50%;
+      top: 0;
+      bottom: 0;
+      width: 168px;
+      transform: translateX(-50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      z-index: 5;
+    }
+    .bc-scorebar-floating {
+      width: 100%;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+    .bc-pod {
+      width: 43%;
+      height: 100%;
+      border-radius: 10px;
+      padding: 0 16px;
+      display: flex;
+      align-items: center;
+      border: 2px solid var(--look-accent);
+      box-shadow: 0 8px 20px rgba(0,0,0,0.6);
+    }
+
+    /* PLAYER CARDS ROW (3 Columns, ordered via data-player-order) */
+    .bc-players-grid {
+      width: 100%;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      padding-top: 18px;
+    }
+    .bc-pcard {
+      position: relative;
+      height: 92px;
+      border-radius: 4px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      border: 1.5px solid var(--look-accent);
+      box-shadow: 0 6px 18px rgba(0,0,0,0.65);
+      overflow: visible;
+    }
+    /* Player order selectors controlled by applyLook() -> data-player-order */
+    .bc-canvas[data-player-order="bowler-left"] .bc-pcard[data-role="bowler"]     { order: 1; }
+    .bc-canvas[data-player-order="bowler-left"] .bc-pcard[data-role="striker"]    { order: 2; }
+    .bc-canvas[data-player-order="bowler-left"] .bc-pcard[data-role="nonstriker"] { order: 3; }
+
+    .bc-canvas[data-player-order="striker-left"] .bc-pcard[data-role="striker"]    { order: 1; }
+    .bc-canvas[data-player-order="striker-left"] .bc-pcard[data-role="nonstriker"] { order: 2; }
+    .bc-canvas[data-player-order="striker-left"] .bc-pcard[data-role="bowler"]     { order: 3; }
+
+    .bc-canvas[data-player-order="bowler-middle"] .bc-pcard[data-role="striker"]    { order: 1; }
+    .bc-canvas[data-player-order="bowler-middle"] .bc-pcard[data-role="bowler"]     { order: 2; }
+    .bc-canvas[data-player-order="bowler-middle"] .bc-pcard[data-role="nonstriker"] { order: 3; }
+
+    .bc-role-tab {
+      position: absolute;
+      top: -19px;
+      height: 19px;
+      padding: 0 14px;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      z-index: 10;
+    }
+    .bc-role-tab.tab-right {
+      right: -1px;
+      clip-path: polygon(10px 0, 100% 0, 100% 100%, 0 100%);
+      border-top-right-radius: 3px;
+    }
+    .bc-role-tab.tab-left {
+      left: -1px;
+      clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 100%, 0 100%);
+      border-top-left-radius: 3px;
+    }
+    .bc-pcard-body {
+      flex: 1;
+      position: relative;
+      display: flex;
+      align-items: center;
+      padding: 4px 14px 2px 14px;
+    }
+    .bc-pcard-footer {
+      height: 23px;
+      padding: 0 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 12.5px;
+      font-weight: 700;
+      background: var(--look-footer-bg);
+      border-top: 1px solid rgba(255,255,255,0.12);
+      border-bottom-left-radius: 3px;
+      border-bottom-right-radius: 3px;
+    }
+    .bc-cutout-wrap {
+      width: 74px;
+      height: 86px;
+      position: relative;
+      margin-top: -22px;
+      flex-shrink: 0;
+      z-index: 8;
+      filter: drop-shadow(0 3px 6px rgba(0,0,0,0.65));
+    }
+    .bc-round-badge {
+      width: 64px;
+      height: 64px;
+      border-radius: 9999px;
+      overflow: hidden;
+      flex-shrink: 0;
+      margin-top: -6px;
+      border: 2.5px solid var(--look-accent);
+      background: radial-gradient(circle at 50% 35%, #1e293b 0%, #070b14 85%);
+      box-shadow: 0 3px 10px rgba(0,0,0,0.6);
+      z-index: 8;
+    }
+    .bc-square-badge {
+      width: 60px;
+      height: 60px;
+      border-radius: 5px;
+      overflow: hidden;
+      flex-shrink: 0;
+      margin-top: -4px;
+      border: 2px solid var(--look-accent);
+      background: #090e1a;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.6);
+      z-index: 8;
+    }
+
+    /* MIDDLE ARENA LAYOUT GRIDS (Driven by data-middle-layout) */
+    .bc-layout-std {
+      width: 100%;
+      height: 100%;
+      display: grid;
+      grid-template-columns: 246px 1fr 266px;
+      gap: 10px;
+      align-items: start;
+    }
+    .bc-layout-right-stats {
+      width: 100%;
+      height: 100%;
+      display: grid;
+      grid-template-columns: 266px 1fr 246px;
+      gap: 10px;
+      align-items: start;
+    }
+    .bc-layout-cluster {
+      width: 100%;
+      height: 100%;
+      display: grid;
+      grid-template-columns: 57% 1fr;
+      gap: 10px;
+      align-items: stretch;
+    }
+
+    .shape-notched {
+      clip-path: polygon(10px 0%, calc(100% - 10px) 0%, 100% 50%, calc(100% - 10px) 100%, 10px 100%, 0% 50%);
+    }
+
+    /* Entrance Animations */
+    @keyframes anim-slide { 0% { transform: translateY(-28px); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
+    @keyframes anim-rise { 0% { transform: translateY(28px); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
+    @keyframes anim-glitch {
+      0% { transform: translate(-6px, 2px) skewX(10deg); opacity: 0; }
+      40% { transform: translate(5px, -2px) skewX(-6deg); opacity: 0.85; }
+      100% { transform: translate(0, 0) skewX(0); opacity: 1; }
+    }
+    @keyframes anim-iris { 0% { clip-path: circle(0% at 50% 50%); opacity: 0.2; } 100% { clip-path: circle(140% at 50% 50%); opacity: 1; } }
+    @keyframes anim-blinds { 0% { transform: scaleY(0.08); opacity: 0; } 100% { transform: scaleY(1); opacity: 1; } }
+    @keyframes anim-curtain { 0% { transform: scaleX(0.1); opacity: 0; } 100% { transform: scaleX(1); opacity: 1; } }
+    @keyframes anim-flip { 0% { transform: perspective(600px) rotateX(70deg); opacity: 0; } 100% { transform: perspective(600px) rotateX(0deg); opacity: 1; } }
+    @keyframes anim-unfold { 0% { transform: perspective(600px) rotateY(-40deg) scale(0.92); opacity: 0; } 100% { transform: perspective(600px) rotateY(0deg) scale(1); opacity: 1; } }
+    @keyframes anim-skew { 0% { transform: skewX(-24deg) translateX(-30px); opacity: 0; } 100% { transform: skewX(0deg) translateX(0); opacity: 1; } }
+    @keyframes anim-pop { 0% { transform: scale(0.76); opacity: 0; } 75% { transform: scale(1.03); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
+    @keyframes anim-drop { 0% { transform: translateY(-42px) scale(1.04); opacity: 0; } 100% { transform: translateY(0) scale(1); opacity: 1; } }
+    @keyframes anim-fade { 0% { opacity: 0; filter: brightness(1.6); } 100% { opacity: 1; filter: brightness(1); } }
+    @keyframes anim-swing { 0% { transform: rotate(-4deg) translateY(16px); opacity: 0; } 100% { transform: rotate(0deg) translateY(0); opacity: 1; } }
+    @keyframes anim-blur { 0% { filter: blur(12px); opacity: 0; } 100% { filter: blur(0px); opacity: 1; } }
+    @keyframes anim-zoom-out { 0% { transform: scale(1.18); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+    @keyframes anim-slide-right { 0% { transform: translateX(-38px); opacity: 0; } 100% { transform: translateX(0); opacity: 1; } }
+    @keyframes anim-stretch { 0% { transform: scaleX(1.25) scaleY(0.6); opacity: 0; } 100% { transform: scaleX(1) scaleY(1); opacity: 1; } }
+    @keyframes anim-diamond { 0% { transform: scale(0.8) rotate(2deg); opacity: 0; } 100% { transform: scale(1) rotate(0deg); opacity: 1; } }
+    @keyframes anim-zoom { 0% { transform: scale(0.65); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+    @keyframes anim-spin { 0% { transform: perspective(500px) rotateY(80deg); opacity: 0; } 100% { transform: perspective(500px) rotateY(0deg); opacity: 1; } }
+
+    .run-entrance {
+      animation-duration: 0.5s;
+      animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+      animation-fill-mode: both;
+    }
+
+    /* Bundled families: the page must render identically on an offline OBS machine.
+       Barlow Condensed ships as one static file per weight here: the single 600-900 file the
+       overlay bundles only carries the 600 instance, so every heavier score digit came out at
+       600 metrics and the bars sat ~6% narrower than this design. */
+    @font-face {
+      font-family: 'Barlow Condensed';
+      font-style: normal;
+      font-weight: 600;
+      font-display: block;
+      src: url('./fonts/barlowcondensed-latin-ext-600.woff2') format('woff2');
+      unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+    }
+    @font-face {
+      font-family: 'Barlow Condensed';
+      font-style: normal;
+      font-weight: 600;
+      font-display: block;
+      src: url('./fonts/barlowcondensed-latin-600.woff2') format('woff2');
+      unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+    }
+    @font-face {
+      font-family: 'Barlow Condensed';
+      font-style: normal;
+      font-weight: 700;
+      font-display: block;
+      src: url('./fonts/barlowcondensed-latin-ext-700.woff2') format('woff2');
+      unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+    }
+    @font-face {
+      font-family: 'Barlow Condensed';
+      font-style: normal;
+      font-weight: 700;
+      font-display: block;
+      src: url('./fonts/barlowcondensed-latin-700.woff2') format('woff2');
+      unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+    }
+    @font-face {
+      font-family: 'Barlow Condensed';
+      font-style: normal;
+      font-weight: 800;
+      font-display: block;
+      src: url('./fonts/barlowcondensed-latin-ext-800.woff2') format('woff2');
+      unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+    }
+    @font-face {
+      font-family: 'Barlow Condensed';
+      font-style: normal;
+      font-weight: 800;
+      font-display: block;
+      src: url('./fonts/barlowcondensed-latin-800.woff2') format('woff2');
+      unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+    }
+    @font-face {
+      font-family: 'Barlow Condensed';
+      font-style: normal;
+      font-weight: 900;
+      font-display: block;
+      src: url('./fonts/barlowcondensed-latin-ext-900.woff2') format('woff2');
+      unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+    }
+    @font-face {
+      font-family: 'Barlow Condensed';
+      font-style: normal;
+      font-weight: 900;
+      font-display: block;
+      src: url('./fonts/barlowcondensed-latin-900.woff2') format('woff2');
+      unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+    }
+    @font-face {
+      font-family: 'Inter';
+      font-style: normal;
+      font-weight: 400 800;
+      font-display: block;
+      src: url('./fonts/inter-latin.woff2') format('woff2');
+      unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+    }
+    @font-face {
+      font-family: 'Inter';
+      font-style: normal;
+      font-weight: 400 800;
+      font-display: block;
+      src: url('./fonts/inter-latin-ext.woff2') format('woff2');
+      unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+    }
+
+    html, body { height: 100%; }
+    /* The reference page got these defaults from the Tailwind build; restated here so the
+       stage paints with identical inherited text, line-height and border colours without the CDN. */
+    html { line-height: 1.5; -webkit-text-size-adjust: 100%; tab-size: 4; }
+    img { display: block; }
+    *, ::before, ::after { border-width: 0; border-style: solid; border-color: #e5e7eb; }
+    body { color: #f1f5f9; }
+    .hidden { display: none !important; }
+    .pointer-events-none { pointer-events: none; }
+    .pl2-topbar {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 10px 16px;
+      background: #0b101b;
+      border-bottom: 1px solid #1e293b;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      flex-wrap: wrap;
+    }
+    .pl2-brand { display: flex; flex-direction: column; min-width: 132px; line-height: 1.1; }
+    .pl2-brand-kicker { font-size: 9px; letter-spacing: 0.18em; color: #64748b; font-weight: 800; }
+    .pl2-brand-title { font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif; font-size: 22px; font-weight: 800; letter-spacing: 0.06em; color: #ffffff; }
+    .pl2-strip { display: flex; gap: 6px; overflow-x: auto; flex: 1; min-width: 200px; padding: 2px 0; scrollbar-width: thin; }
+    .quick-look-btn {
+      flex: 0 0 auto;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 9px;
+      border-radius: 7px;
+      border: 1px solid #1e293b;
+      background: #111827;
+      color: #cbd5e1;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .quick-look-btn .dot { width: 7px; height: 7px; border-radius: 50%; }
+    .quick-look-btn:hover { border-color: #475569; }
+    .quick-look-btn.is-active { background: #1e293b; color: #ffffff; border-color: #34d399; box-shadow: 0 0 0 1px #34d399; }
+    .pl2-top-actions { display: flex; align-items: center; gap: 10px; margin-left: auto; }
+    .pl2-live {
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      color: #94a3b8;
+      border: 1px solid #1e293b;
+      border-radius: 999px;
+      padding: 4px 9px;
+      white-space: nowrap;
+    }
+    .pl2-live.is-live { color: #6ee7b7; border-color: #065f46; background: #052e22; }
+    .pl2-primary {
+      border: 0;
+      border-radius: 8px;
+      background: #109868;
+      color: #ffffff;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      padding: 8px 12px;
+      cursor: pointer;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+    .pl2-primary:hover { background: #059669; }
+    .pl2-main { display: flex; align-items: center; justify-content: center; padding: 14px; }
+    .pl2-viewport {
+      position: relative;
+      width: 100%;
+      max-width: 1280px;
+      aspect-ratio: 16 / 9;
+      overflow: hidden;
+      border-radius: 12px;
+      border: 1px solid #1e293b;
+      background: #080e1a;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.75);
+    }
+    .pl2-catalog { max-width: 1440px; margin: 0 auto; padding: 14px 18px 28px; width: 100%; }
+    .pl2-catalog-inner { background: #0d1320; border: 1px solid #1e293b; border-radius: 16px; padding: 18px; }
+    .pl2-catalog-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+    .pl2-catalog-head h1 { margin: 0; font-size: 19px; font-weight: 800; letter-spacing: 0.04em; color: #ffffff; text-transform: uppercase; }
+    .pl2-catalog-head p { margin: 6px 0 0; font-size: 12.5px; line-height: 1.5; color: #94a3b8; max-width: 900px; }
+    .pl2-ghost {
+      border: 1px solid #334155;
+      background: #1a2333;
+      color: #e2e8f0;
+      font-size: 11px;
+      font-weight: 700;
+      border-radius: 8px;
+      padding: 7px 11px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .pl2-ghost:hover { background: #334155; }
+    .pl2-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-top: 16px; }
+    @media (max-width: 1100px) { .pl2-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+    @media (max-width: 820px) { .pl2-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    @media (max-width: 560px) { .pl2-grid { grid-template-columns: 1fr; } }
+    .pl2-card {
+      background: #090d16;
+      border: 1px solid #1e293b;
+      border-radius: 14px;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+    }
+    .pl2-card.is-active { border-color: #109868; box-shadow: 0 0 0 1px rgba(16, 152, 104, 0.45); }
+    .pl2-thumb {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      overflow: hidden;
+      border-radius: 10px;
+      border: 1px solid #334155;
+      background: #080d18;
+      cursor: pointer;
+    }
+    .pl2-code {
+      position: absolute;
+      top: 7px;
+      left: 7px;
+      z-index: 30;
+      border-radius: 7px;
+      border: 1.5px solid;
+      padding: 1px 8px;
+      background: rgba(9, 13, 22, 0.95);
+      color: #ffffff;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+    }
+    .pl2-card h3 { margin: 10px 0 0; font-size: 15px; font-weight: 800; color: #ffffff; }
+    .pl2-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 7px; }
+    .pl2-tag {
+      padding: 3px 9px;
+      border-radius: 999px;
+      background: #151e2e;
+      color: #cbd5e1;
+      border: 1px solid #1e293b;
+      font-size: 10.5px;
+      font-weight: 500;
+    }
+    .pl2-card-btn {
+      margin-top: 12px;
+      width: 100%;
+      border: 0;
+      border-radius: 8px;
+      background: #109868;
+      color: #ffffff;
+      padding: 8px 10px;
+      font-size: 10.5px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      cursor: pointer;
+    }
+    .pl2-card-btn:hover { background: #059669; }
+  </style>
+</head>
+<body>
+
+  <!-- Hidden Stadium Image Asset -->
+  <img id="master-stadium-img" src="stadium.jpg" alt="Stadium" class="hidden" />
+
+  <header class="pl2-topbar">
+    <div class="pl2-brand">
+      <span class="pl2-brand-kicker">STUMPCAST STUDIO</span>
+      <span class="pl2-brand-title">PRO LOOK 2</span>
+    </div>
+    <div class="pl2-strip" id="quick-theme-strip">
+      <!-- Populated dynamically with K01-K25 buttons -->
+    </div>
+    <div class="pl2-top-actions">
+      <span class="pl2-live" id="live-status">DEMO DATA</span>
+      <button id="btn-toggle-view" type="button" class="pl2-primary">
+        DESIGNS (23)
+      </button>
+    </div>
+  </header>
+
+  <!-- VIEW 1: PURE FULL-SCREEN 1280x720 BROADCAST GRAPHICS LAYOUT -->
+  <main id="view-overlay" class="pl2-main">
+    <div id="studio-viewport" class="pl2-viewport">
+      <div id="broadcast-stage" class="stage-1280"></div>
+    </div>
+  </main>
+
+  <!-- VIEW 2: PRO LOOK 2 DESIGN CATALOG -->
+  <section id="view-catalog" class="pl2-catalog hidden">
+    <div class="pl2-catalog-inner">
+      <div class="pl2-catalog-head">
+        <div>
+          <h1>PRO LOOK 2 &middot; CHOOSE YOUR DESIGN</h1>
+          <p>
+            23 separate broadcast designs (K01&ndash;K25). Each one has its own score position, player cards,
+            camera monitor, panel materials and entrance animation. The original 34 Pro Looks stay exactly as they are.
+          </p>
+        </div>
+        <button id="btn-close-modal" type="button" class="pl2-ghost">
+          Close &times;
+        </button>
+      </div>
+
+      <div id="catalog-grid" class="pl2-grid">
+        <!-- Populated dynamically with all 23 Pro Look 2 cards -->
+      </div>
+    </div>
+  </section>
+
+  <script>
+    // =========================================================================
+    // 1. PACKAGES/SHARED/SRC/LOOKS.TS — PRO_LOOKS_23 (LookSchema-Validated Tokens)
+    // =========================================================================
+    const PRO_LOOKS_23 = [
+      {
+        code: 'K01', name: 'Stadium Gold',
+        accent: '#eab308', secondary: '#0e7490', rivalBg: '#b91c1c', cardBg: '#0e6482', bowlerCardBg: '#991b1b',
+        scorePos: 'top', scorePosition: 'top', teamOrder: 'mum-left', barStyle: 'flat',
+        playerOrder: 'bowler-left', badgeStyle: 'cutout-left',
+        middleLayout: 'left-stats', statTheme: 'light', entrance: 'slide',
+        tags: ['slide entrances', 'scores on top', 'cut-out player photos', 'split-bar 4/6 graphic']
+      },
+      {
+        code: 'K02', name: 'Stadium Emerald',
+        accent: '#10b981', secondary: '#0f766e', rivalBg: '#b91c1c', cardBg: '#0f676c', bowlerCardBg: '#881d24',
+        scorePos: 'bottom', scorePosition: 'bottom', teamOrder: 'mum-left', barStyle: 'floating',
+        playerOrder: 'striker-left', badgeStyle: 'round-right',
+        middleLayout: 'right-cluster-recent', statTheme: 'light-green', entrance: 'rise',
+        tags: ['rise entrances', 'scores at the bottom', 'floating score cards', 'photo badges on the right']
+      },
+      {
+        code: 'K03', name: 'Neon Cyan',
+        accent: '#22d3ee', secondary: '#083344', rivalBg: '#0b172a', cardBg: '#092338', bowlerCardBg: '#092338',
+        scorePos: 'bottom', scorePosition: 'bottom', teamOrder: 'oman-left', barStyle: 'flat',
+        playerOrder: 'striker-left', badgeStyle: 'round-left',
+        middleLayout: 'left-stats', statTheme: 'dark-cyan', entrance: 'glitch',
+        tags: ['glitch entrances', 'scores at the bottom', 'round photo badges', 'split-bar 4/6 graphic']
+      },
+      {
+        code: 'K04', name: 'Neon Magenta',
+        accent: '#e879f9', secondary: '#4a044e', rivalBg: '#1e1b4b', cardBg: '#2e1065', bowlerCardBg: '#3b0764',
+        scorePos: 'top', scorePosition: 'top', teamOrder: 'mum-left', barStyle: 'arrow',
+        playerOrder: 'bowler-left', badgeStyle: 'cutout-right',
+        middleLayout: 'left-stats', statTheme: 'dark-magenta', entrance: 'iris',
+        tags: ['iris entrances', 'scores on top', 'arrow score bar', 'mirrored player cards']
+      },
+      {
+        code: 'K05', name: 'Neon Lime',
+        accent: '#84cc16', secondary: '#1a2e05', rivalBg: '#141e08', cardBg: '#142406', bowlerCardBg: '#1a2e05',
+        scorePos: 'top', scorePosition: 'top', teamOrder: 'oman-left', barStyle: 'floating',
+        playerOrder: 'bowler-middle', badgeStyle: 'round-right',
+        middleLayout: 'right-stats', statTheme: 'dark-lime', entrance: 'blinds',
+        tags: ['blinds entrances', 'scores on top', 'floating score cards', 'photo badges on the right']
+      },
+      {
+        code: 'K08', name: 'Broadcast Teal',
+        accent: '#0d9488', secondary: '#ffffff', rivalBg: '#ffffff', cardBg: '#ffffff', bowlerCardBg: '#ffffff',
+        scorePos: 'bottom', scorePosition: 'bottom', teamOrder: 'oman-left', barStyle: 'floating-white',
+        playerOrder: 'striker-left', badgeStyle: 'cutout-left',
+        middleLayout: 'left-stats', statTheme: 'broadcast-white', entrance: 'curtain',
+        tags: ['curtain entrances', 'scores at the bottom', 'floating score cards', 'cut-out player photos']
+      },
+      {
+        code: 'K09', name: 'Retro Amber LED',
+        accent: '#f59e0b', secondary: '#1c1917', rivalBg: '#1c1917', cardBg: '#18130a', bowlerCardBg: '#18130a',
+        scorePos: 'bottom', scorePosition: 'bottom', teamOrder: 'mum-left', barStyle: 'flat-led',
+        playerOrder: 'bowler-left', badgeStyle: 'cutout-right',
+        middleLayout: 'left-stats-projected', statTheme: 'led-amber', entrance: 'flip',
+        tags: ['flip entrances', 'scores at the bottom', 'flat score bar', 'mirrored player cards']
+      },
+      {
+        code: 'K10', name: 'Retro Green LED',
+        accent: '#22c55e', secondary: '#052e16', rivalBg: '#051b11', cardBg: '#061c10', bowlerCardBg: '#061c10',
+        scorePos: 'top', scorePosition: 'top', teamOrder: 'mum-left', barStyle: 'slanted-led',
+        playerOrder: 'bowler-middle', badgeStyle: 'cutout-left',
+        middleLayout: 'left-stats', statTheme: 'led-green', entrance: 'unfold',
+        tags: ['unfold entrances', 'scores on top', 'slanted score bar', 'cut-out player photos']
+      },
+      {
+        code: 'K11', name: 'Street Blaze',
+        accent: '#f97316', secondary: '#1e293b', rivalBg: '#1c1917', cardBg: '#18181b', bowlerCardBg: '#18181b',
+        scorePos: 'bottom', scorePosition: 'bottom', teamOrder: 'oman-left', barStyle: 'arrow',
+        playerOrder: 'bowler-middle', badgeStyle: 'cutout-right',
+        middleLayout: 'right-cluster-video', statTheme: 'light-orange', entrance: 'skew',
+        tags: ['skew entrances', 'scores at the bottom', 'arrow score bar', 'mirrored player cards']
+      },
+      {
+        code: 'K12', name: 'Street Pink',
+        accent: '#ec4899', secondary: '#500724', rivalBg: '#1f1224', cardBg: '#3b0726', bowlerCardBg: '#3b0726',
+        scorePos: 'bottom', scorePosition: 'bottom', teamOrder: 'oman-left', barStyle: 'arrow',
+        playerOrder: 'striker-left', badgeStyle: 'round-right',
+        middleLayout: 'left-stats', statTheme: 'light-pink', entrance: 'pop',
+        tags: ['pop entrances', 'scores at the bottom', 'arrow score bar', 'photo badges on the right']
+      },
+      {
+        code: 'K13', name: 'Street Yellow',
+        accent: '#eab308', secondary: '#1e293b', rivalBg: '#18181b', cardBg: '#18181b', bowlerCardBg: '#18181b',
+        scorePos: 'top', scorePosition: 'top', teamOrder: 'oman-left', barStyle: 'arrow',
+        playerOrder: 'bowler-left', badgeStyle: 'cutout-right',
+        middleLayout: 'right-stats-striker', statTheme: 'light-yellow', entrance: 'drop',
+        tags: ['drop entrances', 'scores on top', 'arrow score bar', 'mirrored player cards']
+      },
+      {
+        code: 'K14', name: 'Royal Gold',
+        accent: '#eab308', secondary: '#172554', rivalBg: '#1e1b4b', cardBg: '#0f172a', bowlerCardBg: '#172554',
+        scorePos: 'top', scorePosition: 'top', teamOrder: 'mum-left', barStyle: 'flat',
+        playerOrder: 'bowler-left', badgeStyle: 'round-left',
+        middleLayout: 'left-stats-partnership', statTheme: 'light', entrance: 'fade',
+        tags: ['fade entrances', 'scores on top', 'round photo badges', 'sweeping 4/6 banner']
+      },
+      {
+        code: 'K15', name: 'Royal Silver',
+        accent: '#cbd5e1', secondary: '#1e293b', rivalBg: '#0f172a', cardBg: '#0f172a', bowlerCardBg: '#1e293b',
+        scorePos: 'bottom', scorePosition: 'bottom', teamOrder: 'mum-left', barStyle: 'notched',
+        playerOrder: 'striker-left', badgeStyle: 'round-left',
+        middleLayout: 'right-cluster-video', statTheme: 'light-silver', entrance: 'swing',
+        tags: ['swing entrances', 'scores at the bottom', 'notched score bar', 'round photo badges']
+      },
+      {
+        code: 'K16', name: 'Glass Sky',
+        accent: '#38bdf8', secondary: '#0c4a6e', rivalBg: '#1e293b', cardBg: '#0f2942', bowlerCardBg: '#0f2942',
+        scorePos: 'top', scorePosition: 'top', teamOrder: 'oman-left', barStyle: 'flat',
+        playerOrder: 'bowler-middle', badgeStyle: 'cutout-left',
+        middleLayout: 'left-stats', statTheme: 'glass-sky', entrance: 'blur',
+        tags: ['blur entrances', 'scores on top', 'flat score bar', 'cut-out player photos']
+      },
+      {
+        code: 'K17', name: 'Glass Rose',
+        accent: '#fb7185', secondary: '#4c0519', rivalBg: '#881337', cardBg: '#1f1224', bowlerCardBg: '#3b0a21',
+        scorePos: 'bottom', scorePosition: 'bottom', teamOrder: 'mum-left', barStyle: 'flat',
+        playerOrder: 'bowler-left', badgeStyle: 'round-left',
+        middleLayout: 'left-stats', statTheme: 'light-rose', entrance: 'zoom-out',
+        tags: ['zoom-out entrances', 'scores at the bottom', 'round photo badges', 'corner 4/6 tag']
+      },
+      {
+        code: 'K18', name: 'Glass Mint',
+        accent: '#34d399', secondary: '#064e3b', rivalBg: '#7f1d1d', cardBg: '#0f2926', bowlerCardBg: '#0f2926',
+        scorePos: 'top', scorePosition: 'top', teamOrder: 'mum-left', barStyle: 'notched',
+        playerOrder: 'striker-left', badgeStyle: 'cutout-right',
+        middleLayout: 'right-stats-projected', statTheme: 'light-green', entrance: 'slide-right',
+        tags: ['slide-right entrances', 'scores on top', 'notched score bar', 'mirrored player cards']
+      },
+      {
+        code: 'K19', name: 'Carbon Red',
+        accent: '#ef4444', secondary: '#18181b', rivalBg: '#7f1d1d', cardBg: '#18181b', bowlerCardBg: '#3b1212',
+        scorePos: 'bottom', scorePosition: 'bottom', teamOrder: 'mum-left', barStyle: 'slanted',
+        playerOrder: 'bowler-left', badgeStyle: 'cutout-left',
+        middleLayout: 'right-cluster-recent', statTheme: 'light-red', entrance: 'stretch',
+        tags: ['stretch entrances', 'scores at the bottom', 'slanted score bar', 'cut-out player photos']
+      },
+      {
+        code: 'K20', name: 'Carbon Orange',
+        accent: '#fb923c', secondary: '#1c1917', rivalBg: '#431407', cardBg: '#18181b', bowlerCardBg: '#1c1917',
+        scorePos: 'top', scorePosition: 'top', teamOrder: 'oman-left', barStyle: 'slanted',
+        playerOrder: 'striker-left', badgeStyle: 'square-left',
+        middleLayout: 'left-stats', statTheme: 'light-orange', entrance: 'diamond',
+        tags: ['diamond entrances', 'scores on top', 'slanted score bar', 'round photo badges']
+      },
+      {
+        code: 'K21', name: 'Mono Gold',
+        accent: '#fbbf24', secondary: '#09090b', rivalBg: '#09090b', cardBg: '#09090b', bowlerCardBg: '#09090b',
+        scorePos: 'bottom', scorePosition: 'bottom', teamOrder: 'oman-left', barStyle: 'slanted-mono',
+        playerOrder: 'bowler-middle', badgeStyle: 'cutout-left',
+        middleLayout: 'left-stats', statTheme: 'mono-light', entrance: 'zoom',
+        tags: ['zoom entrances', 'scores at the bottom', 'slanted score bar', 'cut-out player photos']
+      },
+      {
+        code: 'K22', name: 'Mono Ice',
+        accent: '#38bdf8', secondary: '#09090b', rivalBg: '#09090b', cardBg: '#09090b', bowlerCardBg: '#09090b',
+        scorePos: 'bottom', scorePosition: 'bottom', teamOrder: 'mum-left', barStyle: 'notched-mono',
+        playerOrder: 'striker-left', badgeStyle: 'square-right',
+        middleLayout: 'left-stats', statTheme: 'mono-light', entrance: 'spin',
+        tags: ['spin entrances', 'scores at the bottom', 'notched score bar', 'photo badges on the right']
+      },
+      {
+        code: 'K23', name: 'Festival Sunset',
+        accent: '#f43f5e', secondary: '#9d174d', rivalBg: '#c2410c', cardBg: '#701a47', bowlerCardBg: '#9a3412',
+        scorePos: 'bottom', scorePosition: 'bottom', teamOrder: 'mum-left', barStyle: 'notched-sunset',
+        playerOrder: 'bowler-middle', badgeStyle: 'round-right',
+        middleLayout: 'left-stats', statTheme: 'light-pink', entrance: 'drop',
+        tags: ['drop entrances', 'scores at the bottom', 'notched score bar', 'photo badges on the right']
+      },
+      {
+        code: 'K24', name: 'Festival Aurora',
+        accent: '#06b6d4', secondary: '#5b21b6', rivalBg: '#0284c7', cardBg: '#0284c7', bowlerCardBg: '#1d4ed8',
+        scorePos: 'top', scorePosition: 'top', teamOrder: 'oman-left', barStyle: 'flat-aurora',
+        playerOrder: 'bowler-middle', badgeStyle: 'round-right',
+        middleLayout: 'right-cluster-partnership', statTheme: 'light', entrance: 'zoom',
+        tags: ['zoom entrances', 'scores on top', 'flat score bar', 'photo badges on the right']
+      },
+      {
+        code: 'K25', name: 'Mono Mint',
+        accent: '#22c55e', secondary: '#090d16', rivalBg: '#090d16', cardBg: '#090d16', bowlerCardBg: '#090d16',
+        scorePos: 'top', scorePosition: 'top', teamOrder: 'pak-right', barStyle: 'notched-mono',
+        playerOrder: 'striker-left', badgeStyle: 'square-left',
+        middleLayout: 'left-stats', statTheme: 'mono-light', entrance: 'pop',
+        isPakPreset: true,
+        tags: ['pop entrances', 'scores on top', 'notched score bar', 'round photo badges']
+      }
+    ];
+    const PRO_LOOKS = PRO_LOOKS_23;
+    const ALL_LOOKS = PRO_LOOKS_23;
+
+    // =========================================================================
+    // 2. PACKAGES/OVERLAY RUNTIME: lookToCssVars(look) & applyLook(rootEl, look)
+    // =========================================================================
+    function lookToCssVars(look) {
+      const isWhite = look.statTheme === 'broadcast-white' || look.barStyle === 'floating-white';
+      const isDarkCells = look.statTheme.startsWith('dark') || look.statTheme.startsWith('led') || look.statTheme === 'glass-sky';
+      const isLed = look.statTheme.startsWith('led');
+      const isMono = look.barStyle.includes('mono');
+
+      let footerBg = '#070b12';
+      let footerLbl = '#94a3b8';
+      let footerVal = '#ffffff';
+      if (look.code === 'K11') { footerBg = '#ea580c'; footerLbl = '#090d16'; footerVal = '#090d16'; }
+      if (look.code === 'K12') { footerBg = '#ec4899'; footerLbl = '#090d16'; footerVal = '#090d16'; }
+      if (look.code === 'K13') { footerBg = '#eab308'; footerLbl = '#090d16'; footerVal = '#090d16'; }
+      if (isWhite) { footerBg = '#f1f5f9'; footerLbl = '#475569'; footerVal = '#0f172a'; }
+
+      return {
+        '--look-accent': look.accent,
+        '--look-accent-alpha': `${look.accent}88`,
+        '--look-secondary': look.secondary,
+        '--look-rival-bg': look.rivalBg,
+        '--look-card-bg': look.cardBg,
+        '--look-bowler-card-bg': look.bowlerCardBg,
+        '--look-thisball-bg': isLed ? '#090d16' : '#ffffff',
+        '--look-thisball-txt': isLed ? look.accent : '#0f172a',
+        '--look-cell-bg': isDarkCells ? '#0b1424' : '#ffffff',
+        '--look-cell-txt': isLed ? look.accent : (isDarkCells ? '#ffffff' : '#0f172a'),
+        '--look-hdr-bg': look.statTheme === 'mono-light' ? '#09090b' : look.accent,
+        '--look-hdr-txt': look.statTheme === 'mono-light' ? '#ffffff' : '#090d16',
+        '--look-footer-bg': footerBg,
+        '--look-footer-lbl': footerLbl,
+        '--look-footer-val': footerVal,
+        '--look-main-txt': isWhite ? '#0f172a' : '#ffffff',
+        '--look-score-txt': (isLed || isMono) ? look.accent : (isWhite ? '#0f172a' : '#ffffff'),
+        '--look-yet-txt': isWhite ? '#0f172a' : '#fde047'
+      };
+    }
+
+    function applyLook(rootEl, look) {
+      if (!rootEl || !look) return;
+      const vars = lookToCssVars(look);
+      Object.entries(vars).forEach(([k, v]) => rootEl.style.setProperty(k, v));
+
+      rootEl.setAttribute('data-look', look.code);
+      rootEl.setAttribute('data-score-position', look.scorePosition || look.scorePos || 'top');
+      rootEl.setAttribute('data-middle-layout', look.middleLayout || 'left-stats');
+      rootEl.setAttribute('data-player-order', look.playerOrder || 'bowler-left');
+      rootEl.setAttribute('data-bar-style', look.barStyle || 'flat');
+      rootEl.setAttribute('data-badge-style', look.badgeStyle || 'cutout-left');
+      rootEl.setAttribute('data-team-order', look.teamOrder || 'mum-left');
+      rootEl.setAttribute('data-stat-theme', look.statTheme || 'light');
+      rootEl.setAttribute('data-entrance', look.entrance || 'slide');
+    }
+
+    const MUM_MATCH = {
+      team1: 'MUM', team2: 'OMAN', team2Status: 'YET TO BAT',
+      runs: 187, wickets: 7, oversWhole: 40, oversBalls: 5,
+      format: 'ODI', channel: 'STREAMERS',
+      thisBallNum: '1', thisBallUnit: 'RUN',
+      overBalls: ['0', '1', '4', '1', '0', '1'], overRuns: '+ 7',
+      crr: '4.62', pshipLabel: "P'SHIP", partnershipRuns: 26, partnershipBalls: 48,
+      lastOvLabel: 'LAST OV', lastOv: '2', projLabel: 'PROJ', proj: 231,
+      tossNote: 'OMAN OPT TO BOWL',
+      striker: { name: 'VEDANT GORE', runs: 14, balls: 18, fours: 2, sixes: 0 },
+      nonStriker: { name: 'KARTHIK SHAJI', runs: 18, balls: 41, fours: 1, sixes: 0 },
+      bowler: { name: 'A.K. KHAN', wickets: 2, runs: 26, overs: '6.0', dots: 0, maidens: 0 }
+    };
+
+    const PAK_MATCH = {
+      team1: 'PAKISTAN', team2: 'ENGLAND', team2Status: 'YET TO BAT',
+      runs: 248, wickets: 4, oversWhole: 68, oversBalls: 2,
+      format: 'TEST', channel: 'STREAMERS',
+      thisBallNum: '—', thisBallUnit: 'THIS BALL',
+      overBalls: ['0', '0', '4', '0', '1', '0'], overRuns: '+ 5',
+      crr: '3.63', pshipLabel: "P'SHIP", partnershipRuns: 98, partnershipBalls: 184,
+      lastOvLabel: 'LAST OV', lastOv: '6', projLabel: 'REM OV', proj: '13 / 6',
+      tossNote: 'PAKISTAN OPT TO BAT',
+      striker: { name: 'BABAR AZAM', runs: 74, balls: 142, fours: 8, sixes: 0 },
+      nonStriker: { name: 'SAUD SHAKEEL', runs: 38, balls: 88, fours: 4, sixes: 0 },
+      bowler: { name: 'MARK WOOD', wickets: 2, runs: 48, overs: '16.2', dots: 62, maidens: 5 }
+    };
+
+    const state = {
+      activeLookCode: 'K01',
+      showingCatalog: false,
+      // ?demo=1 keeps the exact reference data on screen for design comparison.
+      forceDemo: new URLSearchParams(location.search).has('demo'),
+      live: false,
+      liveLabel: '',
+      matchData: JSON.parse(JSON.stringify(MUM_MATCH))
+    };
+
+    function getActiveLook() {
+      return PRO_LOOKS_23.find(l => l.code === state.activeLookCode) || PRO_LOOKS_23[0];
+    }
+
+    function getStadiumSrc() {
+      const el = document.getElementById('master-stadium-img');
+      return el ? el.getAttribute('src') : '';
+    }
+
+    function calcSR(runs, balls) {
+      if (!balls) return '0.0';
+      return ((runs / balls) * 100).toFixed(1);
+    }
+
+    function calcEcon(runs, oversStr) {
+      const val = parseFloat(oversStr) || 1;
+      return (runs / val).toFixed(2);
+    }
+
+    // =========================================================================
+    // SVG GRAPHIC ASSETS (Helmeted Cricketer, Shield Crest, Flags)
+    // =========================================================================
+    function renderCricketerHeadNeckSVG() {
+      return `
+        <svg viewBox="0 0 90 105" style="width:100%; height:100%; display:block;">
+          <rect x="33" y="64" width="24" height="41" rx="3" fill="#b87e52"/>
+          <rect x="36" y="64" width="18" height="41" fill="#a56c41" opacity="0.35"/>
+          <ellipse cx="45" cy="45" rx="20" ry="23" fill="#c68b59"/>
+          <path d="M23 36 L23 58 L30 63 L30 36 Z" fill="#1e293b"/>
+          <path d="M67 36 L67 58 L60 63 L60 36 Z" fill="#1e293b"/>
+          <rect x="32" y="38" width="9" height="2.4" rx="1" fill="#23170f"/>
+          <rect x="49" y="38" width="9" height="2.4" rx="1" fill="#23170f"/>
+          <circle cx="36.5" cy="42.5" r="2.2" fill="#160e09"/>
+          <circle cx="53.5" cy="42.5" r="2.2" fill="#160e09"/>
+          <path d="M21 36 C21 10, 69 10, 69 36 L73 39 L17 39 Z" fill="#263548"/>
+          <path d="M25 28 C33 14, 57 14, 65 28" fill="none" stroke="#3b4f66" stroke-width="2" opacity="0.6"/>
+          <path d="M18 36 Q45 30 72 36 L69 40 Q45 35 21 40 Z" fill="#16202c"/>
+          <path d="M25 47 Q45 52 65 47" fill="none" stroke="#1e293b" stroke-width="2.5"/>
+          <path d="M26 53.5 Q45 58.5 64 53.5" fill="none" stroke="#1e293b" stroke-width="2.5"/>
+          <path d="M29 60 Q45 64.5 61 60" fill="none" stroke="#1e293b" stroke-width="2.5"/>
+          <line x1="35" y1="46" x2="36" y2="62" stroke="#1e293b" stroke-width="2.2"/>
+          <line x1="45" y1="48" x2="45" y2="63" stroke="#1e293b" stroke-width="2.2"/>
+          <line x1="55" y1="46" x2="54" y2="62" stroke="#1e293b" stroke-width="2.2"/>
+        </svg>
+      `;
+    }
+
+    function renderMumShieldSVG() {
+      return `
+        <svg viewBox="0 0 46 46" style="width:42px; height:42px; flex-shrink:0;">
+          <path d="M23 3 L40 9 L40 23 C40 34 23 43 23 43 C23 43 6 34 6 23 L6 9 Z" fill="#0b1526" stroke="#64748b" stroke-width="2"/>
+          <line x1="15" y1="14" x2="31" y2="30" stroke="#dc2626" stroke-width="5" stroke-linecap="round"/>
+          <line x1="17" y1="12" x2="33" y2="28" stroke="#fbbf24" stroke-width="2.5" stroke-linecap="round"/>
+          <circle cx="17" cy="27" r="2.5" fill="#fbbf24"/>
+        </svg>
+      `;
+    }
+
+    function renderOmanFlagSVG() {
+      return `
+        <svg viewBox="0 0 60 38" style="width:58px; height:36px; border-radius:3px; border:1px solid rgba(255,255,255,0.35); flex-shrink:0;">
+          <rect width="60" height="12.6" y="0" fill="#ffffff"/>
+          <rect width="60" height="12.6" y="12.6" fill="#dc2626"/>
+          <rect width="60" height="12.8" y="25.2" fill="#16a34a"/>
+          <rect width="20" height="38" x="0" y="0" fill="#dc2626"/>
+          <circle cx="10" cy="8.5" r="3.5" fill="none" stroke="#ffffff" stroke-width="1.2"/>
+          <path d="M7 5.5 L13 11.5 M13 5.5 L7 11.5" stroke="#ffffff" stroke-width="1.2"/>
+        </svg>
+      `;
+    }
+
+    function renderPakFlagSVG() {
+      return `
+        <svg viewBox="0 0 60 38" style="width:58px; height:36px; border-radius:3px; border:1px solid rgba(255,255,255,0.35); flex-shrink:0;">
+          <rect width="60" height="38" fill="#065f46"/>
+          <rect width="15" height="38" x="0" y="0" fill="#ffffff"/>
+          <circle cx="38" cy="19" r="9.5" fill="#ffffff"/>
+          <circle cx="41" cy="17" r="8.5" fill="#065f46"/>
+          <polygon points="44,11 45.5,15 49,15 46,17.5 47,21 44,19 41,21 42,17.5 39,15 42.5,15" fill="#ffffff"/>
+        </svg>
+      `;
+    }
+
+    function renderLiveVideoBoxHTML(m) {
+      const src = getStadiumSrc();
+      return `
+        <div style="position:relative; width:100%; height:100%; overflow:hidden; background:#09101d;">
+          <img src="${src}" alt="Live Match Feed" style="width:100%; height:100%; object-fit:cover; display:block;" />
+          <div style="position:absolute; top:10px; left:10px; display:flex; align-items:center; gap:6px; z-index:10;">
+            <span style="padding:2px 8px; border-radius:3px; background:#dc2626; color:#ffffff; font-weight:800; font-size:13px; letter-spacing:0.06em; display:inline-flex; align-items:center; gap:5px; box-shadow:0 2px 6px rgba(0,0,0,0.5);">
+              <span style="width:6px; height:6px; border-radius:50%; background:#ffffff;"></span> LIVE
+            </span>
+            <span data-bind="fixture-pill" style="padding:2px 10px; border-radius:3px; background:#ffffff; color:#0f172a; font-weight:800; font-size:13px; letter-spacing:0.05em; box-shadow:0 2px 6px rgba(0,0,0,0.5);">
+              ${m.team1.slice(0,3)} v ${m.team2.slice(0,4)}
+            </span>
+          </div>
+        </div>
+      `;
+    }
+
+    // =========================================================================
+    // SCORE BAR RENDERER (Uses CSS Variables --look-* & data-bar-style)
+    // =========================================================================
+    function buildScoreBarHTML(look, m) {
+      const isWhiteBar = look.barStyle === 'floating-white';
+      const isPak = look.isPakPreset || m.team1 === 'PAKISTAN';
+
+      const mumBlockLeft = `
+        <div style="display:flex; align-items:center; gap:12px;">
+          ${isPak ? renderPakFlagSVG() : renderMumShieldSVG()}
+          <div style="display:flex; flex-direction:column;">
+            <span data-bind="team1-name" style="font-size:12px; font-weight:800; letter-spacing:0.08em; line-height:1; color:var(--look-main-txt); opacity:0.9;">${m.team1}</span>
+            <div style="display:flex; align-items:baseline; gap:10px; margin-top:2px;">
+              <span data-bind="team1-score" style="font-size:50px; font-weight:900; line-height:0.8; letter-spacing:-0.01em; color:var(--look-score-txt); text-shadow:0 2px 6px rgba(0,0,0,0.45);">${m.runs}-${m.wickets}</span>
+              <div style="display:flex; flex-direction:column; line-height:0.95;">
+                <span data-bind="team1-overs" style="font-size:22px; font-weight:800; color:var(--look-main-txt);">${m.oversWhole}.${m.oversBalls}</span>
+                <span style="font-size:9px; font-weight:700; letter-spacing:0.1em; color:var(--look-main-txt); opacity:0.75;">OVERS</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      const mumBlockRight = `
+        <div style="display:flex; align-items:center; gap:12px; justify-content:flex-end;">
+          <div style="display:flex; flex-direction:column; align-items:flex-end;">
+            <span data-bind="team1-name" style="font-size:12px; font-weight:800; letter-spacing:0.08em; line-height:1; color:var(--look-main-txt); opacity:0.9;">${m.team1}</span>
+            <div style="display:flex; align-items:baseline; gap:10px; margin-top:2px;">
+              <div style="display:flex; flex-direction:column; align-items:flex-end; line-height:0.95;">
+                <span data-bind="team1-overs" style="font-size:22px; font-weight:800; color:var(--look-main-txt);">${m.oversWhole}.${m.oversBalls}</span>
+                <span style="font-size:9px; font-weight:700; letter-spacing:0.1em; color:var(--look-main-txt); opacity:0.75;">OVERS</span>
+              </div>
+              <span data-bind="team1-score" style="font-size:50px; font-weight:900; line-height:0.8; letter-spacing:-0.01em; color:var(--look-score-txt); text-shadow:0 2px 6px rgba(0,0,0,0.45);">${m.runs}-${m.wickets}</span>
+            </div>
+          </div>
+          ${isPak ? renderPakFlagSVG() : renderMumShieldSVG()}
+        </div>
+      `;
+
+      const omanBlockRight = `
+        <div style="display:flex; align-items:center; gap:12px; justify-content:flex-end;">
+          <div style="text-align:right; line-height:1.05;">
+            <div data-bind="team2-name" style="font-size:12px; font-weight:800; letter-spacing:0.08em; color:var(--look-main-txt); opacity:0.9;">${m.team2}</div>
+            <div data-bind="team2-status" style="font-size:25px; font-weight:900; letter-spacing:0.03em; color:var(--look-yet-txt);">${m.team2Status}</div>
+          </div>
+          ${renderOmanFlagSVG()}
+        </div>
+      `;
+
+      const omanBlockLeft = `
+        <div style="display:flex; align-items:center; gap:12px;">
+          ${renderOmanFlagSVG()}
+          <div style="text-align:left; line-height:1.05;">
+            <div data-bind="team2-name" style="font-size:12px; font-weight:800; letter-spacing:0.08em; color:var(--look-main-txt); opacity:0.9;">${m.team2}</div>
+            <div data-bind="team2-status" style="font-size:25px; font-weight:900; letter-spacing:0.03em; color:var(--look-yet-txt);">${m.team2Status}</div>
+          </div>
+        </div>
+      `;
+
+      const centerBadgeHTML = `
+        <span style="padding:2px 9px; border-radius:3px; background:#dc2626; color:#ffffff; font-size:10px; font-weight:800; letter-spacing:0.08em; line-height:1;">
+          &bull; LIVE
+        </span>
+        <span data-bind="match-format" style="padding:2px 12px; border-radius:3px; background:var(--look-accent); color:#090d16; font-size:13px; font-weight:900; letter-spacing:0.08em; line-height:1.05;">
+          ${m.format}
+        </span>
+        <span data-bind="match-channel" style="padding:1px 8px; border-radius:999px; background:#090d16; color:#e2e8f0; border:1px solid var(--look-accent-alpha); font-size:8.5px; font-weight:700; letter-spacing:0.08em;">
+          &bull; ${m.channel}
+        </span>
+      `;
+
+      const isOmanLeft = look.teamOrder === 'oman-left' || look.teamOrder === 'pak-right';
+      const leftHTML = isOmanLeft ? omanBlockLeft : mumBlockLeft;
+      const rightHTML = isOmanLeft ? mumBlockRight : omanBlockRight;
+
+      if (look.barStyle === 'floating' || look.barStyle === 'floating-white') {
+        const leftBg = isWhiteBar ? '#ffffff' : (isOmanLeft ? 'linear-gradient(90deg, var(--look-rival-bg) 0%, #111827 100%)' : 'linear-gradient(90deg, #091e30 0%, var(--look-secondary) 100%)');
+        const rightBg = isWhiteBar ? '#ffffff' : (isOmanLeft ? 'linear-gradient(90deg, #111827 0%, var(--look-secondary) 100%)' : 'linear-gradient(90deg, var(--look-rival-bg) 0%, #450a0a 100%)');
+        return `
+          <div class="bc-scorebar-floating">
+            <div class="bc-pod" style="background:${leftBg}; justify-content:flex-start;">
+              ${leftHTML}
+            </div>
+            <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px;">
+              ${centerBadgeHTML}
+            </div>
+            <div class="bc-pod" style="background:${rightBg}; justify-content:flex-end;">
+              ${rightHTML}
+            </div>
+          </div>
+        `;
+      }
+
+      const leftWingBg = isOmanLeft
+        ? 'linear-gradient(90deg, #450a0a 0%, var(--look-rival-bg) 100%)'
+        : 'linear-gradient(90deg, #081c2e 0%, var(--look-secondary) 100%)';
+      const rightWingBg = isOmanLeft
+        ? 'linear-gradient(90deg, var(--look-secondary) 0%, #081c2e 100%)'
+        : 'linear-gradient(90deg, var(--look-rival-bg) 0%, #450a0a 100%)';
+
+      const shapeClass = look.barStyle.includes('notched') ? 'shape-notched' : '';
+
+      return `
+        <div class="bc-scorebar-wrap ${shapeClass}">
+          <div class="bc-wing-left" style="background:${leftWingBg};">${leftHTML}</div>
+          <div class="bc-center-trapezoid">${centerBadgeHTML}</div>
+          <div class="bc-wing-right" style="background:${rightWingBg};">${rightHTML}</div>
+        </div>
+      `;
+    }
+
+    // =========================================================================
+    // PLAYER CARDS ROW RENDERER (Ordered via CSS [data-player-order] & [data-role])
+    // =========================================================================
+    function buildSinglePlayerCardHTML(look, roleKey, roleType, name, bigStat, subStat, footerItems) {
+      const isWhiteCard = look.statTheme === 'broadcast-white';
+      const isRightPhoto = look.badgeStyle.includes('right');
+      const isRound = look.badgeStyle.includes('round');
+      const isSquare = look.badgeStyle.includes('square');
+
+      let tabBg = '#ffffff';
+      let tabTxt = '#0f172a';
+      let tabLabel = '<span style="color:#0284c7;">&#9889;</span> ON STRIKE';
+      if (roleType === 'batter') {
+        tabBg = '#ffffff';
+        tabTxt = '#0f172a';
+        tabLabel = '<span style="color:#2563eb;">&#127951;</span> BATTER';
+      } else if (roleType === 'bowler') {
+        tabBg = 'var(--look-accent)';
+        tabTxt = '#090d16';
+        tabLabel = '<span style="color:#dc2626;">&#9679;</span> BOWLER';
+      }
+
+      let bodyGrad = roleType === 'bowler'
+        ? 'linear-gradient(90deg, #450a0a 0%, var(--look-bowler-card-bg) 100%)'
+        : 'linear-gradient(90deg, #081d30 0%, var(--look-card-bg) 100%)';
+      if (isWhiteCard) bodyGrad = '#ffffff';
+
+      let photoHTML = '';
+      if (isRound) {
+        photoHTML = `<div class="bc-round-badge">${renderCricketerHeadNeckSVG()}</div>`;
+      } else if (isSquare) {
+        photoHTML = `<div class="bc-square-badge">${renderCricketerHeadNeckSVG()}</div>`;
+      } else {
+        photoHTML = `<div class="bc-cutout-wrap">${renderCricketerHeadNeckSVG()}</div>`;
+      }
+
+      return `
+        <div class="bc-pcard" data-role="${roleKey}" style="background:${bodyGrad};">
+          <div class="bc-role-tab ${isRightPhoto ? 'tab-left' : 'tab-right'}" style="background:${tabBg}; color:${tabTxt};">
+            ${tabLabel}
+          </div>
+          <div class="bc-pcard-body" style="flex-direction:${isRightPhoto ? 'row-reverse' : 'row'}; justify-content:space-between;">
+            ${photoHTML}
+            <div style="flex:1; min-width:0; text-align:${isRightPhoto ? 'left' : 'right'};">
+              <div data-bind="${roleKey}-name" style="font-size:16px; font-weight:800; text-transform:uppercase; color:var(--look-main-txt); letter-spacing:0.03em; line-height:1.05; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                ${name}
+              </div>
+              <div style="display:inline-flex; align-items:baseline; gap:6px; margin-top:2px;">
+                <span data-bind="${roleKey}-big" style="font-size:44px; font-weight:900; line-height:0.84; color:var(--look-score-txt); text-shadow:0 2px 5px rgba(0,0,0,0.4);">${bigStat}</span>
+                <span data-bind="${roleKey}-sub" style="font-size:21px; font-weight:700; line-height:1; color:var(--look-main-txt); opacity:0.9;">${subStat}</span>
+              </div>
+            </div>
+          </div>
+          <div class="bc-pcard-footer">
+            ${footerItems.map(it => `<span style="color:var(--look-footer-lbl);">${it.label} <strong style="color:var(--look-footer-val); font-weight:900; font-size:13.5px;">${it.val}</strong></span>`).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    function buildPlayerCardsRowHTML(look, m) {
+      const strikerCard = buildSinglePlayerCardHTML(
+        look, 'striker', 'striker', m.striker.name, m.striker.runs, `(${m.striker.balls})`,
+        [{ label: '4s', val: m.striker.fours }, { label: '6s', val: m.striker.sixes }, { label: 'SR', val: calcSR(m.striker.runs, m.striker.balls) }]
+      );
+      const batterCard = buildSinglePlayerCardHTML(
+        look, 'nonstriker', 'batter', m.nonStriker.name, m.nonStriker.runs, `(${m.nonStriker.balls})`,
+        [{ label: '4s', val: m.nonStriker.fours }, { label: '6s', val: m.nonStriker.sixes }, { label: 'SR', val: calcSR(m.nonStriker.runs, m.nonStriker.balls) }]
+      );
+      const bowlerCard = buildSinglePlayerCardHTML(
+        look, 'bowler', 'bowler', m.bowler.name, `${m.bowler.wickets}-${m.bowler.runs}`, `(${m.bowler.overs})`,
+        [{ label: 'Econ', val: calcEcon(m.bowler.runs, m.bowler.overs) }, { label: 'Dots', val: m.bowler.dots }, { label: 'M', val: m.bowler.maidens }]
+      );
+
+      return `<div class="bc-players-grid">${strikerCard}${batterCard}${bowlerCard}</div>`;
+    }
+
+    // =========================================================================
+    // SIDEBAR & ARENA WIDGETS (Driven by --look-* CSS variables)
+    // =========================================================================
+    function buildLeftStatsSidebarHTML(look, m) {
+      const ballsHTML = m.overBalls.slice(0, 6).map(b => {
+        const isFour = b === '4';
+        const isSix = b === '6';
+        const bg = isFour ? '#2563eb' : isSix ? '#10b981' : '#ffffff';
+        const txt = (isFour || isSix) ? '#ffffff' : '#0f172a';
+        return `<span style="width:32px; height:30px; border-radius:4px; background:${bg}; color:${txt}; display:inline-flex; align-items:center; justify-content:center; font-size:18px; font-weight:900; box-shadow:0 1px 3px rgba(0,0,0,0.4);">${b}</span>`;
+      }).join('');
+
+      return `
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <div style="border-radius:5px; overflow:hidden; border:1.5px solid var(--look-accent); background:var(--look-thisball-bg); box-shadow:0 6px 16px rgba(0,0,0,0.55);">
+            <div style="height:19px; padding:0 10px; background:var(--look-hdr-bg); color:var(--look-hdr-txt); font-size:11px; font-weight:800; letter-spacing:0.06em; display:flex; align-items:center; justify-content:space-between;">
+              <span>THIS BALL</span>
+            </div>
+            <div style="height:74px; display:flex; align-items:baseline; justify-content:center; gap:6px; padding-top:10px; color:var(--look-thisball-txt);">
+              <span data-bind="this-ball-num" style="font-size:54px; font-weight:900; line-height:0.85;">${m.thisBallNum}</span>
+              <span data-bind="this-ball-unit" style="font-size:26px; font-weight:900; line-height:1;">${m.thisBallUnit}</span>
+            </div>
+          </div>
+
+          <div style="border-radius:5px; border:1.5px solid var(--look-accent); background:linear-gradient(90deg, #0b2236 0%, #3b1219 100%); padding:6px 8px; box-shadow:0 6px 16px rgba(0,0,0,0.55);">
+            <div style="display:flex; align-items:center; justify-content:space-between; font-size:11px; font-weight:800; color:#cbd5e1; margin-bottom:5px; letter-spacing:0.05em;">
+              <span>THIS OVER</span>
+              <span data-bind="over-runs" style="color:#ffffff; font-size:13px;">${m.overRuns}</span>
+            </div>
+            <div style="display:flex; align-items:center; justify-content:space-between;">
+              ${ballsHTML}
+            </div>
+          </div>
+
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
+            <div style="border-radius:4px; overflow:hidden; border:1.5px solid var(--look-accent); background:var(--look-cell-bg); box-shadow:0 4px 12px rgba(0,0,0,0.5);">
+              <div style="height:18px; background:var(--look-hdr-bg); color:var(--look-hdr-txt); font-size:11px; font-weight:800; display:flex; align-items:center; justify-content:center; letter-spacing:0.05em;">CRR</div>
+              <div data-bind="crr" style="height:44px; display:flex; align-items:center; justify-content:center; font-size:28px; font-weight:900; color:var(--look-cell-txt);">${m.crr}</div>
+            </div>
+            <div style="border-radius:4px; overflow:hidden; border:1.5px solid var(--look-accent); background:var(--look-cell-bg); box-shadow:0 4px 12px rgba(0,0,0,0.5);">
+              <div style="height:18px; background:var(--look-hdr-bg); color:var(--look-hdr-txt); font-size:11px; font-weight:800; display:flex; align-items:center; justify-content:center; letter-spacing:0.05em;">${m.pshipLabel}</div>
+              <div data-bind="pship" style="height:44px; display:flex; align-items:center; justify-content:center; font-size:25px; font-weight:900; color:var(--look-cell-txt);">${m.partnershipRuns} <span style="font-size:18px; margin-left:4px; opacity:0.85;">(${m.partnershipBalls})</span></div>
+            </div>
+            <div style="border-radius:4px; overflow:hidden; border:1.5px solid var(--look-accent); background:var(--look-cell-bg); box-shadow:0 4px 12px rgba(0,0,0,0.5);">
+              <div style="height:18px; background:var(--look-hdr-bg); color:var(--look-hdr-txt); font-size:11px; font-weight:800; display:flex; align-items:center; justify-content:center; letter-spacing:0.05em;">${m.lastOvLabel}</div>
+              <div data-bind="last-ov" style="height:44px; display:flex; align-items:center; justify-content:center; font-size:28px; font-weight:900; color:var(--look-cell-txt);">${m.lastOv}</div>
+            </div>
+            <div style="border-radius:4px; overflow:hidden; border:1.5px solid var(--look-accent); background:var(--look-cell-bg); box-shadow:0 4px 12px rgba(0,0,0,0.5);">
+              <div style="height:18px; background:var(--look-hdr-bg); color:var(--look-hdr-txt); font-size:11px; font-weight:800; display:flex; align-items:center; justify-content:center; letter-spacing:0.05em;">${m.projLabel}</div>
+              <div data-bind="proj" style="height:44px; display:flex; align-items:center; justify-content:center; font-size:28px; font-weight:900; color:var(--look-cell-txt);">${m.proj}</div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function buildCamBoxHTML() {
+      return `
+        <div style="height:184px; border-radius:5px; border:1.5px solid var(--look-accent); background:#0c1526; display:flex; flex-direction:column; justify-content:space-between; overflow:hidden; box-shadow:0 6px 16px rgba(0,0,0,0.6);">
+          <div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; color:#64748b;">
+            <svg viewBox="0 0 24 24" style="width:28px; height:28px; margin-bottom:4px; stroke:currentColor;" fill="none" stroke-width="1.8">
+              <rect x="2" y="6" width="14" height="12" rx="2"/>
+              <polygon points="16,10 22,7 22,17 16,14"/>
+            </svg>
+            <span style="font-size:12px; font-weight:800; letter-spacing:0.08em;">CAM 1</span>
+          </div>
+          <div style="height:26px; padding:0 10px; background:linear-gradient(90deg, var(--look-secondary) 0%, #091929 100%); border-top:1px solid var(--look-accent-alpha); display:flex; align-items:center; gap:6px;">
+            <span style="width:6px; height:6px; border-radius:50%; background:var(--look-accent);"></span>
+            <span style="font-size:11.5px; font-weight:800; letter-spacing:0.06em; color:#ffffff;">STREAMER 1</span>
+          </div>
+        </div>
+      `;
+    }
+
+    function buildMatchCentreBoxHTML(look, m) {
+      const miniBalls = m.overBalls.slice(1, 6).map(b => {
+        const bg = b === '4' ? '#2563eb' : '#ffffff';
+        const txt = b === '4' ? '#ffffff' : '#0f172a';
+        return `<span style="width:28px; height:27px; border-radius:3px; background:${bg}; color:${txt}; display:inline-flex; align-items:center; justify-content:center; font-size:16px; font-weight:900;">${b}</span>`;
+      }).join('');
+
+      return `
+        <div style="height:178px; border-radius:5px; border:1.5px solid var(--look-accent); background:linear-gradient(135deg, #0b2436 0%, #4c1118 100%); padding:10px; display:flex; flex-direction:column; justify-content:space-between; box-shadow:0 6px 16px rgba(0,0,0,0.6);">
+          <div style="font-size:13px; font-weight:900; letter-spacing:0.06em; color:var(--look-accent); border-bottom:1px solid rgba(255,255,255,0.14); padding-bottom:4px;">
+            MATCH CENTRE
+          </div>
+          <div>
+            <div style="display:flex; align-items:center; justify-content:space-between; font-size:10px; font-weight:800; color:#cbd5e1; margin-bottom:4px;">
+              <span>OVER ${m.oversWhole + 1}</span>
+              <span style="color:#ffffff; font-size:13px;">${m.overRuns}</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:5px;">
+              ${miniBalls}
+            </div>
+          </div>
+          <div style="border-radius:4px; overflow:hidden; border:1px solid var(--look-accent);">
+            <div style="height:16px; padding:0 8px; background:var(--look-accent); color:#090d16; font-size:10px; font-weight:900; display:flex; align-items:center;">
+              ${m.team2}
+            </div>
+            <div style="height:23px; padding:0 8px; background:#ffffff; color:#0f172a; font-size:12.5px; font-weight:900; display:flex; align-items:center;">
+              ${m.tossNote}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function buildRecentOversBannerHTML(look, m) {
+      return `
+        <div style="height:148px; border-radius:5px; border:1.5px solid var(--look-accent); background:#ffffff; color:#0f172a; overflow:hidden; display:flex; flex-direction:column; justify-content:space-between; box-shadow:0 6px 18px rgba(0,0,0,0.6);">
+          <div style="height:24px; padding:0 12px; background:linear-gradient(90deg, #991b1b 0%, #0f766e 100%); color:#ffffff; font-size:12px; font-weight:800; display:flex; align-items:center; justify-content:space-between; letter-spacing:0.05em;">
+            <span>RECENT OVERS</span>
+            <span style="color:#fde047;">CRR ${m.crr}</span>
+          </div>
+          <div style="flex:1; padding:6px 14px; display:flex; flex-direction:column; justify-content:space-between; font-size:17px; font-weight:800;">
+            <div style="display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid #e2e8f0; padding-bottom:2px;">
+              <span style="color:#334155; width:90px;">OVER ${m.oversWhole - 1}</span>
+              <span style="color:#0f172a;">2</span>
+              <span style="color:#d97706; font-weight:900; font-size:20px;">= 2</span>
+            </div>
+            <div style="display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid #e2e8f0; padding-bottom:2px;">
+              <span style="color:#334155; width:90px;">OVER ${m.oversWhole}</span>
+              <span style="color:#0f172a;">2</span>
+              <span style="color:#d97706; font-weight:900; font-size:20px;">= 2</span>
+            </div>
+            <div style="display:flex; align-items:center; justify-content:space-between;">
+              <span style="color:#334155; width:90px;">OVER ${m.oversWhole + 1}</span>
+              <div style="display:flex; align-items:center; gap:10px;">
+                <span>1</span>
+                <span style="padding:0 8px; border-radius:3px; background:#2563eb; color:#ffffff;">4</span>
+                <span>1</span>
+                <span>1</span>
+              </div>
+              <span style="color:#d97706; font-weight:900; font-size:20px;">= 7</span>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function buildProjectedBannerHTML(look, m) {
+      const base = parseInt(m.proj, 10) || 231;
+      return `
+        <div style="height:108px; border-radius:5px; border:1.5px solid var(--look-accent); background:#ffffff; color:#0f172a; overflow:hidden; display:flex; flex-direction:column; justify-content:space-between; box-shadow:0 6px 18px rgba(0,0,0,0.6);">
+          <div style="height:22px; padding:0 12px; background:linear-gradient(90deg, #0d9488 0%, #b91c1c 100%); color:#ffffff; font-size:11.5px; font-weight:800; display:flex; align-items:center; justify-content:space-between; letter-spacing:0.05em;">
+            <span>PROJECTED SCORE</span>
+            <span>50 OVERS</span>
+          </div>
+          <div style="flex:1; display:grid; grid-template-columns:repeat(4, 1fr); align-items:center; text-align:center;">
+            <div style="border-right:1px solid #e2e8f0;">
+              <div style="font-size:11px; font-weight:800; color:#64748b;">@ ${m.crr}/OV</div>
+              <div style="font-size:36px; font-weight:900; line-height:0.95; color:#d97706;">${base - 2}</div>
+            </div>
+            <div style="border-right:1px solid #e2e8f0;">
+              <div style="font-size:11px; font-weight:800; color:#64748b;">@ 6/OV</div>
+              <div style="font-size:36px; font-weight:900; line-height:0.95; color:#0369a1;">${base + 29}</div>
+            </div>
+            <div style="border-right:1px solid #e2e8f0;">
+              <div style="font-size:11px; font-weight:800; color:#64748b;">@ 7/OV</div>
+              <div style="font-size:36px; font-weight:900; line-height:0.95; color:#1d4ed8;">${base + 48}</div>
+            </div>
+            <div>
+              <div style="font-size:11px; font-weight:800; color:#64748b;">@ 8/OV</div>
+              <div style="font-size:36px; font-weight:900; line-height:0.95; color:#0f172a;">${base + 66}</div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function buildPartnershipBannerHTML(look, m) {
+      return `
+        <div style="height:108px; border-radius:5px; border:1.5px solid var(--look-accent); background:#ffffff; color:#0f172a; overflow:hidden; display:flex; flex-direction:column; justify-content:space-between; box-shadow:0 6px 18px rgba(0,0,0,0.6);">
+          <div style="height:22px; padding:0 12px; background:#0f766e; color:#ffffff; font-size:11.5px; font-weight:800; display:flex; align-items:center; justify-content:space-between; letter-spacing:0.05em;">
+            <span>PARTNERSHIP</span>
+            <span>CRR ${m.crr} &bull; ${m.partnershipBalls} BALLS</span>
+          </div>
+          <div style="flex:1; padding:0 16px; display:flex; align-items:center; justify-content:space-between;">
+            <div style="display:flex; align-items:center; gap:10px;">
+              <div style="width:46px; height:56px;">${renderCricketerHeadNeckSVG()}</div>
+              <div>
+                <div style="font-size:14px; font-weight:800; color:#334155;">${m.striker.name}</div>
+                <div style="font-size:28px; font-weight:900; line-height:0.9; color:#0369a1;">${m.striker.runs} <span style="font-size:17px; color:#d97706;">(${m.striker.balls})</span></div>
+              </div>
+            </div>
+            <div style="text-align:center;">
+              <div style="font-size:44px; font-weight:900; line-height:0.85; color:#d97706;">${m.partnershipRuns}</div>
+              <div style="font-size:11px; font-weight:800; color:#64748b;">${m.partnershipBalls} BALLS</div>
+            </div>
+            <div style="display:flex; align-items:center; gap:10px;">
+              <div style="text-align:right;">
+                <div style="font-size:14px; font-weight:800; color:#334155;">${m.nonStriker.name}</div>
+                <div style="font-size:28px; font-weight:900; line-height:0.9; color:#0369a1;">${m.nonStriker.runs} <span style="font-size:17px; color:#d97706;">(${m.nonStriker.balls})</span></div>
+              </div>
+              <div style="width:46px; height:56px;">${renderCricketerHeadNeckSVG()}</div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function buildRightClusterBottomStatsHTML(look, m) {
+      const ballsHTML = m.overBalls.slice(0, 6).map(b => {
+        const bg = b === '4' ? '#2563eb' : '#ffffff';
+        const txt = b === '4' ? '#ffffff' : '#0f172a';
+        return `<span style="width:27px; height:26px; border-radius:3px; background:${bg}; color:${txt}; display:inline-flex; align-items:center; justify-content:center; font-size:15px; font-weight:900;">${b}</span>`;
+      }).join('');
+
+      return `
+        <div style="height:148px; display:grid; grid-template-columns:145px 1fr; gap:8px;">
+          <div style="border-radius:5px; border:1.5px solid var(--look-accent); background:#ffffff; color:#0f172a; display:flex; flex-direction:column; justify-content:space-between; overflow:hidden; box-shadow:0 6px 16px rgba(0,0,0,0.55);">
+            <div style="height:20px; padding:0 8px; background:var(--look-accent); color:#090d16; font-size:11px; font-weight:900; display:flex; align-items:center;">THIS BALL</div>
+            <div style="flex:1; display:flex; align-items:baseline; justify-content:center; gap:5px; padding-top:26px;">
+              <span style="font-size:62px; font-weight:900; line-height:0.8;">${m.thisBallNum}</span>
+              <span style="font-size:26px; font-weight:900;">${m.thisBallUnit}</span>
+            </div>
+          </div>
+
+          <div style="display:flex; flex-direction:column; justify-content:space-between; gap:6px;">
+            <div style="height:54px; border-radius:5px; border:1.5px solid var(--look-accent); background:linear-gradient(90deg, #0b2236 0%, #3b1219 100%); padding:4px 8px; display:flex; flex-direction:column; justify-content:space-between;">
+              <div style="display:flex; justify-content:space-between; font-size:10px; font-weight:800; color:#cbd5e1;">
+                <span>THIS OVER</span>
+                <span style="color:#ffffff;">${m.overRuns}</span>
+              </div>
+              <div style="display:flex; gap:5px;">${ballsHTML}</div>
+            </div>
+
+            <div style="flex:1; display:grid; grid-template-columns:1fr 1fr; gap:6px;">
+              <div style="border-radius:4px; overflow:hidden; border:1.5px solid var(--look-accent); background:#ffffff; display:flex; align-items:center;">
+                <span style="width:44%; height:100%; background:var(--look-accent); color:#090d16; font-size:12px; font-weight:900; display:flex; align-items:center; justify-content:center;">CRR</span>
+                <span style="flex:1; text-align:center; font-size:23px; font-weight:900; color:#0f172a;">${m.crr}</span>
+              </div>
+              <div style="border-radius:4px; overflow:hidden; border:1.5px solid var(--look-accent); background:#ffffff; display:flex; align-items:center;">
+                <span style="width:44%; height:100%; background:var(--look-accent); color:#090d16; font-size:12px; font-weight:900; display:flex; align-items:center; justify-content:center;">P'SHIP</span>
+                <span style="flex:1; text-align:center; font-size:21px; font-weight:900; color:#0f172a;">${m.partnershipRuns} (${m.partnershipBalls})</span>
+              </div>
+              <div style="border-radius:4px; overflow:hidden; border:1.5px solid var(--look-accent); background:#ffffff; display:flex; align-items:center;">
+                <span style="width:44%; height:100%; background:var(--look-accent); color:#090d16; font-size:12px; font-weight:900; display:flex; align-items:center; justify-content:center;">LAST OV</span>
+                <span style="flex:1; text-align:center; font-size:23px; font-weight:900; color:#0f172a;">${m.lastOv}</span>
+              </div>
+              <div style="border-radius:4px; overflow:hidden; border:1.5px solid var(--look-accent); background:#ffffff; display:flex; align-items:center;">
+                <span style="width:44%; height:100%; background:var(--look-accent); color:#090d16; font-size:12px; font-weight:900; display:flex; align-items:center; justify-content:center;">PROJ</span>
+                <span style="flex:1; text-align:center; font-size:23px; font-weight:900; color:#0f172a;">${m.proj}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // =========================================================================
+    // FULL 1280x720 OVERLAY STAGE BUILDER (Applies lookToCssVars + applyLook)
+    // =========================================================================
+    function buildFullStageHTML(look, customMatch) {
+      const m = look.isPakPreset ? PAK_MATCH : customMatch;
+      const stadiumSrc = getStadiumSrc();
+
+      const scoreBarHTML = buildScoreBarHTML(look, m);
+      const playerCardsHTML = buildPlayerCardsRowHTML(look, m);
+
+      const layoutType = look.middleLayout;
+      let middleHTML = '';
+
+      if (layoutType.startsWith('right-cluster')) {
+        const hasBottomLeft = layoutType === 'right-cluster-recent' || layoutType === 'right-cluster-partnership';
+        const bottomLeftCard =
+          layoutType === 'right-cluster-recent' ? buildRecentOversBannerHTML(look, m) :
+          layoutType === 'right-cluster-partnership' ? buildPartnershipBannerHTML(look, m) : '';
+
+        middleHTML = `
+          <div class="bc-layout-cluster">
+            <div style="display:flex; flex-direction:column; gap:8px; height:100%;">
+              <div style="flex:1; border-radius:5px; border:2px solid rgba(255,255,255,0.55); overflow:hidden; position:relative; box-shadow:0 8px 24px rgba(0,0,0,0.65);">
+                ${renderLiveVideoBoxHTML(m)}
+              </div>
+              ${hasBottomLeft ? bottomLeftCard : ''}
+            </div>
+            <div style="display:flex; flex-direction:column; justify-content:space-between; gap:8px; height:100%;">
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                ${buildCamBoxHTML(look)}
+                ${buildMatchCentreBoxHTML(look, m)}
+              </div>
+              ${buildRightClusterBottomStatsHTML(look, m)}
+            </div>
+          </div>
+        `;
+      } else if (layoutType.startsWith('right-stats')) {
+        const hasBanner = layoutType === 'right-stats-projected' || layoutType === 'right-stats-striker';
+        const bannerHTML = layoutType === 'right-stats-projected'
+          ? buildProjectedBannerHTML(look, m)
+          : (layoutType === 'right-stats-striker' ? buildPartnershipBannerHTML(look, m) : '');
+
+        middleHTML = `
+          <div class="bc-layout-right-stats">
+            <div style="display:flex; flex-direction:column; gap:8px;">
+              ${buildCamBoxHTML(look)}
+              ${buildMatchCentreBoxHTML(look, m)}
+            </div>
+            <div style="height:100%; display:flex; flex-direction:column; gap:8px;">
+              <div style="flex:1; border-radius:5px; border:2px solid rgba(255,255,255,0.55); overflow:hidden; position:relative; box-shadow:0 8px 24px rgba(0,0,0,0.65);">
+                ${renderLiveVideoBoxHTML(m)}
+              </div>
+              ${hasBanner ? bannerHTML : ''}
+            </div>
+            <div>
+              ${buildLeftStatsSidebarHTML(look, m)}
+            </div>
+          </div>
+        `;
+      } else {
+        const hasBanner = layoutType === 'left-stats-projected' || layoutType === 'left-stats-partnership';
+        const bannerHTML =
+          layoutType === 'left-stats-projected' ? buildProjectedBannerHTML(look, m) :
+          layoutType === 'left-stats-partnership' ? buildPartnershipBannerHTML(look, m) : '';
+
+        middleHTML = `
+          <div class="bc-layout-std">
+            <div>
+              ${buildLeftStatsSidebarHTML(look, m)}
+            </div>
+            <div style="height:100%; display:flex; flex-direction:column; gap:8px;">
+              <div style="height:${hasBanner ? '342px' : '436px'}; border-radius:5px; border:2px solid rgba(255,255,255,0.55); overflow:hidden; position:relative; box-shadow:0 8px 24px rgba(0,0,0,0.65);">
+                ${renderLiveVideoBoxHTML(m)}
+              </div>
+              ${hasBanner ? bannerHTML : ''}
+            </div>
+            <div style="display:flex; flex-direction:column; gap:8px;">
+              ${buildCamBoxHTML(look)}
+              ${buildMatchCentreBoxHTML(look, m)}
+            </div>
+          </div>
+        `;
+      }
+
+      const cssVarInline = Object.entries(lookToCssVars(look))
+        .map(([k, v]) => `${k}:${v}`)
+        .join(';');
+
+      return `
+        <div class="bc-canvas"
+             data-look="${look.code}"
+             data-score-position="${look.scorePosition || look.scorePos}"
+             data-middle-layout="${look.middleLayout}"
+             data-player-order="${look.playerOrder}"
+             data-bar-style="${look.barStyle}"
+             data-badge-style="${look.badgeStyle}"
+             data-team-order="${look.teamOrder}"
+             data-stat-theme="${look.statTheme}"
+             data-entrance="${look.entrance}"
+             style="${cssVarInline};">
+          <img src="${stadiumSrc}" alt="" class="bc-canvas-backdrop" />
+          <div class="bc-row-score run-entrance" style="animation-name: anim-${look.entrance};">${scoreBarHTML}</div>
+          <div class="bc-row-middle">${middleHTML}</div>
+          <div class="bc-row-players run-entrance" style="animation-name: anim-${look.entrance};">${playerCardsHTML}</div>
+        </div>
+      `;
+    }
+
+    // =========================================================================
+    // RESPONSIVE SCALER & PUBLIC PROJECT API
+    // =========================================================================
+    function updateAllStageScales() {
+      const studioViewport = document.getElementById('studio-viewport');
+      const studioStage = document.getElementById('broadcast-stage');
+      if (studioViewport && studioStage && studioViewport.clientWidth > 0) {
+        studioStage.style.transform = `scale(${studioViewport.clientWidth / 1280})`;
+      }
+
+      document.querySelectorAll('.thumb-viewport').forEach(vp => {
+        const inner = vp.querySelector('.stage-1280');
+        if (inner && vp.clientWidth > 0) {
+          inner.style.transform = `scale(${vp.clientWidth / 1280})`;
+        }
+      });
+    }
+
+    window.addEventListener('resize', updateAllStageScales);
+    if (typeof ResizeObserver !== 'undefined') {
+      const ro = new ResizeObserver(() => updateAllStageScales());
+      window.addEventListener('DOMContentLoaded', () => {
+        const vp = document.getElementById('studio-viewport');
+        const grid = document.getElementById('catalog-grid');
+        if (vp) ro.observe(vp);
+        if (grid) ro.observe(grid);
+      });
+    }
+
+    function renderBroadcastOverlay() {
+      const look = getActiveLook();
+      const stage = document.getElementById('broadcast-stage');
+      stage.innerHTML = buildFullStageHTML(look, state.matchData);
+      const canvasRoot = stage.querySelector('.bc-canvas');
+      applyLook(canvasRoot, look);
+      updateAllStageScales();
+      renderQuickStrip();
+    }
+
+    function renderQuickStrip() {
+      const strip = document.getElementById('quick-theme-strip');
+      strip.innerHTML = PRO_LOOKS_23.map(look => {
+        const isSelected = look.code === state.activeLookCode;
+        return `
+          <button type="button" data-look="${look.code}"
+                  class="quick-look-btn${isSelected ? ' is-active' : ''}">
+            <span class="dot" style="background:${look.accent};"></span>
+            <span>${look.code}</span>
+          </button>
+        `;
+      }).join('');
+
+      strip.querySelectorAll('.quick-look-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          state.activeLookCode = btn.getAttribute('data-look');
+          if (state.showingCatalog) toggleCatalogModal(false);
+          renderBroadcastOverlay();
+          renderCatalogGrid();
+        });
+      });
+    }
+
+    function renderCatalogGrid() {
+      const grid = document.getElementById('catalog-grid');
+      grid.innerHTML = PRO_LOOKS_23.map(look => {
+        const isActive = look.code === state.activeLookCode;
+        return `
+          <div class="pl2-card${isActive ? ' is-active' : ''}">
+            <div>
+              <div data-card-look="${look.code}" class="card-thumb-click thumb-viewport pl2-thumb">
+                <div class="pl2-code" style="border-color:${look.accent};">
+                  ${look.code}
+                </div>
+                <div class="stage-1280 pointer-events-none">
+                  ${buildFullStageHTML(look, MUM_MATCH)}
+                </div>
+              </div>
+
+              <h3>${look.name}</h3>
+
+              <div class="pl2-tags">
+                ${look.tags.map(tag => `<span class="pl2-tag">${tag}</span>`).join('')}
+              </div>
+            </div>
+
+            <button type="button" data-select-look="${look.code}"
+                    class="select-catalog-look-btn pl2-card-btn">
+              SHOW ${look.code} FULL SCREEN
+            </button>
+          </div>
+        `;
+      }).join('');
+
+      grid.querySelectorAll('.select-catalog-look-btn, .card-thumb-click').forEach(el => {
+        el.addEventListener('click', () => {
+          const code = el.getAttribute('data-select-look') || el.getAttribute('data-card-look');
+          state.activeLookCode = code;
+          toggleCatalogModal(false);
+          renderBroadcastOverlay();
+          renderCatalogGrid();
+        });
+      });
+
+      requestAnimationFrame(updateAllStageScales);
+    }
+
+    function toggleCatalogModal(show) {
+      state.showingCatalog = show;
+      const overlayView = document.getElementById('view-overlay');
+      const catalogView = document.getElementById('view-catalog');
+      const btn = document.getElementById('btn-toggle-view');
+
+      if (show) {
+        overlayView.classList.add('hidden');
+        catalogView.classList.remove('hidden');
+        btn.textContent = 'VIEW FULL SCREEN';
+      } else {
+        catalogView.classList.add('hidden');
+        overlayView.classList.remove('hidden');
+        btn.textContent = 'DESIGNS (23)';
+      }
+      requestAnimationFrame(updateAllStageScales);
+    }
+
+    // =========================================================================
+    // LIVE MATCH BRIDGE (MatchState -> the reference demo-data shape)
+    // Falls back to the original demo data when no match is on the server.
+    // =========================================================================
+    function ballToken(ball) {
+      if (ball.wicket) return 'W';
+      if (ball.extras) {
+        const token = { wide: 'wd', noball: 'nb', bye: 'b', legbye: 'lb', penalty: 'p' }[ball.extras.type];
+        if (token) return token;
+      }
+      return String(ball.runs);
+    }
+
+    function ballRuns(ball) {
+      return ball.runs + (ball.extras ? ball.extras.runs : 0);
+    }
+
+    function mapLiveMatch(match) {
+      const batting = match.teams.find(t => t.id === match.battingTeamId) || match.teams[0];
+      const other = match.teams.find(t => t.id !== batting.id) || match.teams[1];
+      const short = team => (team.short || team.name || '').toUpperCase();
+      const last = match.lastBalls.length ? match.lastBalls[match.lastBalls.length - 1] : null;
+      const thisOver = match.thisOver || [];
+      const overRuns = thisOver.reduce((sum, ball) => sum + ballRuns(ball), 0);
+      const striker = match.batters.find(b => b.onStrike) || match.batters[0];
+      const partner = match.batters.find(b => b.playerId !== striker.playerId) || match.batters[1];
+      const oversLimit = match.format === 'T20' ? 20 : match.format === 'ODI' ? 50 : 90;
+      const otherInnings = match.innings.find(i => i.battingTeamId === other.id);
+      const thisBallUnit = !last ? 'THIS BALL' : last.wicket ? 'WICKET' : last.runs === 0 ? 'DOT' : last.runs === 1 ? 'RUN' : 'RUNS';
+
+      return {
+        team1: short(batting),
+        team2: short(other),
+        team2Status: match.target
+          ? `NEED ${Math.max(0, match.target - match.score.runs)}`
+          : otherInnings
+            ? `${otherInnings.score.runs}-${otherInnings.score.wkts}`
+            : 'YET TO BAT',
+        runs: match.score.runs,
+        wickets: match.score.wkts,
+        oversWhole: match.score.overs,
+        oversBalls: match.score.balls,
+        format: match.format,
+        channel: 'STUMPCAST',
+        thisBallNum: last ? ballToken(last) : '—',
+        thisBallUnit,
+        overBalls: thisOver.length ? thisOver.slice(-6).map(ballToken) : ['·'],
+        overRuns: `+ ${overRuns}`,
+        crr: (match.crr || 0).toFixed(2),
+        pshipLabel: "P'SHIP",
+        partnershipRuns: match.partnership ? match.partnership.runs : 0,
+        partnershipBalls: match.partnership ? match.partnership.balls : 0,
+        lastOvLabel: 'LAST OV',
+        lastOv: thisOver.length >= 6 ? String(overRuns) : '—',
+        projLabel: match.format === 'TEST' ? 'REM OV' : 'PROJ',
+        proj: match.projected ?? (match.format === 'TEST' ? '—' : Math.round((match.crr || 0) * oversLimit)),
+        tossNote: match.toss
+          ? `${short(match.teams.find(t => t.id === match.toss.winnerTeamId) || batting)} OPT TO ${match.toss.decision.toUpperCase()}`
+          : 'TOSS PENDING',
+        striker: {
+          name: (striker.name || '').toUpperCase(),
+          runs: striker.runs,
+          balls: striker.balls,
+          fours: striker.fours,
+          sixes: striker.sixes
+        },
+        nonStriker: {
+          name: (partner.name || '').toUpperCase(),
+          runs: partner.runs,
+          balls: partner.balls,
+          fours: partner.fours,
+          sixes: partner.sixes
+        },
+        bowler: {
+          name: (match.bowler.name || '').toUpperCase(),
+          wickets: match.bowler.wkts,
+          runs: match.bowler.runs,
+          overs: `${match.bowler.overs}.${match.bowler.balls}`,
+          dots: 0,
+          maidens: match.bowler.maidens
+        }
+      };
+    }
+
+    async function refreshLiveMatch() {
+      if (state.forceDemo) return;
+      try {
+        const response = await fetch('/api/matches', { cache: 'no-store' });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const list = await response.json();
+        if (!Array.isArray(list) || !list.length) throw new Error('no match');
+        const match = list.find(m => m.status === 'live') || list.find(m => m.status === 'break') || list[0];
+        state.matchData = mapLiveMatch(match);
+        state.live = true;
+        state.liveLabel = `LIVE · ${state.matchData.team1} v ${state.matchData.team2}`;
+      } catch {
+        state.live = false;
+      }
+      const status = document.getElementById('live-status');
+      if (status) {
+        status.textContent = state.live ? state.liveLabel : 'DEMO DATA';
+        status.classList.toggle('is-live', state.live);
+      }
+      renderBroadcastOverlay();
+    }
+
+    // Export runtime helpers on window for direct monorepo/overlay integration
+    window.PRO_LOOKS_23 = PRO_LOOKS_23;
+    window.ALL_LOOKS = ALL_LOOKS;
+    window.lookToCssVars = lookToCssVars;
+    window.applyLook = applyLook;
+    window.setOverlayLook = function(lookCode) {
+      state.activeLookCode = lookCode;
+      renderBroadcastOverlay();
+    };
+    window.updateScoreboard = function(newMatchData) {
+      Object.assign(state.matchData, newMatchData);
+      renderBroadcastOverlay();
+    };
+
+    window.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('btn-toggle-view').addEventListener('click', () => {
+        toggleCatalogModal(!state.showingCatalog);
+      });
+      document.getElementById('btn-close-modal').addEventListener('click', () => {
+        toggleCatalogModal(false);
+      });
+
+      renderBroadcastOverlay();
+      renderCatalogGrid();
+      void refreshLiveMatch();
+      setInterval(() => void refreshLiveMatch(), 15000);
+    });
+  </script>
+</body>
+</html>

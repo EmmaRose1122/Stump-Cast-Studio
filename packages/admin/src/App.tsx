@@ -7,6 +7,7 @@ import { useShortcuts, type ShortcutAction } from './lib/shortcuts';
 import { Gallery } from './pages/Gallery';
 import { LivePage } from './pages/Live';
 import { PlayersPage } from './pages/Players';
+import { ProLook2Page } from './pages/ProLook2';
 import { SetupPage } from './pages/Setup';
 import { GraphicsPage } from './pages/Graphics';
 import { HelpPage, SettingsPage, VideoPage } from './pages/pages';
@@ -21,6 +22,7 @@ import { Toaster, TooltipProvider } from './ui';
 const PAGES: Record<string, () => React.ReactElement> = {
   '/live': LivePage,
   '/graphics': GraphicsPage,
+  '/pro-look-2': ProLook2Page,
   '/video': VideoPage,
   '/sounds': SoundsPage,
   '/players': PlayersPage,

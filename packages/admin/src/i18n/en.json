@@ -3,6 +3,7 @@
   "nav": {
     "live": "Live",
     "graphics": "Graphics",
+    "proLook2": "Pro Look 2",
     "video": "Video & Cams",
     "sounds": "Sounds",
     "players": "Players & Logos",
@@ -40,6 +41,10 @@
     "graphics": {
       "title": "Graphics",
       "empty": "Card grid, director and looks arrive in the Graphics tab build."
+    },
+    "proLook2": {
+      "title": "Pro Look 2",
+      "hint": "A separate set of 23 broadcast designs (K01–K25). The 34 original Pro Looks stay exactly as they are."
     },
     "video": {
       "title": "Video & Cams",
