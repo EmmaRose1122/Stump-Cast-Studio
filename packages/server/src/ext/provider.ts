@@ -169,26 +169,17 @@ export class ExtensionProvider implements MatchProvider {
     existing: RawUpdate['fields']['batters'],
     incoming: RawUpdate['fields']['batters']
   ): RawUpdate['fields']['batters'] {
-    if (incoming.length > existing.length) return incoming;
-    if (existing.length > incoming.length) return existing;
-    // Same length, prefer incoming if it has more complete data
-    for (let i = 0; i < incoming.length; i++) {
-      const inc = incoming[i];
-      const ex = existing[i];
-      if (inc && ex && (inc.imageUrl && !ex.imageUrl)) return incoming;
-      if (inc && ex && (inc.runs > ex.runs)) return incoming;
-    }
-    return existing;
+    if (incoming.length === 0) return existing;
+    // A lower score is normal after an innings change; runs are not a version number. The newest
+    // full list is current, while a shorter list is a patch (for example a squads page).
+    return incoming.length >= existing.length ? incoming : existing;
   }
 
   private mergeBowler(
     existing: RawUpdate['fields']['bowler'],
     incoming: RawUpdate['fields']['bowler']
   ): RawUpdate['fields']['bowler'] {
-    if (!incoming) return existing;
-    if (!existing) return incoming;
-    // Prefer incoming if it has more complete data
-    return (incoming.imageUrl && !existing.imageUrl) || (incoming.wkts >= existing.wkts) ? incoming : existing;
+    return incoming ?? existing;
   }
 
   private mergeInnings(
@@ -197,16 +188,14 @@ export class ExtensionProvider implements MatchProvider {
   ): RawUpdate['fields']['innings'] {
     if (incoming.length === 0) return existing;
     if (existing.length === 0) return incoming;
-    // Combine unique innings by team
-    const byTeam = new Map<string, RawUpdate['fields']['innings'][0]>();
-    for (const inn of [...existing, ...incoming]) {
-      const key = inn.team.toLowerCase();
-      const ex = byTeam.get(key);
-      if (!ex || (inn.runs > ex.runs) || (inn.wkts > ex.wkts) || (inn.overs > ex.overs)) {
-        byTeam.set(key, inn);
-      }
-    }
-    return [...byTeam.values()];
+    // Innings are ordered, not unique per team: a Test has two innings from the same side, and a
+    // team-keyed merge collapsed the live third innings into the first. A newer, equally complete
+    // snapshot is the whole innings list.
+    if (incoming.length >= existing.length) return incoming;
+    return existing.map((old, index) => {
+      const next = incoming[index];
+      return next && (next.runs >= old.runs || next.overs > old.overs) ? next : old;
+    });
   }
 
   private mergeMultiPageData(baseUpdate: RawUpdate, pages: unknown[]): RawUpdate {

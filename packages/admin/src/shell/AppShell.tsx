@@ -194,7 +194,7 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
       } catch {
         /* offline; fall back to the update check below */
       }
-      return '1.1.0';
+      return '1.2.0';
     },
     staleTime: 60_000,
   });
@@ -211,11 +211,11 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
           if (res?.updateAvailable) {
             return {
               updateAvailable: true,
-              latestVersion: res.latestVersion ?? res.version ?? '1.1.0',
-              currentVersion: res.currentVersion ?? '1.1.0',
+              latestVersion: res.latestVersion ?? res.version ?? '1.2.0',
+              currentVersion: res.currentVersion ?? '1.2.0',
               releaseNotes:
                 res.releaseNotes ||
-                '• Direct In-App Desktop Updater with live transfer progress bar\n• Fast Cricbuzz & Crex match state scrapers\n• Red, White & Blue studio broadcast overlays\n• Center-aligned operator control room layout',
+                '• Priority 1 Hugging Face XTTS neural commentary engine with auto-detecting model routers\n• Pure Language Isolation: 100% Urdu, Hindi & English without mixed language catchphrases\n• 12 Niche Commentator Personas & authentic duo pairs for dynamic live banter\n• High-Definition Cloud Voice fallback ensures commentary stream never goes silent\n• Enhanced overlay pop-out hierarchy with topmost milestone popups',
               downloadUrl: res.downloadUrl ?? '',
             };
           }
@@ -235,7 +235,7 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
             releaseNotes: string;
             downloadUrl: string;
           };
-          const cur = clientVer || data.currentVersion || '1.1.0';
+          const cur = clientVer || data.currentVersion || '1.2.0';
           const isNewer = (lat: string, curVer: string) => {
             const pa = lat.replace(/^v/, '').split('.').map(Number);
             const pb = curVer.replace(/^v/, '').split('.').map(Number);
@@ -260,7 +260,7 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
       return {
         updateAvailable: false,
         latestVersion: '',
-        currentVersion: '1.1.0',
+        currentVersion: '1.2.0',
         releaseNotes: '',
         downloadUrl: '',
       };
@@ -269,7 +269,7 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
   });
 
   /** Prefer the live engine version; the update check is a fallback, never a literal. */
-  const runningVersion = versionQuery.data || updateQuery.data?.currentVersion || '1.1.0';
+  const runningVersion = versionQuery.data || updateQuery.data?.currentVersion || '1.2.0';
 
   const handleCheckUpdate = async (simulate = false) => {
     setIsCheckingUpdate(true);
@@ -508,7 +508,7 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
                 <div className="flex items-center gap-1.5 mt-0.5 text-[11px] text-slate-500 font-medium">
                   <span className="text-slate-600 font-semibold tracking-wide">Live Broadcast Engine</span>
                   <span className="text-slate-300">·</span>
-                  <span className="font-mono text-orange-600 font-bold">v{runningVersion || '1.1.0'}</span>
+                  <span className="font-mono text-orange-600 font-bold">v{runningVersion || '1.2.0'}</span>
                 </div>
               </div>
             </div>
@@ -1067,7 +1067,7 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
                 </p>
                 <div className="text-xs text-slate-700 whitespace-pre-wrap leading-relaxed space-y-1">
                   {updateQuery.data.releaseNotes ||
-                    '• Live Commentary Audio routing (exclusive to Preview & Pop-out windows, no background echo)\n• Stadium Crowd Audio Station with individual sound track volume sliders (0%-100%), mute & reset\n• Calibrated Win Predictor with accurate batting and chasing team match analytics\n• Audio Monitor headphone output control and toggle\n• Direct in-app update installer to version 1.1.0'}
+                    '• Priority 1 Hugging Face XTTS neural commentary engine with auto-detecting model routers\n• Pure Language Isolation: 100% Urdu, Hindi & English without mixed language catchphrases\n• 12 Niche Commentator Personas & authentic duo pairs for dynamic live banter\n• High-Definition Cloud Voice fallback ensures commentary stream never goes silent\n• Enhanced overlay pop-out hierarchy with topmost milestone popups'}
                 </div>
               </div>
 

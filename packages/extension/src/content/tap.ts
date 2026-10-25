@@ -36,8 +36,14 @@ export const installTap = (win: TapWindow): void => {
   const consider = (url: string, readBody: () => Promise<string> | string) => {
     const handle = (matches: boolean) => {
       if (!matches) return;
-      void Promise.resolve()
-        .then(readBody)
+      let body: Promise<string> | string;
+      try {
+        // Read in the same tick: a site's own load handler may clear the response right after us.
+        body = readBody();
+      } catch {
+        return;
+      }
+      void Promise.resolve(body)
         .then((text) => {
           if (typeof text !== 'string' || text.length === 0 || text.length > MAX_BODY_CHARS) return;
           let parsed: unknown;
@@ -64,11 +70,26 @@ export const installTap = (win: TapWindow): void => {
     handle(regexes === null ? true : regexes.some((r) => r.test(url)));
   };
 
-  // fetch
+  // fetch. Crex (and other Angular sites) install their own zone wrapper after document_start,
+  // which replaces ours. Hold the property so a later assignment is wrapped too, and fall back to
+  // the function that was native at install time if a wrapper calls window.fetch from inside itself.
   const origFetch = win.fetch;
   if (typeof origFetch === 'function') {
-    win.fetch = function patchedFetch(this: unknown, ...args: never[]) {
-      const promise = (origFetch as (...a: never[]) => Promise<Response>).apply(this, args);
+    let currentFetch = origFetch;
+    let installedFetch: typeof origFetch;
+    let insideFetch = 0;
+    const wrapFetch = (fetchFn: typeof origFetch) => function patchedFetch(
+      this: unknown,
+      ...args: never[]
+    ) {
+      if (insideFetch > 0) return origFetch.apply(this, args);
+      insideFetch += 1;
+      let promise: Promise<Response>;
+      try {
+        promise = fetchFn.apply(this, args);
+      } finally {
+        insideFetch -= 1;
+      }
       try {
         const first = args[0] as unknown;
         const raw =
@@ -88,36 +109,61 @@ export const installTap = (win: TapWindow): void => {
         /* never break the page */
       }
       return promise;
-    } as typeof win.fetch;
+    } as typeof origFetch;
+    installedFetch = wrapFetch(currentFetch);
+    try {
+      Object.defineProperty(win, 'fetch', {
+        configurable: true,
+        enumerable: true,
+        get: () => installedFetch,
+        set: (next: typeof origFetch) => {
+          if (typeof next !== 'function' || next === installedFetch) return;
+          currentFetch = next;
+          installedFetch = wrapFetch(currentFetch);
+        },
+      });
+    } catch {
+      win.fetch = installedFetch;
+    }
   }
 
-  // XMLHttpRequest
+  // XMLHttpRequest. The listener is attached in open(), before the site registers its own: Angular
+  // handles `load` first if ours is late and may reset the request, so a load-only tap reads an empty
+  // response. readystatechange fires before load and still has the body.
   const XHR = win.XMLHttpRequest?.prototype;
   if (XHR) {
-    const urls = new WeakMap<object, string>();
+    interface XhrState {
+      url: string;
+      reported: boolean;
+    }
+    const states = new WeakMap<XMLHttpRequest, XhrState>();
+    const observed = new WeakSet<XMLHttpRequest>();
+    const observe = (xhr: XMLHttpRequest, url: string) => {
+      states.set(xhr, { url, reported: false });
+      if (observed.has(xhr)) return;
+      observed.add(xhr);
+      const capture = () => {
+        const state = states.get(xhr);
+        if (!state || state.reported || xhr.readyState !== 4) return;
+        state.reported = true;
+        if (xhr.responseType === 'json') {
+          consider(state.url, () => xhr.response == null ? '' : JSON.stringify(xhr.response));
+        } else if (xhr.responseType === '' || xhr.responseType === 'text') {
+          consider(state.url, () => xhr.responseText);
+        }
+      };
+      xhr.addEventListener('readystatechange', capture);
+      xhr.addEventListener('load', capture);
+    };
     const origOpen = XHR.open;
-    const origSend = XHR.send;
     XHR.open = function patchedOpen(this: XMLHttpRequest, ...args: unknown[]) {
       try {
-        urls.set(this, absolute(win, String(args[1])));
+        observe(this, absolute(win, String(args[1])));
       } catch {
         /* ignore */
       }
       return (origOpen as (...a: unknown[]) => void).apply(this, args);
     } as typeof XHR.open;
-    XHR.send = function patchedSend(this: XMLHttpRequest, ...args: unknown[]) {
-      try {
-        this.addEventListener('load', () => {
-          const url = urls.get(this);
-          if (!url) return;
-          if (this.responseType !== '' && this.responseType !== 'text') return;
-          consider(url, () => this.responseText);
-        });
-      } catch {
-        /* ignore */
-      }
-      return (origSend as (...a: unknown[]) => void).apply(this, args);
-    } as typeof XHR.send;
   }
 
   // Config from the isolated-world content script.

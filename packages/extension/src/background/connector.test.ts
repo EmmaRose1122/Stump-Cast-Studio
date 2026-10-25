@@ -454,6 +454,22 @@ describe('delivery reliability', () => {
     await flush();
     expect(revived.tabs).toEqual([]);
   });
+
+  it('replaces a tab path fallback with the parsed match id', async () => {
+    const env = makeEnv({
+      livePort: 4000,
+      store: { token: 'tok-abcdefghijklmnopqrstuvwx', port: 4000 },
+    });
+    const c = new Connector(env.deps);
+    await c.init();
+    await c.onContentMessage(
+      { type: 'adapter-degraded', site: 'crex', url: 'https://crex.com/cricket-live-score/example-13QQ', confidence: 0, missing: ['score'], at: 1 },
+      7,
+    );
+    await c.onContentMessage({ type: 'score-update', update: update('13QQ') }, 7);
+    await flush();
+    expect(c.tabs.map((t) => t.matchId)).toEqual(['13QQ']);
+  });
 });
 
 describe('isAllowedMatchUrl', () => {

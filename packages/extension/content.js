@@ -8337,7 +8337,7 @@
     const m = /\bday\s*(\d{1,2})\b/i.exec(input);
     if (!m) return void 0;
     const out = { day: Number(m[1]) };
-    const split = (text) => text.split(/[-–:,]/).map((s) => s.trim()).filter(Boolean);
+    const split = (text2) => text2.split(/[-–:,]/).map((s) => s.trim()).filter(Boolean);
     const before = split(input.slice(0, m.index));
     const after = split(input.slice(m.index + m[0].length));
     const session = after.find((s) => SESSION_WORD.test(s)) ?? before.find((s) => SESSION_WORD.test(s)) ?? after[0] ?? before[0];
@@ -8587,13 +8587,13 @@
     const pass = (k, ok) => {
       if (ok) passed.add(k);
     };
-    const text = (k) => raw[k];
+    const text2 = (k) => raw[k];
     const picture = (k) => {
-      const v = text(k)?.trim();
+      const v = text2(k)?.trim();
       return v && /^https?:\/\/\S+$/i.test(v) ? v : void 0;
     };
-    const dayStatus = parseDayStatus(text("status"));
-    const day = parseInteger(text("day")) ?? dayStatus?.day;
+    const dayStatus = parseDayStatus(text2("status"));
+    const day = parseInteger(text2("day")) ?? dayStatus?.day;
     const isTest = day !== void 0;
     const maxOvers = isTest ? Infinity : MAX_LIMITED_OVERS;
     const cleanTeam = (t) => {
@@ -8602,9 +8602,9 @@
       if (/(?:p'?ship|crr|rrr|%|\b(?:AM|PM|GMT|LOCAL)\b|\d{1,2}:\d{2})/i.test(t)) return void 0;
       return t.trim();
     };
-    let team1Name = cleanTeam(text("team1"));
-    let team2Name = cleanTeam(text("team2"));
-    const rawTitle = text("title") ?? "";
+    let team1Name = cleanTeam(text2("team1"));
+    let team2Name = cleanTeam(text2("team2"));
+    const rawTitle = text2("title") ?? "";
     if (site === "cricbuzz" && rawTitle) {
       const tm = /(?:^|[-•:|]\s*|\b)([A-Za-z0-9 .\x27]+?)\s+(?:vs\.?|v)\s+([A-Za-z0-9 .\x27]+?)(?:,|-|\(|\||$)/i.exec(rawTitle);
       if (tm) {
@@ -8630,9 +8630,9 @@
         if (!team2Name && urlMatch[2]) team2Name = urlMatch[2].toUpperCase();
       }
     }
-    const tossText = looksLikeToss(text("toss")) ? text("toss") : void 0;
+    const tossText = looksLikeToss(text2("toss")) ? text2("toss") : void 0;
     for (const k of ["title", "status", "venue", "battingTeam"]) {
-      pass(k, Boolean(text(k)));
+      pass(k, Boolean(text2(k)));
     }
     pass("toss", Boolean(tossText));
     pass("team1", Boolean(team1Name));
@@ -8643,20 +8643,20 @@
       score: `inn${n}.score`,
       overs: `inn${n}.overs`
     }));
-    const hasNumbered = slots.some((s) => text(s.score) !== void 0);
+    const hasNumbered = slots.some((s) => text2(s.score) !== void 0);
     const active = hasNumbered ? slots : [{ team: "battingTeam", score: "score", overs: "overs" }];
     const teamNameOf = (slot) => {
-      const candidates = [slot.team && text(slot.team), text("battingTeam"), text("team1")].filter(
+      const candidates = [slot.team && text2(slot.team), text2("battingTeam"), text2("team1")].filter(
         (c) => Boolean(c)
       );
       return candidates.find((c) => !looksLikeScore(c) && !looksLikeToss(c)) ?? "";
     };
     const rows = [];
     for (const slot of active) {
-      const rawScore = text(slot.score);
+      const rawScore = text2(slot.score);
       const score = parseScore(rawScore) ?? (isTest || hasNumbered ? parseScore(rawScore, { allowBare: true }) : void 0);
       if (!score) continue;
-      let overs = slot.overs ? parseOvers(text(slot.overs)) : void 0;
+      let overs = slot.overs ? parseOvers(text2(slot.overs)) : void 0;
       if (!overs && rawScore) {
         const oversFromScore = /\(\s*(\d{1,3}(?:\.\d)?)\s*(?:ov(?:ers?)?|ovs?)?\s*\)/i.exec(rawScore);
         if (oversFromScore?.[1]) {
@@ -8694,13 +8694,13 @@
       passed.delete("score");
       passed.delete(`inn${innings2.length}.score`);
     }
-    const rawStatus = text("status") ?? "";
+    const rawStatus = text2("status") ?? "";
     const isPreMatch = /(?:opt|toss|preview|starts|delayed|yet to start)/i.test(rawStatus) || Boolean(tossText);
     let synthetic = false;
     if (innings2.length === 0 && isPreMatch && (rawTitle || team1Name)) {
       const tossWinner = tossText ? team1Name && tossText.toLowerCase().includes(team1Name.toLowerCase()) ? team1Name : team2Name && tossText.toLowerCase().includes(team2Name.toLowerCase()) ? team2Name : void 0 : void 0;
       const statusWinner = rawStatus ? team1Name && new RegExp(`\\b${team1Name}\\b`, "i").test(rawStatus) ? team1Name : team2Name && new RegExp(`\\b${team2Name}\\b`, "i").test(rawStatus) ? team2Name : void 0 : void 0;
-      const rawBattingTeam = text("battingTeam");
+      const rawBattingTeam = text2("battingTeam");
       const battingTeamName = rawBattingTeam && !looksLikeScore(rawBattingTeam) ? rawBattingTeam : void 0;
       const teamName = site === "crex" ? battingTeamName ?? "" : tossWinner || statusWinner || battingTeamName || team1Name || "Batting";
       innings2.push({
@@ -8716,9 +8716,9 @@
     }
     const batters = [];
     for (const n of [1, 2]) {
-      const name = cleanPlayerName(text(`batter${n}.name`));
-      const runs = parseInteger(text(`batter${n}.runs`));
-      const balls = parseInteger(text(`batter${n}.balls`));
+      const name = cleanPlayerName(text2(`batter${n}.name`));
+      const runs = parseInteger(text2(`batter${n}.runs`));
+      const balls = parseInteger(text2(`batter${n}.balls`));
       pass(`batter${n}.name`, Boolean(name));
       pass(`batter${n}.runs`, runs !== void 0);
       pass(`batter${n}.balls`, balls !== void 0);
@@ -8727,8 +8727,8 @@
         name: name.name,
         runs,
         balls,
-        fours: parseInteger(text(`batter${n}.fours`)),
-        sixes: parseInteger(text(`batter${n}.sixes`))
+        fours: parseInteger(text2(`batter${n}.fours`)),
+        sixes: parseInteger(text2(`batter${n}.sixes`))
       };
       if (name.onStrike) b.onStrike = true;
       const photo = picture(`batter${n}.photo`);
@@ -8736,17 +8736,17 @@
       batters.push(b);
     }
     let bowler;
-    const bowlerName = cleanPlayerName(text("bowler.name"));
-    const bowlerOvers = parseOvers(text("bowler.overs"));
-    const bowlerRuns = parseInteger(text("bowler.runs"));
-    const bowlerWkts = parseInteger(text("bowler.wkts"));
+    const bowlerName = cleanPlayerName(text2("bowler.name"));
+    const bowlerOvers = parseOvers(text2("bowler.overs"));
+    const bowlerRuns = parseInteger(text2("bowler.runs"));
+    const bowlerWkts = parseInteger(text2("bowler.wkts"));
     if (bowlerName && bowlerOvers && bowlerRuns !== void 0 && bowlerWkts !== void 0) {
       if (bowlerWkts <= 10) {
         bowler = {
           name: bowlerName.name,
           overs: bowlerOvers.overs,
           balls: bowlerOvers.balls,
-          maidens: parseInteger(text("bowler.maidens")) ?? 0,
+          maidens: parseInteger(text2("bowler.maidens")) ?? 0,
           runs: bowlerRuns,
           wkts: bowlerWkts
         };
@@ -8757,25 +8757,25 @@
         if (photo) bowler.imageUrl = photo;
       }
     }
-    const thisOver = parseBallTokens(text("thisOver"));
-    const lastBalls = parseBallTokens(text("lastBalls"));
+    const thisOver = parseBallTokens(text2("thisOver"));
+    const lastBalls = parseBallTokens(text2("lastBalls"));
     pass("thisOver", thisOver.length > 0);
     pass("lastBalls", lastBalls.length > 0);
-    const partnership = parsePartnership(text("partnership"));
+    const partnership = parsePartnership(text2("partnership"));
     pass("partnership", partnership !== void 0);
-    const target = parseInteger(text("target"));
-    const crr = parseNumber(text("crr"));
-    const rrr = parseNumber(text("rrr"));
+    const target = parseInteger(text2("target"));
+    const crr = parseNumber(text2("crr"));
+    const rrr = parseNumber(text2("rrr"));
     pass("target", target !== void 0 && target > 0);
     pass("crr", crr !== void 0 && crr >= 0);
     pass("rrr", rrr !== void 0 && rrr >= 0);
     pass("day", isTest);
-    pass("session", Boolean(text("session") ?? dayStatus?.session));
-    pass("resultText", Boolean(text("resultText") ?? dayStatus?.resultText));
-    pass("commentaryLast", Boolean(text("commentaryLast")));
-    const teamNames = site === "crex" ? [cleanTeam(text("team1")), cleanTeam(text("team2"))] : [team1Name, team2Name];
+    pass("session", Boolean(text2("session") ?? dayStatus?.session));
+    pass("resultText", Boolean(text2("resultText") ?? dayStatus?.resultText));
+    pass("commentaryLast", Boolean(text2("commentaryLast")));
+    const teamNames = site === "crex" ? [cleanTeam(text2("team1")), cleanTeam(text2("team2"))] : [team1Name, team2Name];
     const teamLogos = [picture("team1.logo"), picture("team2.logo")];
-    const teamSquads = [parseSquad(text("team1.squad")), parseSquad(text("team2.squad"))];
+    const teamSquads = [parseSquad(text2("team1.squad")), parseSquad(text2("team2.squad"))];
     const teams = teamNames.map((name, i) => {
       if (!name) return null;
       const squad = teamSquads[i];
@@ -8790,12 +8790,12 @@
         } : {}
       };
     }).filter((t) => t !== null);
-    const scrapedFormat = FORMATS.find((x) => x === text("format")?.trim().toUpperCase());
+    const scrapedFormat = FORMATS.find((x) => x === text2("format")?.trim().toUpperCase());
     pass("format", scrapedFormat !== void 0);
     const fields = {
-      title: text("title"),
-      status: text("status"),
-      venue: text("venue"),
+      title: text2("title"),
+      status: text2("status"),
+      venue: text2("venue"),
       teams,
       innings: innings2,
       batters,
@@ -8808,9 +8808,9 @@
       ...crr !== void 0 && crr >= 0 ? { crr } : {},
       ...rrr !== void 0 && rrr >= 0 ? { rrr } : {},
       ...day !== void 0 ? { day } : {},
-      ...text("session") || dayStatus?.session ? { session: text("session") ?? dayStatus?.session } : {},
-      ...text("resultText") || dayStatus?.resultText ? { resultText: text("resultText") ?? dayStatus?.resultText } : {},
-      ...text("commentaryLast") ? { commentaryLast: text("commentaryLast") } : {},
+      ...text2("session") || dayStatus?.session ? { session: text2("session") ?? dayStatus?.session } : {},
+      ...text2("resultText") || dayStatus?.resultText ? { resultText: text2("resultText") ?? dayStatus?.resultText } : {},
+      ...text2("commentaryLast") ? { commentaryLast: text2("commentaryLast") } : {},
       ...scrapedFormat ? { format: scrapedFormat } : {},
       ...synthetic ? { preMatch: true } : {}
     };
@@ -8944,14 +8944,19 @@
 
   // src/config/selectors.crex.json
   var selectors_crex_default = {
-    version: 1,
+    version: 2,
     site: "crex",
     urlPatterns: [
       "^https?://(?:www\\.)?crex\\.com/",
       "^https?://(?:www\\.)?crex\\.live/"
     ],
-    matchIdRegex: "/(?:live|match|scores|fixtures|scoreboard|match-center)/([a-zA-Z0-9_-]+)",
-    jsonTaps: [],
+    matchIdRegex: "/(?:cricket-live-score/.*-|(?:live|match|scores|fixtures|scoreboard|match-center)/)([a-zA-Z0-9_-]+)",
+    jsonTaps: [
+      {
+        urlRegex: "^https://api\\.goscorer\\.com/api/v3/getSV3\\?key=[a-zA-Z0-9_-]+$",
+        map: {}
+      }
+    ],
     dom: {
       title: {
         selectors: [
@@ -9206,6 +9211,289 @@
 
   // src/adapters/crex.ts
   var crexConfig = SelectorConfigSchema.parse(selectors_crex_default);
+  var text = (row, key) => {
+    const value = row[key];
+    return (typeof value === "string" || typeof value === "number") && String(value).trim() ? String(value).trim() : void 0;
+  };
+  var integer = (value) => {
+    if (value === void 0 || !/^\d+$/.test(value)) return void 0;
+    return Number(value);
+  };
+  var parts = (row, key) => text(row, key)?.split(".") ?? [];
+  var matchIdFor2 = (config, url) => {
+    if (config.matchIdRegex) {
+      const match = new RegExp(config.matchIdRegex).exec(url);
+      if (match?.[1]) return match[1];
+    }
+    return new URL(url).pathname.replace(/^\/+|\/+$/g, "").replace(/\//g, "-") || "unknown";
+  };
+  var storageValue = (doc, key) => {
+    try {
+      return doc.defaultView?.localStorage.getItem(key)?.trim() || void 0;
+    } catch {
+      return void 0;
+    }
+  };
+  var imageFor = (doc, kind, id) => {
+    if (!/^[a-zA-Z0-9]+$/.test(id)) return void 0;
+    const suffix = `/${kind}/${id}.png`;
+    const shown = [...doc.images].find((img) => {
+      const src = img.getAttribute("src") ?? "";
+      return src.includes(suffix);
+    })?.getAttribute("src");
+    return shown || `https://cricketvectors.akamaized.net/${kind}/${id}.png`;
+  };
+  var playerName = (doc, id) => {
+    const mapped = storageValue(doc, `p_${id}_name`);
+    if (mapped) return mapped;
+    const label = [...doc.images].find((img) => (img.getAttribute("src") ?? "").includes(`/players/org/${id}.png`))?.getAttribute("alt")?.replace(/\s+(?:logo|photo|picture|image)\s*$/i, "").trim();
+    return label || void 0;
+  };
+  var teamNamesFromMetadata = (doc) => {
+    const description = doc.querySelector('meta[name="description"]')?.getAttribute("content") ?? "";
+    const match = /^Track\s+(.+?)\s+vs\s+(.+?)\s+(?:\d|match\s)/i.exec(description);
+    return match ? [match[1].trim(), match[2].trim()] : [];
+  };
+  var parseScore2 = (value) => {
+    const match = /^(\d+)\/(\d{1,2})\((\d{1,3})(?:\.(\d))?/.exec(value ?? "");
+    if (!match) return void 0;
+    const wkts = Number(match[2]);
+    const balls = Number(match[4] ?? 0);
+    if (wkts > 10 || balls > 5) return void 0;
+    return { team: "", runs: Number(match[1]), wkts, overs: Number(match[3]), balls };
+  };
+  var oversFromBalls = (total, ballsPerOver) => ({
+    overs: Math.floor(total / ballsPerOver),
+    balls: total % ballsPerOver
+  });
+  var recentBalls = (row) => {
+    const overs = Array.isArray(row.rb) ? row.rb.filter((x) => typeof x === "object" && x !== null) : [];
+    const legalOvers = overs.flatMap(
+      (over) => Array.isArray(over.b) ? over.b.flatMap((ball) => {
+        if (typeof ball !== "object" || ball === null) return [];
+        const token = text(ball, "u");
+        return token ? [token] : [];
+      }) : []
+    );
+    const current = overs.at(-1);
+    const currentBalls = current && Array.isArray(current.b) ? current.b.flatMap((ball) => {
+      if (typeof ball !== "object" || ball === null) return [];
+      const token = text(ball, "u");
+      return token ? [token] : [];
+    }) : [];
+    const compactCurrent = text(row, "A")?.split(".").filter(Boolean) ?? [];
+    const thisOver = currentBalls.length > 0 ? currentBalls : compactCurrent;
+    return { thisOver, lastBalls: legalOvers.length > 0 ? legalOvers.slice(-12) : thisOver.slice(-12) };
+  };
+  var liveUpdate = (config, input, row) => {
+    const matchId = matchIdFor2(config, input.url);
+    const state = text(row, "i")?.split(/[(/.]+/) ?? [];
+    const stateCode = integer(state[0]);
+    const inningsIndex = integer(state[1]);
+    if (stateCode === void 0 || inningsIndex === void 0) throw new Error("Crex match state is missing");
+    const formatCode = stateCode % 4;
+    const format = formatCode === 0 ? "T20" : formatCode === 1 ? "ODI" : formatCode === 2 ? "TEST" : "OTHER";
+    const day = format === "TEST" ? stateCode >= 12 ? Math.floor(stateCode / 12) + 1 : 1 : void 0;
+    const matchState = stateCode >= 12 ? Math.floor(stateCode % 12 / 4) : Math.floor(stateCode / 4);
+    const teamIds = parts(row, "a").filter(Boolean);
+    if (teamIds.length < 2) throw new Error("Crex team ids are missing");
+    const metadataTeams = teamNamesFromMetadata(input.document);
+    const teams = teamIds.slice(0, 2).map((id, index) => {
+      const name = storageValue(input.document, `t_${id}_name`) ?? metadataTeams[index];
+      if (!name) throw new Error(`Crex team name is missing for ${id}`);
+      return {
+        name,
+        short: storageValue(input.document, `t_${id}_short`),
+        logoUrl: imageFor(input.document, "Teams", id)
+      };
+    });
+    const firstBattingIndex = state[2] === "2" || state[2] === "3" ? 1 : 0;
+    const firstTeam = teams[firstBattingIndex].name;
+    const secondTeam = teams[1 - firstBattingIndex].name;
+    const scoreKeys = inningsIndex === 0 ? ["j"] : inningsIndex === 1 ? ["j", "k"] : ["j", "k", "J", "K"];
+    const innings2 = [];
+    const inningsByKey = /* @__PURE__ */ new Map();
+    for (const [index, key] of scoreKeys.entries()) {
+      const score = parseScore2(text(row, key));
+      if (!score) continue;
+      if (index < 2) score.team = index === 0 ? firstTeam : secondTeam;
+      innings2.push(score);
+      inningsByKey.set(key, score);
+    }
+    let currentBattingTeam = inningsIndex % 2 === 0 ? firstTeam : secondTeam;
+    if (inningsIndex >= 2) {
+      const declaredState = integer(state[3]);
+      if (format === "TEST" && inningsIndex === 2) {
+        currentBattingTeam = declaredState === 3 ? secondTeam : firstTeam;
+      } else if (format === "TEST" && inningsIndex === 3) {
+        currentBattingTeam = declaredState === 4 ? firstTeam : secondTeam;
+      }
+      const currentKey = inningsIndex % 2 === 0 ? "J" : "K";
+      const current2 = inningsByKey.get(currentKey);
+      if (current2) current2.team = currentBattingTeam;
+      const previousThird = inningsByKey.get("J");
+      if (previousThird && previousThird !== current2) {
+        previousThird.team = currentBattingTeam === firstTeam ? secondTeam : firstTeam;
+      }
+    }
+    for (const score of innings2) {
+      if (!score.team) score.team = currentBattingTeam;
+    }
+    const ballsPerOver = text(row, "hb") === "1" ? 5 : 6;
+    const batterIds = text(row, "p")?.replaceAll("*", "").split(".") ?? [];
+    const rawBatterStats = [text(row, "q"), text(row, "s")];
+    const batterStats = rawBatterStats.map((value) => value?.replaceAll("*", "").split(".") ?? []);
+    const boundaries = [parts(row, "r"), parts(row, "t")];
+    const batters = batterIds.slice(0, 2).flatMap((id, index) => {
+      const name = playerName(input.document, id);
+      const runs = integer(batterStats[index]?.[0]);
+      const balls2 = integer(batterStats[index]?.[1]);
+      if (!name || runs === void 0 || balls2 === void 0) return [];
+      return [{
+        name,
+        runs,
+        balls: balls2,
+        fours: integer(boundaries[index]?.[0]),
+        sixes: integer(boundaries[index]?.[1]),
+        ...rawBatterStats[index]?.endsWith("*") ? { onStrike: true } : {},
+        imageUrl: imageFor(input.document, "players/org", id)
+      }];
+    });
+    let bowler;
+    const bowlerId = text(row, "b");
+    const bowlerName = bowlerId ? playerName(input.document, bowlerId) : void 0;
+    const bowling = parts(row, "c");
+    const bowlerRuns = integer(bowling[0]);
+    const bowlerBalls = integer(bowling[1]);
+    const bowlerWkts = integer(bowling[2]);
+    if (bowlerId && bowlerName && bowlerRuns !== void 0 && bowlerBalls !== void 0 && bowlerWkts !== void 0 && bowlerWkts <= 10) {
+      bowler = {
+        name: bowlerName,
+        ...oversFromBalls(bowlerBalls, ballsPerOver),
+        maidens: 0,
+        runs: bowlerRuns,
+        wkts: bowlerWkts,
+        imageUrl: imageFor(input.document, "players/org", bowlerId)
+      };
+    }
+    const current = innings2.at(-1);
+    let partnership;
+    const lastWicket = parts(row, "x");
+    const wicketRuns = integer(lastWicket[3]);
+    const wicketBalls = integer(lastWicket[4]);
+    if (current && wicketRuns !== void 0 && wicketBalls !== void 0) {
+      const totalBalls2 = current.overs * ballsPerOver + current.balls;
+      partnership = {
+        runs: Math.max(0, current.runs - wicketRuns),
+        balls: Math.max(0, totalBalls2 - wicketBalls)
+      };
+    }
+    let target;
+    if (inningsIndex === 1 && innings2[0]) {
+      const configuredTarget = integer(parts(row, "T")[1]);
+      target = configuredTarget ?? innings2[0].runs + 1;
+    }
+    const currentBalls = current ? current.overs * ballsPerOver + current.balls : 0;
+    const crr = current && currentBalls > 0 ? Number((current.runs * ballsPerOver / currentBalls).toFixed(2)) : void 0;
+    const totalBalls = integer(parts(row, "T")[0]) ?? (format === "T20" ? 120 : format === "ODI" ? 300 : void 0);
+    const rrr = target && current && totalBalls && totalBalls > currentBalls ? Number(((target - current.runs) * ballsPerOver / (totalBalls - currentBalls)).toFixed(2)) : void 0;
+    const breakCode = text(row, "w")?.split("/")[1];
+    const status = matchState === 0 ? "Match yet to start" : matchState === 2 ? "Match completed" : breakCode === "0" ? "Lunch Break" : breakCode === "1" ? "Tea Break" : breakCode === "2" ? "Stumps" : text(row, "B") === "i" ? "Innings Break" : "Live";
+    const description = input.document.querySelector('meta[name="description"]')?.getAttribute("content") ?? "";
+    const venue = / from (.+?) with ball by ball commentary/i.exec(description)?.[1]?.trim();
+    const balls = recentBalls(row);
+    const missing = current ? [] : ["score", "overs"];
+    return {
+      source: "crex",
+      matchId,
+      url: input.url,
+      capturedAt: input.now,
+      confidence: current ? 1 : 0,
+      fields: {
+        title: `${teams[0].name} vs ${teams[1].name}`,
+        status,
+        venue,
+        teams,
+        innings: innings2,
+        batters,
+        bowler,
+        ...balls,
+        partnership,
+        target,
+        crr,
+        rrr,
+        day,
+        format,
+        oversLimit: totalBalls ? totalBalls / ballsPerOver : void 0,
+        preMatch: matchState === 0 || void 0
+      },
+      missing
+    };
+  };
+  var createLiveAdapter = (config) => {
+    const errors = new RingBuffer(200);
+    let diagnostics;
+    const adapter = (input) => {
+      const matchId = matchIdFor2(config, input.url);
+      const tap = input.taps.find((candidate) => {
+        try {
+          const url = new URL(candidate.url);
+          return url.hostname === "api.goscorer.com" && url.pathname === "/api/v3/getSV3" && url.searchParams.get("key") === matchId;
+        } catch {
+          return false;
+        }
+      });
+      if (!tap || typeof tap.json !== "object" || tap.json === null || Array.isArray(tap.json)) {
+        return {
+          source: "crex",
+          matchId,
+          url: input.url,
+          capturedAt: input.now,
+          confidence: 0,
+          fields: { teams: [], innings: [], batters: [], thisOver: [], lastBalls: [] },
+          missing: ["score", "overs"]
+        };
+      }
+      try {
+        const update = liveUpdate(config, input, tap.json);
+        diagnostics = {
+          strategy: update.confidence > 0 ? "json" : "none",
+          jsonConfidence: update.confidence,
+          domConfidence: 0,
+          missing: update.missing
+        };
+        return update;
+      } catch (error) {
+        errors.push({ at: input.now, message: error instanceof Error ? error.message : String(error) });
+        diagnostics = { strategy: "none", jsonConfidence: 0, domConfidence: 0, missing: ["score", "overs"] };
+        return {
+          source: "crex",
+          matchId,
+          url: input.url,
+          capturedAt: input.now,
+          confidence: 0,
+          fields: { teams: [], innings: [], batters: [], thisOver: [], lastBalls: [] },
+          missing: ["score", "overs"]
+        };
+      }
+    };
+    return { adapter, diagnostics: () => diagnostics, errors };
+  };
+  var createCrexAdapter = (config = crexConfig) => {
+    const fallback = createAdapter(config);
+    const live = createLiveAdapter(config);
+    let usedLive = false;
+    return {
+      adapter: (input) => {
+        usedLive = /\/cricket-live-score\//.test(new URL(input.url).pathname);
+        if (!usedLive) return fallback.adapter(input);
+        const update = live.adapter(input);
+        return update.confidence >= MIN_CONFIDENCE ? update : fallback.adapter(input);
+      },
+      diagnostics: () => usedLive ? live.diagnostics() : fallback.diagnostics(),
+      errors: fallback.errors
+    };
+  };
 
   // src/messages.ts
   var TAP_MARKER = "stumpcast-tap";
@@ -9359,9 +9647,9 @@
   var NOT_A_PHOTO = "/jersey/";
   var norm = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
   var DECORATION = /* @__PURE__ */ new Set(["logo", "photo", "picture", "pic", "image", "player", "avatar", "headshot"]);
-  var labelNames = (label, playerName) => {
+  var labelNames = (label, playerName2) => {
     const l = norm(label).split(" ").filter((t) => t && !DECORATION.has(t));
-    const p = norm(playerName).split(" ").filter(Boolean);
+    const p = norm(playerName2).split(" ").filter(Boolean);
     if (l.length === 0 || p.length === 0) return false;
     const surname = p[p.length - 1];
     if (!l.includes(surname)) return false;
@@ -9386,16 +9674,16 @@
     if (player && label && labelNames(label, player)) return true;
     let node = img.parentElement;
     for (let depth = 0; node && depth < 5; depth++) {
-      const text = norm(node.textContent ?? "");
-      if (names.some((n) => text.includes(n))) return true;
+      const text2 = norm(node.textContent ?? "");
+      if (names.some((n) => text2.includes(n))) return true;
       node = node.parentElement;
     }
     return false;
   };
-  var picturesUnder = (doc, parts, not) => [...doc.querySelectorAll("img")].filter((img) => {
+  var picturesUnder = (doc, parts2, not) => [...doc.querySelectorAll("img")].filter((img) => {
     const src = img.getAttribute("src");
     if (typeof src !== "string") return false;
-    if (!parts.some((p) => src.includes(p))) return false;
+    if (!parts2.some((p) => src.includes(p))) return false;
     return !(not && src.includes(not));
   }).map((img) => img);
   var attachPictures = (update, doc, base) => {
@@ -9462,7 +9750,7 @@
       const cb = getConfig("cricbuzz");
       if (urlMatches(cb, href)) return { config: cb, make: () => createAdapter(cb) };
       const cx = getConfig("crex");
-      if (urlMatches(cx, href)) return { config: cx, make: () => createAdapter(cx) };
+      if (urlMatches(cx, href)) return { config: cx, make: () => createCrexAdapter(cx) };
       return null;
     };
     let currentCandidate = null;

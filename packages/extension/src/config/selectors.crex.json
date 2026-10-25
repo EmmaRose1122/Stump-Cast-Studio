@@ -1,12 +1,17 @@
 {
-  "version": 1,
+  "version": 2,
   "site": "crex",
   "urlPatterns": [
     "^https?://(?:www\\.)?crex\\.com/",
     "^https?://(?:www\\.)?crex\\.live/"
   ],
-  "matchIdRegex": "/(?:live|match|scores|fixtures|scoreboard|match-center)/([a-zA-Z0-9_-]+)",
-  "jsonTaps": [],
+  "matchIdRegex": "/(?:cricket-live-score/.*-|(?:live|match|scores|fixtures|scoreboard|match-center)/)([a-zA-Z0-9_-]+)",
+  "jsonTaps": [
+    {
+      "urlRegex": "^https://api\\.goscorer\\.com/api/v3/getSV3\\?key=[a-zA-Z0-9_-]+$",
+      "map": {}
+    }
+  ],
   "dom": {
     "title": {
       "selectors": [

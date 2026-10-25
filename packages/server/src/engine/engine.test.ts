@@ -160,6 +160,21 @@ describe('rawToBaseState', () => {
     expect(s.thisOver[2]?.wicket).toBeTruthy();
   });
 
+  it('keeps a scraped crest for a side with no canonical team code', () => {
+    const s = rawToBaseState(
+      raw({
+        teams: [
+          { name: 'India A', logoUrl: 'https://cricketvectors.akamaized.net/Teams/6S.png' },
+          { name: 'Wakanda XI' },
+        ],
+        innings: [inn('India A', 10, 0, 1)],
+      }),
+      '2026-01-01T00:00:00.000Z',
+    );
+    expect(s.teams[0]).toMatchObject({ id: 'team-india-a', logoAssetId: 'team-india-a' });
+    expect(s.teams[1].logoAssetId).toBeUndefined();
+  });
+
   it.each([
     ['Day 4: Stumps - India need 319 runs', 'break'],
     ['India won by 6 wickets', 'result'],

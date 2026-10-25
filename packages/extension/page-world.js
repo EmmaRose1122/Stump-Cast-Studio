@@ -21,7 +21,13 @@
     const consider = (url, readBody) => {
       const handle = (matches) => {
         if (!matches) return;
-        void Promise.resolve().then(readBody).then((text) => {
+        let body;
+        try {
+          body = readBody();
+        } catch {
+          return;
+        }
+        void Promise.resolve(body).then((text) => {
           if (typeof text !== "string" || text.length === 0 || text.length > MAX_BODY_CHARS) return;
           let parsed;
           try {
@@ -46,8 +52,18 @@
     };
     const origFetch = win.fetch;
     if (typeof origFetch === "function") {
-      win.fetch = function patchedFetch(...args) {
-        const promise = origFetch.apply(this, args);
+      let currentFetch = origFetch;
+      let installedFetch;
+      let insideFetch = 0;
+      const wrapFetch = (fetchFn) => function patchedFetch(...args) {
+        if (insideFetch > 0) return origFetch.apply(this, args);
+        insideFetch += 1;
+        let promise;
+        try {
+          promise = fetchFn.apply(this, args);
+        } finally {
+          insideFetch -= 1;
+        }
         try {
           const first = args[0];
           const raw = typeof first === "string" ? first : first instanceof URL ? first.href : first?.url ?? "";
@@ -60,30 +76,50 @@
         }
         return promise;
       };
+      installedFetch = wrapFetch(currentFetch);
+      try {
+        Object.defineProperty(win, "fetch", {
+          configurable: true,
+          enumerable: true,
+          get: () => installedFetch,
+          set: (next) => {
+            if (typeof next !== "function" || next === installedFetch) return;
+            currentFetch = next;
+            installedFetch = wrapFetch(currentFetch);
+          }
+        });
+      } catch {
+        win.fetch = installedFetch;
+      }
     }
     const XHR = win.XMLHttpRequest?.prototype;
     if (XHR) {
-      const urls = /* @__PURE__ */ new WeakMap();
+      const states = /* @__PURE__ */ new WeakMap();
+      const observed = /* @__PURE__ */ new WeakSet();
+      const observe = (xhr, url) => {
+        states.set(xhr, { url, reported: false });
+        if (observed.has(xhr)) return;
+        observed.add(xhr);
+        const capture = () => {
+          const state = states.get(xhr);
+          if (!state || state.reported || xhr.readyState !== 4) return;
+          state.reported = true;
+          if (xhr.responseType === "json") {
+            consider(state.url, () => xhr.response == null ? "" : JSON.stringify(xhr.response));
+          } else if (xhr.responseType === "" || xhr.responseType === "text") {
+            consider(state.url, () => xhr.responseText);
+          }
+        };
+        xhr.addEventListener("readystatechange", capture);
+        xhr.addEventListener("load", capture);
+      };
       const origOpen = XHR.open;
-      const origSend = XHR.send;
       XHR.open = function patchedOpen(...args) {
         try {
-          urls.set(this, absolute(win, String(args[1])));
+          observe(this, absolute(win, String(args[1])));
         } catch {
         }
         return origOpen.apply(this, args);
-      };
-      XHR.send = function patchedSend(...args) {
-        try {
-          this.addEventListener("load", () => {
-            const url = urls.get(this);
-            if (!url) return;
-            if (this.responseType !== "" && this.responseType !== "text") return;
-            consider(url, () => this.responseText);
-          });
-        } catch {
-        }
-        return origSend.apply(this, args);
       };
     }
     win.addEventListener("message", (e) => {

@@ -615,7 +615,7 @@ const runUpdateCheck = async (customUrl?: string) => {
 					currentVersion,
 					releaseNotes:
 						releaseNotesText(res.updateInfo.releaseNotes) ||
-						'• Live Commentary Audio routing (exclusive to Preview & Pop-out windows, no background echo)\n• Stadium Crowd Audio Station with individual sound track volume sliders (0%-100%), mute & reset\n• Calibrated Win Predictor with accurate batting and chasing team match analytics\n• Audio Monitor headphone output control and toggle\n• Direct in-app update installer to version 1.1.0',
+						'• Priority 1 Hugging Face XTTS neural commentary engine with auto-detecting model routers\n• Pure Language Isolation: 100% Urdu, Hindi & English without mixed language catchphrases\n• 12 Niche Commentator Personas & authentic duo pairs for dynamic live banter\n• High-Definition Cloud Voice fallback ensures commentary stream never goes silent\n• Enhanced overlay pop-out hierarchy with topmost milestone popups',
 					downloadUrl: '',
 				};
 			}
@@ -654,7 +654,7 @@ const runUpdateCheck = async (customUrl?: string) => {
 					currentVersion,
 					releaseNotes:
 						data.releaseNotes ||
-						'• Live Commentary Audio routing (exclusive to Preview & Pop-out windows, no background echo)\n• Stadium Crowd Audio Station with individual sound track volume sliders (0%-100%), mute & reset\n• Calibrated Win Predictor with accurate batting and chasing team match analytics\n• Audio Monitor headphone output control and toggle\n• Direct in-app update installer to version 1.1.0',
+						'• Priority 1 Hugging Face XTTS neural commentary engine with auto-detecting model routers\n• Pure Language Isolation: 100% Urdu, Hindi & English without mixed language catchphrases\n• 12 Niche Commentator Personas & authentic duo pairs for dynamic live banter\n• High-Definition Cloud Voice fallback ensures commentary stream never goes silent\n• Enhanced overlay pop-out hierarchy with topmost milestone popups',
 					downloadUrl: data.downloadUrl ?? '',
 				};
 			}

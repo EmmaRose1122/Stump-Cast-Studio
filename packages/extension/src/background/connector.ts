@@ -241,6 +241,11 @@ export class Connector {
   // ---- messages from content scripts ------------------------------------------------------
 
   private track(info: TrackedTab): void {
+    if (info.tabId !== null) {
+      for (const [matchId, tracked] of this.tracked) {
+        if (tracked.tabId === info.tabId && matchId !== info.matchId) this.tracked.delete(matchId);
+      }
+    }
     this.tracked.set(info.matchId, info);
     this.persistTracked();
   }

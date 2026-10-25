@@ -65,7 +65,7 @@ const SETTINGS_KEY = 'app';
 const GEMINI_KEY = 'gemini_api_key';
 const OPENAI_KEY = 'openai_api_key';
 const CRICKET_KEY = 'cricket_api_key';
-export const APP_VERSION = '1.1.0';
+export const APP_VERSION = '1.2.0';
 
 /** One engine tick waiting on the broadcast delay, with the commentary already written for it. */
 interface PendingRelease {
@@ -189,6 +189,9 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
     let updateAvailable = false;
     let downloadUrl = '';
 
+    const v120Notes =
+      '• Priority 1 Hugging Face XTTS neural commentary engine with auto-detecting model routers\n• Pure Language Isolation: 100% Urdu, Hindi & English without mixed language catchphrases\n• 12 Niche Commentator Personas & authentic duo pairs for dynamic live banter\n• High-Definition Cloud Voice fallback ensures commentary stream never goes silent\n• Enhanced overlay pop-out hierarchy with topmost milestone popups';
+
     const v110Notes =
       '• Live Commentary Audio routing (exclusive to Preview & Pop-out windows, no background echo)\n• Stadium Crowd Audio Station with individual sound track volume sliders (0%-100%), mute & reset\n• Calibrated Win Predictor with realistic batting and chasing team match analytics\n• Audio Monitor headphone output control and toggle\n• Direct in-app update installer to version 1.1.0';
 
@@ -209,9 +212,9 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
     if (query?.simulate === '1' || simulatedUpdate || process.env.STUMPCAST_UPDATE_SIMULATE === '1') {
       return {
         currentVersion: effectiveCurrent,
-        latestVersion: '1.1.0',
+        latestVersion: '1.2.0',
         updateAvailable: true,
-        releaseNotes: v110Notes,
+        releaseNotes: v120Notes,
         downloadUrl: '/api/app/update-download-file',
         fileSize: 264183336,
       };
@@ -235,7 +238,9 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
           latestVersion = fileVer;
           downloadUrl = '/api/app/update-download-file';
           releaseNotes =
-            fileVer === '1.1.0'
+            fileVer === '1.2.0'
+              ? v120Notes
+              : fileVer === '1.1.0'
               ? v110Notes
               : '• Complete White, Royal Blue & Cricket Orange broadcast design\n• Ultra-fast Cricbuzz & Crex match state scrapers\n• Fixed button contrast & responsive broadcast layout\n• Direct in-app update installer to version ' + fileVer;
 
@@ -349,7 +354,7 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
     return {
       simulated: simulatedUpdate,
       currentVersion: APP_VERSION,
-      latestVersion: simulatedUpdate ? '1.1.0' : APP_VERSION,
+      latestVersion: simulatedUpdate ? '1.2.0' : APP_VERSION,
     };
   });
 

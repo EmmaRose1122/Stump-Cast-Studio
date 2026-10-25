@@ -14,6 +14,8 @@ class FakeXHR {
   static sentTo: string[] = [];
   responseType = '';
   responseText = '';
+  response: unknown = null;
+  readyState = 0;
   private listeners: Record<string, (() => void)[]> = {};
   open(_method: string, url: string) {
     this.url = url;
@@ -27,6 +29,8 @@ class FakeXHR {
   }
   fireLoad(text: string) {
     this.responseText = text;
+    this.readyState = 4;
+    this.listeners.readystatechange?.forEach((f) => f());
     this.listeners.load?.forEach((f) => f());
   }
 }
@@ -113,6 +117,40 @@ describe('installTap', () => {
     });
   });
 
+  it('reads the XHR body before a site load handler can reset it', async () => {
+    FakeXHR.sentTo = [];
+    const { win, posted, configure } = makeWindow(async () => jsonResponse({}));
+    installTap(win);
+    configure(['live']);
+    const xhr = new (win.XMLHttpRequest as unknown as typeof FakeXHR)();
+    xhr.open('GET', '/live/score');
+    xhr.addEventListener('load', () => {
+      xhr.responseText = '';
+    });
+    xhr.send();
+    xhr.fireLoad('{"wkts":3}');
+    await flush();
+    expect(posted[0]).toMatchObject({ json: { wkts: 3 } });
+  });
+
+  it('observes an XHR whose responseType is json', async () => {
+    FakeXHR.sentTo = [];
+    const { win, posted, configure } = makeWindow(async () => jsonResponse({}));
+    installTap(win);
+    configure(['getSV3']);
+    const xhr = new (win.XMLHttpRequest as unknown as typeof FakeXHR)();
+    xhr.open('GET', 'https://api.goscorer.com/api/v3/getSV3?key=13QQ');
+    xhr.responseType = 'json';
+    xhr.send();
+    xhr.response = { J: '81/2(26.1' };
+    xhr.fireLoad('');
+    await flush();
+    expect(posted[0]).toMatchObject({
+      url: 'https://api.goscorer.com/api/v3/getSV3?key=13QQ',
+      json: { J: '81/2(26.1' },
+    });
+  });
+
   it('propagates fetch failures to the page unchanged', async () => {
     const { win, configure } = makeWindow(async () => {
       throw new Error('network down');
@@ -120,6 +158,23 @@ describe('installTap', () => {
     installTap(win);
     configure(['.*']);
     await expect(win.fetch!('https://x.invalid/a' as never)).rejects.toThrow('network down');
+  });
+
+  it('keeps observing after the site replaces window.fetch', async () => {
+    const nativeFetch = vi.fn(async () => jsonResponse({ runs: 42 }));
+    const { win, posted, configure } = makeWindow(nativeFetch);
+    installTap(win);
+    configure(['getSV3']);
+    const siteFetch = vi.fn(() => nativeFetch());
+    win.fetch = siteFetch as unknown as typeof win.fetch;
+
+    await win.fetch!('https://api.goscorer.com/api/v3/getSV3?key=13QQ' as never);
+    await flush();
+
+    expect(siteFetch).toHaveBeenCalledTimes(1);
+    expect(nativeFetch).toHaveBeenCalledTimes(1);
+    expect(posted).toHaveLength(1);
+    expect(posted[0]).toMatchObject({ kind: 'response', json: { runs: 42 } });
   });
 });
 

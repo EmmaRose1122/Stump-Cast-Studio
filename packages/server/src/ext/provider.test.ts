@@ -63,4 +63,47 @@ describe('ExtensionProvider ingest guard', () => {
     });
     expect(p.status().matches.map((m) => m.matchId)).toEqual(['man1']);
   });
+
+  it('keeps both Test innings from the same side as the live innings advances', async () => {
+    const p = new ExtensionProvider();
+    const teams = [{ name: 'India A' }, { name: 'New Zealand A' }];
+    const innings = [
+      { team: 'India A', runs: 113, wkts: 10, overs: 39, balls: 3 },
+      { team: 'New Zealand A', runs: 317, wkts: 10, overs: 89, balls: 3 },
+      { team: 'India A', runs: 81, wkts: 2, overs: 26, balls: 1 },
+    ];
+    p.ingest(upd({ teams, innings }, 'test1'));
+    p.ingest(upd({ teams, innings: [...innings.slice(0, 2), { ...innings[2]!, runs: 103 }] }, 'test1'));
+    const snapshot = await p.snapshot('test1');
+    expect(snapshot).toMatchObject({
+      fields: {
+        innings: [
+          { team: 'India A', runs: 113 },
+          { team: 'New Zealand A', runs: 317 },
+          { team: 'India A', runs: 103 },
+        ],
+      },
+    });
+  });
+
+  it('uses the newest batters and bowler even when their innings has lower figures', async () => {
+    const p = new ExtensionProvider();
+    const teams = [{ name: 'India A' }, { name: 'New Zealand A' }];
+    p.ingest(upd({
+      teams,
+      innings: [{ team: 'India A', runs: 113, wkts: 10, overs: 39, balls: 3 }],
+      batters: [{ name: 'Devdutt Padikkal', runs: 90, balls: 120 }],
+      bowler: { name: 'Matt Henry', overs: 12, balls: 0, maidens: 2, runs: 40, wkts: 3 },
+    }, 'test2'));
+    p.ingest(upd({
+      teams,
+      innings: [{ team: 'India A', runs: 5, wkts: 0, overs: 1, balls: 2 }],
+      batters: [{ name: 'Devdutt Padikkal', runs: 5, balls: 9 }],
+      bowler: { name: 'Kristian Clarke', overs: 1, balls: 2, maidens: 0, runs: 4, wkts: 0 },
+    }, 'test2'));
+
+    const snapshot = await p.snapshot('test2') as RawUpdate;
+    expect(snapshot.fields.batters).toEqual([{ name: 'Devdutt Padikkal', runs: 5, balls: 9 }]);
+    expect(snapshot.fields.bowler).toMatchObject({ name: 'Kristian Clarke', runs: 4, wkts: 0 });
+  });
 });

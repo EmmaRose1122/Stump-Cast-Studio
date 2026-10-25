@@ -24,6 +24,7 @@ const teamFor = (
   scrapedShort?: string,
   players?: string[],
   squad?: SquadPlayer[],
+  scrapedLogo?: string,
 ): Team => {
   const known = resolveTeam(scrapedShort) ?? resolveTeam(name);
   const squadRows = squad && squad.length > 0 ? squad : undefined;
@@ -41,8 +42,9 @@ const teamFor = (
       ...(squadRows ? squadOf : players && players.length > 0 ? { players } : {}),
     };
   }
+  const id = `team-${slug(name) || `unknown-${index}`}`;
   return {
-    id: `team-${slug(name) || `unknown-${index}`}`,
+    id,
     name,
     short:
       name
@@ -50,6 +52,8 @@ const teamFor = (
         .slice(0, 3)
         .toUpperCase() || `T${index + 1}`,
     color: PALETTE[index % 2]!,
+    // An unknown side has no canonical code, but a crest the page actually showed is still its own.
+    ...(scrapedLogo ? { logoAssetId: id } : {}),
     ...(squadRows ? squadOf : players && players.length > 0 ? { players } : {}),
   };
 };
@@ -175,8 +179,8 @@ export const rawToBaseState = (raw: RawUpdate, updatedAt: string): MatchState =>
     }
   }
   const teams: [Team, Team] = [
-    teamFor(names[0] ?? 'Team A', 0, f.teams[0]?.short, f.teams[0]?.players, f.teams[0]?.squad),
-    teamFor(names[1] ?? 'Team B', 1, f.teams[1]?.short, f.teams[1]?.players, f.teams[1]?.squad),
+    teamFor(names[0] ?? 'Team A', 0, f.teams[0]?.short, f.teams[0]?.players, f.teams[0]?.squad, f.teams[0]?.logoUrl),
+    teamFor(names[1] ?? 'Team B', 1, f.teams[1]?.short, f.teams[1]?.players, f.teams[1]?.squad, f.teams[1]?.logoUrl),
   ];
 
   // Scraped sides are named in two registers at once ("Pakistan" in the header, "PAK" in the

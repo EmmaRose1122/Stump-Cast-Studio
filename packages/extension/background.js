@@ -8334,14 +8334,19 @@
 
   // src/config/selectors.crex.json
   var selectors_crex_default = {
-    version: 1,
+    version: 2,
     site: "crex",
     urlPatterns: [
       "^https?://(?:www\\.)?crex\\.com/",
       "^https?://(?:www\\.)?crex\\.live/"
     ],
-    matchIdRegex: "/(?:live|match|scores|fixtures|scoreboard|match-center)/([a-zA-Z0-9_-]+)",
-    jsonTaps: [],
+    matchIdRegex: "/(?:cricket-live-score/.*-|(?:live|match|scores|fixtures|scoreboard|match-center)/)([a-zA-Z0-9_-]+)",
+    jsonTaps: [
+      {
+        urlRegex: "^https://api\\.goscorer\\.com/api/v3/getSV3\\?key=[a-zA-Z0-9_-]+$",
+        map: {}
+      }
+    ],
     dom: {
       title: {
         selectors: [
@@ -8760,6 +8765,11 @@
     }
     // ---- messages from content scripts ------------------------------------------------------
     track(info) {
+      if (info.tabId !== null) {
+        for (const [matchId, tracked] of this.tracked) {
+          if (tracked.tabId === info.tabId && matchId !== info.matchId) this.tracked.delete(matchId);
+        }
+      }
       this.tracked.set(info.matchId, info);
       this.persistTracked();
     }

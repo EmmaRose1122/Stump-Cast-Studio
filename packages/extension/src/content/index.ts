@@ -1,6 +1,6 @@
 // Isolated-world content script (document_start). Runs the adapter and forwards updates.
 import { cricbuzzConfig } from '../adapters/cricbuzz';
-import { crexConfig } from '../adapters/crex';
+import { crexConfig, createCrexAdapter } from '../adapters/crex';
 import { urlMatches, createAdapter } from '../adapters/engine';
 import { SelectorConfigSchema, type SelectorConfig } from '../adapters/config';
 import type { SelectorBundle } from '@stumpcast/shared';
@@ -52,7 +52,7 @@ const start = async () => {
     const cb = getConfig('cricbuzz');
     if (urlMatches(cb, href)) return { config: cb, make: () => createAdapter(cb) };
     const cx = getConfig('crex');
-    if (urlMatches(cx, href)) return { config: cx, make: () => createAdapter(cx) };
+    if (urlMatches(cx, href)) return { config: cx, make: () => createCrexAdapter(cx) };
     return null;
   };
 
