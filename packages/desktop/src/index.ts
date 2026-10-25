@@ -648,7 +648,7 @@ const runUpdateCheck = async (customUrl?: string) => {
 			if (data.latestVersion) {
 				const isNewer = isVersionNewer(data.latestVersion, currentVersion);
 				return {
-					updateAvailable: Boolean(data.updateAvailable ?? isNewer),
+					updateAvailable: isNewer,
 					version: data.latestVersion,
 					latestVersion: data.latestVersion,
 					currentVersion,

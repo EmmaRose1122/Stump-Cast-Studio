@@ -210,10 +210,11 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
 
     // Simulate block runs FIRST so it always wins
     if (query?.simulate === '1' || simulatedUpdate || process.env.STUMPCAST_UPDATE_SIMULATE === '1') {
+      const simVersion = effectiveCurrent === '1.2.0' ? '1.3.0' : '1.2.0';
       return {
         currentVersion: effectiveCurrent,
-        latestVersion: '1.2.0',
-        updateAvailable: true,
+        latestVersion: simVersion,
+        updateAvailable: isNewerThan(effectiveCurrent, simVersion),
         releaseNotes: v120Notes,
         downloadUrl: '/api/app/update-download-file',
         fileSize: 264183336,

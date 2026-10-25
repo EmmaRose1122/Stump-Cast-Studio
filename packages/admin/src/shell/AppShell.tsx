@@ -111,6 +111,19 @@ export const formatBytes = (bytes: number): string => {
   return `${(bytes / Math.pow(k, i)).toFixed(1)} ${sizes[i]}`;
 };
 
+export const isVersionNewer = (lat: string, curVer: string): boolean => {
+  if (!lat || !curVer) return false;
+  const pa = lat.replace(/^v/, '').split('.').map(Number);
+  const pb = curVer.replace(/^v/, '').split('.').map(Number);
+  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+    const a = pa[i] ?? 0;
+    const b = pb[i] ?? 0;
+    if (a > b) return true;
+    if (a < b) return false;
+  }
+  return false;
+};
+
 export const AppShell = ({ route, children }: { route: string; children: React.ReactNode }) => {
   const { t } = useTranslation();
 
@@ -202,17 +215,20 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
   const updateQuery = useQuery({
     queryKey: ['app-update'],
     queryFn: async () => {
+      const clientVer = versionQuery.data || (typeof window !== 'undefined' && (window as unknown as { stumpcast?: { version?: string } }).stumpcast?.version) || '';
       if (
         typeof window !== 'undefined' &&
         (window as unknown as { stumpcast?: { checkUpdate?: () => Promise<{ updateAvailable: boolean; latestVersion?: string; version?: string; releaseNotes?: string; downloadUrl?: string }> } }).stumpcast?.checkUpdate
       ) {
         try {
           const res = await (window as unknown as { stumpcast: { checkUpdate: () => Promise<{ updateAvailable: boolean; latestVersion?: string; version?: string; currentVersion?: string; releaseNotes?: string; downloadUrl?: string }> } }).stumpcast.checkUpdate();
-          if (res?.updateAvailable) {
+          const latest = res?.latestVersion ?? res?.version ?? '';
+          const cur = res?.currentVersion || clientVer || '1.2.0';
+          if (latest && isVersionNewer(latest, cur)) {
             return {
               updateAvailable: true,
-              latestVersion: res.latestVersion ?? res.version ?? '1.2.0',
-              currentVersion: res.currentVersion ?? '1.2.0',
+              latestVersion: latest,
+              currentVersion: cur,
               releaseNotes:
                 res.releaseNotes ||
                 '• Priority 1 Hugging Face XTTS neural commentary engine with auto-detecting model routers\n• Pure Language Isolation: 100% Urdu, Hindi & English without mixed language catchphrases\n• 12 Niche Commentator Personas & authentic duo pairs for dynamic live banter\n• High-Definition Cloud Voice fallback ensures commentary stream never goes silent\n• Enhanced overlay pop-out hierarchy with topmost milestone popups',
@@ -224,7 +240,6 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
         }
       }
       try {
-        const clientVer = versionQuery.data || (typeof window !== 'undefined' && (window as unknown as { stumpcast?: { version?: string } }).stumpcast?.version) || '';
         const url = clientVer ? `/api/app/update-check?current=${encodeURIComponent(clientVer)}` : '/api/app/update-check';
         const res = await fetch(url);
         if (res.ok) {
@@ -236,18 +251,7 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
             downloadUrl: string;
           };
           const cur = clientVer || data.currentVersion || '1.2.0';
-          const isNewer = (lat: string, curVer: string) => {
-            const pa = lat.replace(/^v/, '').split('.').map(Number);
-            const pb = curVer.replace(/^v/, '').split('.').map(Number);
-            for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
-              const a = pa[i] ?? 0;
-              const b = pb[i] ?? 0;
-              if (a > b) return true;
-              if (a < b) return false;
-            }
-            return false;
-          };
-          const hasUpdate = Boolean(data.updateAvailable || (data.latestVersion && cur && isNewer(data.latestVersion, cur)));
+          const hasUpdate = Boolean(data.latestVersion && cur && isVersionNewer(data.latestVersion, cur));
           return {
             ...data,
             currentVersion: cur,
@@ -940,9 +944,12 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
         description={
           updateReady
             ? `Update v${updateQuery.data?.latestVersion ?? '—'} is downloaded and ready to install!`
-            : updateQuery.data?.updateAvailable
+            : updateQuery.data?.updateAvailable &&
+              updateQuery.data?.latestVersion &&
+              updateQuery.data?.currentVersion &&
+              isVersionNewer(updateQuery.data.latestVersion, updateQuery.data.currentVersion)
             ? `New Version v${updateQuery.data.latestVersion} is available! (Current: v${updateQuery.data.currentVersion ?? '—'})`
-            : `You are running the latest version of StumpCast Studio (v${updateQuery.data?.currentVersion ?? '—'}).`
+            : `You are running the latest version of StumpCast Studio (v${updateQuery.data?.currentVersion ?? runningVersion}).`
         }
         actions={
           <div className="flex flex-wrap items-center justify-end gap-2 w-full">
