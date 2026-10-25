@@ -405,6 +405,12 @@ html[data-design-bar='floating'] #stage[data-layout] .sb-meta {
   min-height: 38px;
   padding: 6px 18px;
 }
+html[data-design-bar='floating'] #stage[data-layout='arena'] .sb-bat,
+html[data-design-bar='floating'] #stage[data-layout='arena'] .sb-bowl,
+html[data-design-bar='floating'] #stage[data-layout='arena'] .sb-score-wrap {
+  min-height: 0;
+  padding: 6px 16px;
+}
 
 html[data-design-bar='stacked'] #stage[data-layout] .c-scorebar {
   grid-template-columns: minmax(0, 1fr) minmax(180px, auto) minmax(0, 1fr);
@@ -431,6 +437,14 @@ html[data-design-bar='stacked'] #stage[data-layout] .sb-meta {
   justify-content: center;
   min-height: 0;
   font-size: 17px;
+}
+html[data-design-bar='stacked'] #stage[data-layout='arena'] .sb-score-wrap {
+  padding: 0 0 4px;
+}
+html[data-design-bar='stacked'] #stage[data-layout='arena'] .sb-bat,
+html[data-design-bar='stacked'] #stage[data-layout='arena'] .sb-bowl {
+  padding-top: 2px;
+  padding-bottom: 2px;
 }
 
 html[data-design-bar='rail'] #stage[data-layout] .c-scorebar {
@@ -477,6 +491,13 @@ html[data-design-bar='scoreboard'] #stage[data-layout] .sb-meta {
 html[data-design-bar='scoreboard'] #stage[data-layout] .sb-score {
   font-family: var(--font-numbers), monospace !important;
   letter-spacing: 0.03em;
+}
+html[data-design-bar='scoreboard'] #stage[data-layout='arena'] .sb-bat,
+html[data-design-bar='scoreboard'] #stage[data-layout='arena'] .sb-bowl {
+  padding: 4px 16px;
+}
+html[data-design-bar='scoreboard'] #stage[data-layout='arena'] .sb-score-wrap {
+  padding: 0 16px;
 }
 
 /* ---- ornament language ------------------------------------------------------------------- */
