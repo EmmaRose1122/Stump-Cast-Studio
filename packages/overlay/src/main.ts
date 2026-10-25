@@ -246,6 +246,16 @@ const scorePop = new ScorePop();
 const resultScreen = new ResultScreen();
 const preMatchScreen = new PreMatchScreen();
 
+/**
+ * The Pro look gallery has to show each package's camera monitor. The standby slate is used
+ * instead of a real feed because a wall of preview iframes would otherwise open a webcam per
+ * card, and a real camera takes the monitor over the moment one is switched on. The pinned look
+ * often arrives after mount (the look catalogue loads over HTTP), so this runs on every change.
+ */
+const syncDesignPreview = (look: Look): void => {
+  if (params.preview && params.look && look.plan === 'pro') streamFrame.showDesignPreview();
+};
+
 const look = store.get().look;
 scoreBar.mount(zones.main, look);
 matchCentre.mount(zones.left, look);
@@ -264,9 +274,7 @@ upgradePopup.mount(stageEl, look);
 dataBadge.mount(stageEl, look);
 streamFrame.mount(stageEl, look);
 streamFrame.setCameraMode(store.get().settings.video.cameraMode);
-// The Pro look gallery must show each package's camera monitor; the slate avoids a webcam prompt
-// per preview card and the real settings still take over the moment a camera is switched on.
-if (params.preview && params.look && store.get().look.plan === 'pro') streamFrame.showDesignPreview();
+syncDesignPreview(store.get().look);
 scorePop.mount(stageEl, look);
 // The ball-by-ball pop-up owns the same band as the player cards, so whichever is not on air steps
 // aside rather than stacking text on top of the score.
@@ -385,6 +393,7 @@ store.subscribe((s, prev) => {
 store.subscribe((s, prev) => {
   if (s.look !== prev.look) {
     applyLook(s.look);
+    syncDesignPreview(s.look);
     for (const c of components) c.setLook(s.look);
     placePlayers(s.settings.layout, s.look);
     placeArenaPanels(s.settings.layout, s.look);
