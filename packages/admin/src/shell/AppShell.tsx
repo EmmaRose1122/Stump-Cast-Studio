@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { ALL_PRO_LOOKS, whatsappUrl } from '@stumpcast/shared';
+import { ALL_PRO_LOOKS, APP_VERSION, whatsappUrl } from '@stumpcast/shared';
 import clsx from 'clsx';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -207,7 +207,7 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
       } catch {
         /* offline; fall back to the update check below */
       }
-      return '1.2.0';
+      return APP_VERSION;
     },
     staleTime: 60_000,
   });
@@ -223,7 +223,7 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
         try {
           const res = await (window as unknown as { stumpcast: { checkUpdate: () => Promise<{ updateAvailable: boolean; latestVersion?: string; version?: string; currentVersion?: string; releaseNotes?: string; downloadUrl?: string }> } }).stumpcast.checkUpdate();
           const latest = res?.latestVersion ?? res?.version ?? '';
-          const cur = res?.currentVersion || clientVer || '1.2.0';
+          const cur = res?.currentVersion || clientVer || APP_VERSION;
           if (latest && isVersionNewer(latest, cur)) {
             return {
               updateAvailable: true,
@@ -231,7 +231,7 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
               currentVersion: cur,
               releaseNotes:
                 res.releaseNotes ||
-                '• Priority 1 Hugging Face XTTS neural commentary engine with auto-detecting model routers\n• Pure Language Isolation: 100% Urdu, Hindi & English without mixed language catchphrases\n• 12 Niche Commentator Personas & authentic duo pairs for dynamic live banter\n• High-Definition Cloud Voice fallback ensures commentary stream never goes silent\n• Enhanced overlay pop-out hierarchy with topmost milestone popups',
+                '• Reliable Crex live extraction with correct innings, players, crests and avatars\n• Continuous AI analyst with tactical forecasts from verified match facts\n• Hugging Face Qwen3-8B writer with Gemini fallback and safe local analysis\n• Ghost matches and impossible scores are rejected',
               downloadUrl: res.downloadUrl ?? '',
             };
           }
@@ -250,7 +250,7 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
             releaseNotes: string;
             downloadUrl: string;
           };
-          const cur = clientVer || data.currentVersion || '1.2.0';
+          const cur = clientVer || data.currentVersion || APP_VERSION;
           const hasUpdate = Boolean(data.latestVersion && cur && isVersionNewer(data.latestVersion, cur));
           return {
             ...data,
@@ -264,7 +264,7 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
       return {
         updateAvailable: false,
         latestVersion: '',
-        currentVersion: '1.2.0',
+        currentVersion: APP_VERSION,
         releaseNotes: '',
         downloadUrl: '',
       };
@@ -273,7 +273,7 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
   });
 
   /** Prefer the live engine version; the update check is a fallback, never a literal. */
-  const runningVersion = versionQuery.data || updateQuery.data?.currentVersion || '1.2.0';
+  const runningVersion = versionQuery.data || updateQuery.data?.currentVersion || APP_VERSION;
 
   const handleCheckUpdate = async (simulate = false) => {
     setIsCheckingUpdate(true);
@@ -512,7 +512,7 @@ export const AppShell = ({ route, children }: { route: string; children: React.R
                 <div className="flex items-center gap-1.5 mt-0.5 text-[11px] text-slate-500 font-medium">
                   <span className="text-slate-600 font-semibold tracking-wide">Live Broadcast Engine</span>
                   <span className="text-slate-300">·</span>
-                  <span className="font-mono text-orange-600 font-bold">v{runningVersion || '1.2.0'}</span>
+                  <span className="font-mono text-orange-600 font-bold">v{runningVersion || APP_VERSION}</span>
                 </div>
               </div>
             </div>

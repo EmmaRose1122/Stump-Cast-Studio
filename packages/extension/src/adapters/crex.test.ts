@@ -79,6 +79,31 @@ describe('crex live getSV3 response', () => {
     });
   });
 
+  it('uses the canonical match id on a live sub-page', () => {
+    const url = 'https://crex.com/cricket-live-score/den-vs-png-37th-list-a-mens-cwc-challenge-league-a-2024-26-match-updates-14V2-scorecard';
+    const dom = new JSDOM('<meta name="description" content="Track Denmark vs Papua New Guinea 37th-Match match live score at CREX.">', { url });
+    for (const [key, value] of Object.entries({
+      t_IO_name: 'Denmark', t_IO_short: 'DEN',
+      t_8X_name: 'Papua New Guinea', t_8X_short: 'PNG',
+      p_9J2_name: 'Musa Mahmood', p_AUZ_name: 'Hamid Shah', p_1V5_name: 'Kabua Morea',
+    })) dom.window.localStorage.setItem(key, value);
+    const update = createCrexAdapter().adapter({
+      site: 'crex', url, document: dom.window.document, now: 1,
+      taps: [{
+        url: 'https://api.goscorer.com/api/v3/getSV3?key=14V2',
+        json: {
+          a: 'IO.8X', b: '1V5', c: '4.9.0.7', i: '5/0.4*.1', j: '9/0(2.3',
+          p: '9J2.AUZ', q: '3.8', r: '0.0.1.3', s: '0.7*', t: '0.0.2.0',
+        },
+      }],
+    });
+
+    expect(update.matchId).toBe('14V2');
+    expect(update.fields.teams?.map((team) => team.name)).toEqual(['Denmark', 'Papua New Guinea']);
+    expect(update.fields.innings).toEqual([{ team: 'Denmark', runs: 9, wkts: 0, overs: 2, balls: 3 }]);
+    expect(update.fields.batters?.map((batter) => batter.name)).toEqual(['Musa Mahmood', 'Hamid Shah']);
+  });
+
   it('does not apply a tapped response from another match', () => {
     const url = 'https://crex.com/cricket-live-score/example-match-13QQ';
     const dom = new JSDOM('', { url });

@@ -658,7 +658,7 @@ const confidenceOf = (config: SelectorConfig, passed: Set<FieldKey>): number => 
 const matchIdFor = (config: SelectorConfig, url: string): string => {
   if (config.matchIdRegex) {
     const m = new RegExp(config.matchIdRegex).exec(url);
-    if (m?.[1]) return m[1];
+    if (m?.[1] ?? m?.[2]) return (m[1] ?? m[2])!;
   }
   try {
     const p = new URL(url).pathname.replace(/^\/+|\/+$/g, '').replace(/\//g, '-');

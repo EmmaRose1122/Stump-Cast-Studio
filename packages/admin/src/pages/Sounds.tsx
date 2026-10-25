@@ -220,7 +220,17 @@ export const SoundsPage = () => {
           timestamp: number;
           lang?: 'hi' | 'ur' | 'en';
         }>;
-        ai?: { enabled: boolean; active: boolean; hasKey: boolean };
+        ai?: {
+          enabled: boolean;
+          active: boolean;
+          hasKey: boolean;
+          analysis?: boolean;
+          lastError?: string | null;
+          providers?: {
+            huggingface?: { hasKey: boolean; model: string; lastError: string | null };
+            gemini?: { hasKey: boolean; lastError: string | null };
+          };
+        };
         tts?: { engine: 'xtts' | 'gemini' | 'cloud' | 'system' | 'none'; lastError: string | null };
         personas?: Array<{
           id: string;
@@ -234,8 +244,8 @@ export const SoundsPage = () => {
         pairs?: Array<{
           id: string;
           name: string;
-          playByPlay: { id: string; name: string; gender: 'male' | 'female' };
-          color: { id: string; name: string; gender: 'male' | 'female' };
+          playByPlay: { id: string; name: string; gender: 'male' | 'female'; primaryLanguage: 'hi' | 'ur' | 'en' };
+          color: { id: string; name: string; gender: 'male' | 'female'; primaryLanguage: 'hi' | 'ur' | 'en' };
           chemistry: 'professional' | 'friendly' | 'banter';
         }>;
         urduVoices?: { male: string[]; female: string[] };
@@ -1357,7 +1367,7 @@ export const SoundsPage = () => {
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs font-semibold text-muted">AI Commentary Writer (Gemini)</label>
+            <label className="text-xs font-semibold text-muted">AI Commentary Writer + Live Analyst (Hugging Face → Gemini)</label>
             <label className="flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer">
               <input
                 type="checkbox"
@@ -1369,15 +1379,20 @@ export const SoundsPage = () => {
             </label>
             <p className="text-[10px] text-muted">
               {commQuery.data?.ai?.active
-                ? 'Live — the model narrates each moment.'
+                ? `Live — ${commQuery.data.ai.providers?.huggingface?.hasKey ? commQuery.data.ai.providers.huggingface.model : 'Gemini'} narrates moments and adds tactical analysis from verified match facts.`
                 : commQuery.data?.ai?.hasKey
-                  ? 'Key saved, but the model is not answering. Built-in lines are used.'
-                  : 'No key set — using the built-in phrasebook.'}
+                  ? 'Token/key saved, but the model is not answering. Built-in lines are used.'
+                  : 'No HF token or Gemini key — using the built-in phrasebook.'}
             </p>
+            {commQuery.data?.ai?.lastError && (
+              <p className="rounded-lg bg-amber-50 px-2 py-1.5 text-[10px] font-semibold text-amber-800">
+                AI writer notice: {commQuery.data.ai.lastError}
+              </p>
+            )}
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs font-semibold text-muted">Gemini API Key (Priority 2 Engine)</label>
+            <label className="text-xs font-semibold text-muted">Gemini API Key (Fallback Writer)</label>
             <div className="flex gap-2">
               <input
                 type="password"
@@ -1748,10 +1763,10 @@ export const SoundsPage = () => {
                 <span className="text-xl">🤗</span>
                 <div>
                   <h4 className="font-heading text-xs font-bold uppercase tracking-wider text-purple-950">
-                    Hugging Face (Priority 1 Voice Engine)
+                    Hugging Face (Priority 1 Voice + AI Writer)
                   </h4>
                   <p className="text-[10px] text-slate-500">
-                    Primary TTS voice engine for live broadcast commentary (takes top priority). Add token for XTTS voice synthesis.
+                    The same token powers XTTS voice and Hugging Face text commentary. Free HF accounts have monthly inference credits, not unlimited usage.
                   </p>
                 </div>
               </div>

@@ -27,7 +27,7 @@ const parts = (row: ObjectRow, key: string): string[] => text(row, key)?.split('
 const matchIdFor = (config: SelectorConfig, url: string): string => {
   if (config.matchIdRegex) {
     const match = new RegExp(config.matchIdRegex).exec(url);
-    if (match?.[1]) return match[1];
+    if (match?.[1] ?? match?.[2]) return (match[1] ?? match[2])!;
   }
   return new URL(url).pathname.replace(/^\/+|\/+$/g, '').replace(/\//g, '-') || 'unknown';
 };

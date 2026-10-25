@@ -23,3 +23,4 @@ export * from './squad';
 export * from './commentary';
 export * from './commentary-advanced';
 export * from './support';
+export * from './version';

@@ -49,6 +49,26 @@ describe('ExtensionProvider ingest guard', () => {
     expect(p.status().lastRejected).toBeNull();
   });
 
+  it('rejects a Crex page path used as a match id and an impossible zero-over score', () => {
+    const p = new ExtensionProvider();
+    p.ingest({
+      ...upd({
+        teams: [{ name: 'DEN P1' }, { name: 'Papua New Guinea' }],
+        innings: [{ team: 'DEN P1', runs: 25, wkts: 5, overs: 0, balls: 0 }],
+      }, 'cricket-live-score-den-vs-png-37th-match-14V2'),
+      source: 'crex',
+    });
+    expect(p.status().matches).toEqual([]);
+    expect(p.status().lastRejected?.reason).toMatch(/page path/);
+
+    p.ingest({
+      ...upd({ innings: [{ team: 'DEN P1', runs: 25, wkts: 5, overs: 0, balls: 0 }] }, '14V2'),
+      source: 'crex',
+    });
+    expect(p.status().matches).toEqual([]);
+    expect(p.status().lastRejected?.reason).toMatch(/no legal balls/);
+  });
+
   it('keeps a score-only scrape even when the page never named a team', () => {
     const p = new ExtensionProvider();
     p.ingest(upd({ innings: [{ team: '', runs: 120, wkts: 3, overs: 15, balls: 2 }] }, 'scores'));
@@ -84,6 +104,21 @@ describe('ExtensionProvider ingest guard', () => {
         ],
       },
     });
+  });
+
+  it('replaces an old partial team with the full pair instead of keeping all three', async () => {
+    const p = new ExtensionProvider();
+    p.ingest(upd({
+      teams: [{ name: 'DEN P1' }],
+      innings: [{ team: 'DEN P1', runs: 9, wkts: 0, overs: 2, balls: 3 }],
+    }, '14V2'));
+    p.ingest(upd({
+      teams: [{ name: 'Denmark', short: 'DEN' }, { name: 'Papua New Guinea', short: 'PNG' }],
+      innings: [{ team: 'Denmark', runs: 13, wkts: 0, overs: 2, balls: 4 }],
+    }, '14V2'));
+
+    const snapshot = await p.snapshot('14V2') as RawUpdate;
+    expect(snapshot.fields.teams.map((team) => team.name)).toEqual(['Denmark', 'Papua New Guinea']);
   });
 
   it('uses the newest batters and bowler even when their innings has lower figures', async () => {

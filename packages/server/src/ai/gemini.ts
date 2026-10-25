@@ -1,32 +1,20 @@
-import type { CommentaryLanguage, MatchState } from '@stumpcast/shared';
+import {
+  buildCommentaryPrompt,
+  cleanCommentary,
+  type CommentaryRequest,
+} from './prompt';
 
-export interface CommentaryRequest {
-  state: MatchState;
-  /** What just happened, in plain terms: the delivery, or the event that fired. */
-  moment: string;
-  lang: CommentaryLanguage;
-}
+export type { CommentaryRequest } from './prompt';
 
 export interface GeminiOptions {
   getApiKey: () => Promise<string | null> | string | null;
   model?: string;
   fetchFn?: typeof fetch;
   timeoutMs?: number;
+  /** Analysis is two sentences behind the ball feed, so it can afford a longer model round trip. */
+  analysisTimeoutMs?: number;
   endpoint?: string;
 }
-
-const LANGUAGE_NAME: Record<CommentaryLanguage, string> = {
-  hi: 'Hindi, written in Devanagari script',
-  ur: 'Urdu, written in Nastaliq/Arabic script',
-  en: 'English',
-};
-
-/** Cricket terms the commentator actually uses, in the target script. */
-const SCRIPT_NOTE: Record<CommentaryLanguage, string> = {
-  hi: 'चौका, छक्का, वाइड, नो बॉल, डॉट, साझेदारी, रन रेट जैसे शब्द इस्तेमाल करें।',
-  ur: 'چوکا، چھکا، وائڈ، نو بال، ڈاٹ، شراکدار، رن ریٹ جیسے الفاظ استعمال کریں۔',
-  en: 'Use normal broadcast cricket vocabulary.',
-};
 
 const DEFAULT_MODEL = 'gemini-2.5-flash';
 const DEFAULT_TIMEOUT_MS = 1200;
@@ -40,35 +28,55 @@ export class GeminiCommentator {
   private readonly model: string;
   private readonly fetchFn: typeof fetch;
   private readonly timeoutMs: number;
+  private readonly analysisTimeoutMs: number;
   private readonly endpoint: string;
+  private lastFailure: string | null = null;
+  private cooldownUntil = 0;
 
   constructor(private readonly opts: GeminiOptions) {
     this.model = opts.model ?? DEFAULT_MODEL;
     this.fetchFn = opts.fetchFn ?? fetch;
     this.timeoutMs = opts.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+    this.analysisTimeoutMs = opts.analysisTimeoutMs ?? 6000;
     this.endpoint = opts.endpoint ?? 'https://generativelanguage.googleapis.com';
+  }
+
+  lastError(): string | null {
+    return this.lastFailure;
   }
 
   /** One short spoken line, or null when the model is unavailable or says something unusable. */
   async line(req: CommentaryRequest): Promise<string | null> {
+    if (Date.now() < this.cooldownUntil) return null;
     let key: string | null = null;
     try {
       key = await this.opts.getApiKey();
-    } catch {
+    } catch (err) {
+      this.lastFailure = `Gemini key unavailable: ${err instanceof Error ? err.message : String(err)}`;
       return null;
     }
-    if (!key) return null;
+    if (!key) {
+      this.lastFailure = 'No Gemini API key';
+      return null;
+    }
 
-    const prompt = this.prompt(req);
+    const prompt = buildCommentaryPrompt(req);
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), this.timeoutMs);
+    const timeout = req.mode === 'analysis' ? this.analysisTimeoutMs : this.timeoutMs;
+    const timer = setTimeout(() => controller.abort(), timeout);
     // Node's fetch types and the DOM's disagree on AbortSignal; this is the global fetch either way.
     const init = {
       method: 'POST',
       headers: { 'content-type': 'application/json', 'x-goog-api-key': key },
       body: JSON.stringify({
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 1.0, maxOutputTokens: 90 },
+        generationConfig: {
+          temperature: req.mode === 'analysis' ? 0.85 : 1.0,
+          maxOutputTokens: req.mode === 'analysis' ? 512 : 120,
+          // 2.5 Flash otherwise spends the answer budget on hidden reasoning and can cut a word
+          // mid-script. Commentary does not need chain-of-thought, only a fluent broadcast line.
+          thinkingConfig: { thinkingBudget: 0 },
+        },
       }),
       signal: controller.signal,
     } as unknown as RequestInit;
@@ -77,7 +85,18 @@ export class GeminiCommentator {
         `${this.endpoint}/v1beta/models/${encodeURIComponent(this.model)}:generateContent`,
         init,
       );
-      if (!res.ok) return null;
+      if (!res.ok) {
+        const detail = (await res.text().catch(() => '')).replace(/\s+/g, ' ').slice(0, 180);
+        this.lastFailure = `Gemini HTTP ${res.status}${detail ? `: ${detail}` : ''}`;
+        if (res.status === 429 || res.status >= 500) {
+          const retryAfter = Number(res.headers?.get('retry-after'));
+          const waitMs = Number.isFinite(retryAfter) && retryAfter > 0
+            ? Math.min(5 * 60_000, retryAfter * 1000)
+            : 60_000;
+          this.cooldownUntil = Date.now() + waitMs;
+        }
+        return null;
+      }
       const body = (await res.json()) as {
         candidates?: { content?: { parts?: { text?: string }[] } }[];
       };
@@ -85,60 +104,17 @@ export class GeminiCommentator {
         ?.map((p) => p.text ?? '')
         .join('')
         .trim();
-      return this.clean(text);
-    } catch {
+      const line = cleanCommentary(text, req.mode === 'analysis' ? 2 : 1);
+      this.lastFailure = line ? null : 'Gemini returned no usable commentary';
+      return line;
+    } catch (err) {
+      this.lastFailure =
+        err instanceof Error && err.name === 'AbortError'
+          ? `Gemini timed out after ${timeout} ms`
+          : `Gemini request failed: ${err instanceof Error ? err.message : String(err)}`;
       return null;
     } finally {
       clearTimeout(timer);
     }
-  }
-
-  private prompt(req: CommentaryRequest): string {
-    const { state: s } = req;
-    const striker = s.batters.find((b) => b.onStrike);
-    const nonStriker = s.batters.find((b) => !b.onStrike);
-    const facts = [
-      `Score ${s.score.runs}-${s.score.wkts} after ${s.score.overs}.${s.score.balls} overs`,
-      striker ? `${striker.name} on strike ${striker.runs}(${striker.balls})` : '',
-      nonStriker ? `${nonStriker.name} ${nonStriker.runs}(${nonStriker.balls})` : '',
-      s.bowler?.name ? `bowler ${s.bowler.name} ${s.bowler.wkts}-${s.bowler.runs} in ${s.bowler.overs}.${s.bowler.balls}` : '',
-      s.target !== undefined ? `target ${s.target}` : '',
-      s.rrr !== undefined ? `required rate ${s.rrr.toFixed(2)}` : '',
-      s.crr !== undefined ? `current rate ${s.crr.toFixed(2)}` : '',
-      s.partnership ? `partnership ${s.partnership.runs} from ${s.partnership.balls}` : '',
-    ].filter(Boolean);
-
-    const commentatorRole =
-      req.lang === 'ur'
-        ? 'You are an Urdu cricket radio commentator on a live broadcast.'
-        : req.lang === 'hi'
-        ? 'You are a Hindi cricket radio commentator on a live broadcast.'
-        : 'You are an English cricket radio commentator on a live broadcast.';
-
-    return [
-      `${commentatorRole} on this ${s.format} match.`,
-      `Reply strictly in ${LANGUAGE_NAME[req.lang]} only. Do not mix any words or script from other languages. ${SCRIPT_NOTE[req.lang]}`,
-      `Just happened: ${req.moment}.`,
-      `Match facts: ${facts.join('; ')}.`,
-      'Write ONE sentence of natural spoken commentary, 6 to 18 words, that a real commentator',
-      'would say in this exact moment. Vary your opening every time. No player statistics that are',
-      'not in the facts above. No quotes, no emoji, no markdown, no prefix, no explanation.',
-    ].join(' ');
-  }
-
-  /** The model talks; this keeps it to one speakable line. */
-  private clean(raw: string | undefined | null): string | null {
-    if (!raw) return null;
-    const one = raw
-      .replace(/["'“”‘’`]+/g, '')
-      .replace(/[*_#]/g, '')
-      .replace(/\s+/g, ' ')
-      .trim();
-    // Cut at the first full stop or danda. `!` and `?` stay put: a commentary line legitimately
-    // starts "छक्का! ..." and must not be chopped down to one word.
-    const cut = one.match(/^(.*?[।.](?=\s|$))/)?.[1] ?? one;
-    const line = (cut.length >= 8 ? cut : one).trim();
-    if (line.length < 8 || line.length > 180) return null;
-    return line;
   }
 }

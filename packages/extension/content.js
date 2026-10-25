@@ -8850,7 +8850,7 @@
   var matchIdFor = (config, url) => {
     if (config.matchIdRegex) {
       const m = new RegExp(config.matchIdRegex).exec(url);
-      if (m?.[1]) return m[1];
+      if (m?.[1] ?? m?.[2]) return m[1] ?? m[2];
     }
     try {
       const p = new URL(url).pathname.replace(/^\/+|\/+$/g, "").replace(/\//g, "-");
@@ -8950,7 +8950,7 @@
       "^https?://(?:www\\.)?crex\\.com/",
       "^https?://(?:www\\.)?crex\\.live/"
     ],
-    matchIdRegex: "/(?:cricket-live-score/.*-|(?:live|match|scores|fixtures|scoreboard|match-center)/)([a-zA-Z0-9_-]+)",
+    matchIdRegex: "/cricket-live-score/.+-(?!(?:scorecard|stats|news|commentary|overs|squads|match-center)(?:/|$))([a-zA-Z0-9]{2,8})(?:-(?:scorecard|stats|news|commentary|overs|squads|match-center))?/?$|/(?:live|match|scores|fixtures|scoreboard|match-center)/([a-zA-Z0-9_-]+)",
     jsonTaps: [
       {
         urlRegex: "^https://api\\.goscorer\\.com/api/v3/getSV3\\?key=[a-zA-Z0-9_-]+$",
@@ -9223,7 +9223,7 @@
   var matchIdFor2 = (config, url) => {
     if (config.matchIdRegex) {
       const match = new RegExp(config.matchIdRegex).exec(url);
-      if (match?.[1]) return match[1];
+      if (match?.[1] ?? match?.[2]) return match[1] ?? match[2];
     }
     return new URL(url).pathname.replace(/^\/+|\/+$/g, "").replace(/\//g, "-") || "unknown";
   };

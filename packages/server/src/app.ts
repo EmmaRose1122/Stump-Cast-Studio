@@ -12,6 +12,7 @@ import {
   MatchStateSchema,
   buildHistory,
   ALL_LOOKS,
+  APP_VERSION,
 } from '@stumpcast/shared';
 import { z } from 'zod';
 import {
@@ -36,6 +37,7 @@ import { CommentaryService } from './sound/CommentaryService';
 import { AdvancedCommentaryService } from './sound/AdvancedCommentaryService';
 import { CommentaryTts } from './sound/tts';
 import { GeminiCommentator } from './ai/gemini';
+import { DEFAULT_HF_TEXT_MODEL, HuggingFaceCommentator } from './ai/huggingface';
 import { registerAssetRoutes } from './assets/routes';
 import { DelayBuffer } from './engine/DelayBuffer';
 import { Director } from './engine/Director';
@@ -65,7 +67,7 @@ const SETTINGS_KEY = 'app';
 const GEMINI_KEY = 'gemini_api_key';
 const OPENAI_KEY = 'openai_api_key';
 const CRICKET_KEY = 'cricket_api_key';
-export const APP_VERSION = '1.2.0';
+export { APP_VERSION };
 
 /** One engine tick waiting on the broadcast delay, with the commentary already written for it. */
 interface PendingRelease {
@@ -189,6 +191,9 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
     let updateAvailable = false;
     let downloadUrl = '';
 
+    const v130Notes =
+      '• Reliable Crex live extraction across Angular fetch/XHR responses\n• Correct Test innings, current batters, bowler, partnerships and recent balls\n• Team crests and player avatars are filed automatically from the live page\n• Continuous AI analyst with tactical forecasts from verified match facts\n• Hugging Face Qwen3-8B writer with Gemini fallback and safe local analysis\n• Ghost/path-based match ids and impossible scores are rejected';
+
     const v120Notes =
       '• Priority 1 Hugging Face XTTS neural commentary engine with auto-detecting model routers\n• Pure Language Isolation: 100% Urdu, Hindi & English without mixed language catchphrases\n• 12 Niche Commentator Personas & authentic duo pairs for dynamic live banter\n• High-Definition Cloud Voice fallback ensures commentary stream never goes silent\n• Enhanced overlay pop-out hierarchy with topmost milestone popups';
 
@@ -210,12 +215,14 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
 
     // Simulate block runs FIRST so it always wins
     if (query?.simulate === '1' || simulatedUpdate || process.env.STUMPCAST_UPDATE_SIMULATE === '1') {
-      const simVersion = effectiveCurrent === '1.2.0' ? '1.3.0' : '1.2.0';
+      const [major = 1, minor = 3, patch = 0] = APP_VERSION.split('.').map(Number);
+      const nextPatch = `${major}.${minor}.${patch + 1}`;
+      const simVersion = isNewerThan(effectiveCurrent, APP_VERSION) ? APP_VERSION : nextPatch;
       return {
         currentVersion: effectiveCurrent,
         latestVersion: simVersion,
         updateAvailable: isNewerThan(effectiveCurrent, simVersion),
-        releaseNotes: v120Notes,
+        releaseNotes: v130Notes,
         downloadUrl: '/api/app/update-download-file',
         fileSize: 264183336,
       };
@@ -239,7 +246,9 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
           latestVersion = fileVer;
           downloadUrl = '/api/app/update-download-file';
           releaseNotes =
-            fileVer === '1.2.0'
+            fileVer === APP_VERSION
+              ? v130Notes
+              : fileVer === '1.2.0'
               ? v120Notes
               : fileVer === '1.1.0'
               ? v110Notes
@@ -352,10 +361,11 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
   fastify.post('/api/app/update-simulate', async (req) => {
     const body = (req.body as { active?: boolean } | undefined) ?? {};
     simulatedUpdate = body.active !== undefined ? body.active : !simulatedUpdate;
+    const [major = 1, minor = 3, patch = 0] = APP_VERSION.split('.').map(Number);
     return {
       simulated: simulatedUpdate,
       currentVersion: APP_VERSION,
-      latestVersion: simulatedUpdate ? '1.2.0' : APP_VERSION,
+      latestVersion: simulatedUpdate ? `${major}.${minor}.${patch + 1}` : APP_VERSION,
     };
   });
 
@@ -501,6 +511,8 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
   );
   /** Updates are narrated one at a time, in arrival order. */
   let commentaryQueue: Promise<void> = Promise.resolve();
+  let analysisBusy = false;
+  let analysisTimer: ReturnType<typeof setInterval> | null = null;
 
   // The audio is made here rather than in the overlay: an OBS browser source has no speech
   // engine, so captions were all it could ever show.
@@ -564,6 +576,28 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
     },
   });
 
+  // The analyst speaks between live updates too, not only when a new ball arrives. It works from
+  // the delayed/published state, so the studio never hears a forecast for a ball OBS has not shown.
+  const analysisTick = () => {
+    if (analysisBusy || !advancedCommentary.aiActive || !advancedCommentary.analysisDue()) return;
+    const matchId = loadSettings().onStreamMatchId;
+    if (!matchId) return;
+    const state = published.get(matchId);
+    if (!state || !['live', 'break', 'innings_break'].includes(state.status)) return;
+
+    analysisBusy = true;
+    commentaryQueue = commentaryQueue
+      .then(async () => {
+        if (!advancedCommentary.analysisDue()) return;
+        const item = await advancedCommentary.onAnalysisAsync(state);
+        if (item && engine.getState(state.id)) say(item, 'live');
+      })
+      .catch((err: unknown) => console.error('analysis commentary failed', err))
+      .finally(() => {
+        analysisBusy = false;
+      });
+  };
+
   // A restart must not blank the stream: every match's last score comes back from the stored
   // snapshots, with the stats those snapshots accumulated, and is what /api/state serves until the
   // feed delivers something newer.
@@ -575,7 +609,14 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
     // First real match seen becomes the on-air one, unless the operator already chose. Nothing is
     // ever purged by match id: a scraped Cricbuzz number is a real match, not demo data.
     const s = loadSettings();
-    if (!s.onStreamMatchId) {
+    // Older extension builds used a whole page path as the id. A canonical match arrival must
+    // replace that ghost target instead of leaving the studio and the AI analyst on a dead state.
+    const invalidTarget =
+      !s.onStreamMatchId ||
+      s.onStreamMatchId === 'unknown' ||
+      s.onStreamMatchId === 'cricket-live-score' ||
+      s.onStreamMatchId.startsWith('cricket-live-score-');
+    if (invalidTarget) {
       const next = { ...s, onStreamMatchId: u.matchId };
       db.insert(schema.settings)
         .values({ key: SETTINGS_KEY, value: next })
@@ -599,12 +640,26 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
   manual.republishAll();
 
   // API provider (backup official data API source)
-  const gemini = new GeminiCommentator({
-    getApiKey: () => secrets.getSecret(GEMINI_KEY) ?? process.env.GEMINI_API_KEY ?? null,
+  const hfKey = () => secrets.getSecret('xtts_token') ?? process.env.HUGGINGFACE_TOKEN ?? null;
+  const geminiKey = () => secrets.getSecret(GEMINI_KEY) ?? process.env.GEMINI_API_KEY ?? null;
+  const huggingFace = new HuggingFaceCommentator({
+    getApiKey: hfKey,
+    model: process.env.HF_TEXT_MODEL ?? DEFAULT_HF_TEXT_MODEL,
   });
+  const gemini = new GeminiCommentator({ getApiKey: geminiKey });
+  // One HF token now covers voice and text. Gemini stays a fallback when HF has no credits;
+  // every provider is optional, and the factual local analyst remains the final safety net.
   advancedCommentary.setGenerator(
-    (req) => gemini.line({ state: req.state as MatchState, moment: req.moment, lang: req.lang }),
-    () => Boolean(secrets.getSecret(GEMINI_KEY))
+    async (req) => {
+      const request = {
+        state: req.state as MatchState,
+        moment: req.moment,
+        lang: req.lang,
+        mode: req.mode,
+      };
+      return (await huggingFace.line(request)) ?? gemini.line(request);
+    },
+    () => Boolean(hfKey() ?? geminiKey())
   );
   const apiVendor = new CricketDataApiVendor();
   const api = new ApiProvider({
@@ -1095,7 +1150,21 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
   fastify.get('/api/commentary/status', async () => ({
     config: advancedCommentary.getConfig(),
     history: advancedCommentary.getHistory(),
-    ai: { enabled: advancedCommentary.getConfig().ai, active: advancedCommentary.aiActive, hasKey: Boolean(secrets.getSecret(GEMINI_KEY)) },
+    ai: {
+      enabled: advancedCommentary.getConfig().ai,
+      active: advancedCommentary.aiActive,
+      hasKey: Boolean(hfKey() ?? geminiKey()),
+      analysis: advancedCommentary.analysisDue(),
+      lastError: huggingFace.lastError() ?? gemini.lastError(),
+      providers: {
+        huggingface: {
+          hasKey: Boolean(hfKey()),
+          model: huggingFace.getModel(),
+          lastError: huggingFace.lastError(),
+        },
+        gemini: { hasKey: Boolean(geminiKey()), lastError: gemini.lastError() },
+      },
+    },
     tts: {
       engine: await tts.engine(advancedCommentary.getConfig().language),
       // Why the last line was not spoken: "captions only" without a reason is undiagnosable.
@@ -1347,6 +1416,10 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
           const addr = fastify.server.address();
           state.port = typeof addr === 'object' && addr ? addr.port : port;
           watchdog.start();
+          if (analysisTimer === null) {
+            analysisTimer = setInterval(analysisTick, 5000);
+            analysisTimer.unref?.();
+          }
           return state.port;
         } catch (err) {
           if ((err as NodeJS.ErrnoException).code !== 'EADDRINUSE') throw err;
@@ -1356,6 +1429,10 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
       throw lastErr;
     },
     async stop() {
+      if (analysisTimer !== null) {
+        clearInterval(analysisTimer);
+        analysisTimer = null;
+      }
       watchdog.stop();
       director.stop();
       api.destroy();

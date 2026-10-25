@@ -20,6 +20,7 @@ export interface AdvancedCommentaryRequest {
   moment: string;
   lang: 'hi' | 'ur' | 'en';
   persona: CommentatorPersona;
+  mode?: 'live' | 'analysis';
 }
 
 export type AdvancedCommentaryGenerator = (req: AdvancedCommentaryRequest) => Promise<string | null>;
@@ -70,6 +71,14 @@ export class AdvancedCommentaryService {
 
   getHistory(): GeneratedCommentary[] {
     return [...this.history];
+  }
+
+  /** True when the AI analyst has been silent for at least the configured gap. */
+  analysisDue(at = this.now()): boolean {
+    const config = this.engine.getConfig();
+    if (!config.enabled || !config.continuousMode || !config.tacticalAnalysis) return false;
+    const last = this.history[0]?.timestamp ?? 0;
+    return at - last >= config.minGapMs;
   }
 
   getPersonas(): CommentatorPersona[] {
@@ -184,6 +193,44 @@ export class AdvancedCommentaryService {
     } finally {
       this.inFlight--;
     }
+  }
+
+  /**
+   * Expert-analysis line used between balls and during quiet passages. The local seed is factual;
+   * the model is allowed to add a cautious forecast, but only from the match facts it receives.
+   */
+  async onAnalysisAsync(state?: MatchState): Promise<GeneratedCommentary | null> {
+    if (!state || !this.analysisDue() || this.inFlight >= MAX_IN_FLIGHT) return null;
+    const local = this.engine.onAnalysis(state);
+    if (!local) return null;
+    if (this.generator && this.engine.getConfig().ai) {
+      this.inFlight++;
+      try {
+        const text = await this.generator({
+          state,
+          moment: this.describeAnalysis(state),
+          lang: this.engine.getConfig().language,
+          persona: local.speaker,
+          mode: 'analysis',
+        });
+        if (text) local.text = text;
+      } catch {
+        /* the factual local seed still goes out */
+      } finally {
+        this.inFlight--;
+      }
+    }
+    this.addHistory(local);
+    this.register(local.id, local.text, local.lang);
+    return local;
+  }
+
+  private describeAnalysis(state: MatchState): string {
+    const batting = state.teams.find((team) => team.id === state.battingTeamId)?.name ?? state.teams[0].name;
+    const chase = state.runsNeeded !== undefined && state.ballsLeft !== undefined;
+    return chase
+      ? `${batting} are chasing; analyse the required rate, wickets in hand and the next few overs`
+      : `${batting} are building an innings at ${state.score.runs}-${state.score.wkts}; analyse the current phase and what both sides should do next`;
   }
 
   speak(text: string, eventType = 'CUSTOM', speakerId?: string): GeneratedCommentary {

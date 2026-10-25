@@ -622,6 +622,25 @@ function generateTacticalCommentary(
     .replace('{balls}', String(context.partnershipBalls));
 }
 
+function generateAnalysisSeed(state: MatchState, lang: 'hi' | 'ur' | 'en'): string {
+  const batting = state.teams.find((team) => team.id === state.battingTeamId)?.name ?? state.teams[0].name;
+  const score = `${state.score.runs}-${state.score.wkts} (${state.score.overs}.${state.score.balls})`;
+  const chase = state.runsNeeded !== undefined && state.ballsLeft !== undefined;
+  if (lang === 'ur') {
+    return chase
+      ? `${batting} کو ${state.ballsLeft} گیندوں میں ${state.runsNeeded} رن درکار ہیں، مطلوبہ ریٹ ${state.rrr?.toFixed(2) ?? '—'} ہے۔`
+      : `${batting} ${score} پر ہیں، موجودہ رن ریٹ ${state.crr.toFixed(2)} ہے اور اگلے اوورز میں شراکت داری کو آگے بڑھانا ہوگا۔`;
+  }
+  if (lang === 'hi') {
+    return chase
+      ? `${batting} को ${state.ballsLeft} गेंदों में ${state.runsNeeded} रन चाहिए, जरूरी रन रेट ${state.rrr?.toFixed(2) ?? '—'} है।`
+      : `${batting} ${score} पर हैं, मौजूदा रन रेट ${state.crr.toFixed(2)} है और आगे साझेदारी बढ़ानी होगी।`;
+  }
+  return chase
+    ? `${batting} need ${state.runsNeeded} from ${state.ballsLeft} balls at ${state.rrr?.toFixed(2) ?? '—'} an over.`
+    : `${batting} are ${score}, scoring at ${state.crr.toFixed(2)}; the next phase is about building this partnership.`;
+}
+
 function generateEventCommentary(
   persona: CommentatorPersona,
   event: EngineEvent,
@@ -804,6 +823,16 @@ export class AdvancedCommentaryEngine {
     return getPairById(id);
   }
 
+  private selectAnalysisSpeaker(): CommentatorPersona {
+    const lang = this.config.language;
+    const pair = this.config.selectedPair ? getPairById(this.config.selectedPair) : null;
+    if (pair?.color.primaryLanguage === lang) return pair.color;
+    return (
+      getPersonas().find((p) => p.primaryLanguage === lang && p.role === 'color') ??
+      this.selectSpeaker()
+    );
+  }
+
   private selectSpeaker(eventType?: string): CommentatorPersona {
     const lang = this.config.language;
     const pairId = this.config.selectedPair;
@@ -931,6 +960,36 @@ export class AdvancedCommentaryEngine {
     if (aiText) local.text = aiText;
 
     return local;
+  }
+
+  /** A tactical line for the gaps between deliveries, events and a stalled score feed. */
+  onAnalysis(state?: unknown): GeneratedCommentary | null {
+    if (!this.config.enabled || !this.config.continuousMode || !this.config.tacticalAnalysis) {
+      return null;
+    }
+    if (!state) state = this.getMatchState();
+    if (!state) return null;
+
+    const s = state as MatchState;
+    const at = this.now();
+    const context = buildContext(s);
+    const speaker = this.selectAnalysisSpeaker();
+    const text =
+      generateTacticalCommentary(speaker, context, this.config.language) ??
+      generateAnalysisSeed(s, this.config.language);
+
+    const item: GeneratedCommentary = {
+      id: `comm-${at}-${Math.random().toString(36).slice(2, 7)}`,
+      text,
+      speaker,
+      eventType: 'ANALYSIS',
+      timestamp: at,
+      lang: this.config.language,
+      context,
+    };
+    this.lastCommentaryAt = at;
+    this.addToHistory(item);
+    return item;
   }
 
   speak(text: string, eventType = 'CUSTOM', speakerId?: string): GeneratedCommentary {

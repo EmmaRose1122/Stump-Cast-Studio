@@ -5,7 +5,7 @@
     "^https?://(?:www\\.)?crex\\.com/",
     "^https?://(?:www\\.)?crex\\.live/"
   ],
-  "matchIdRegex": "/(?:cricket-live-score/.*-|(?:live|match|scores|fixtures|scoreboard|match-center)/)([a-zA-Z0-9_-]+)",
+  "matchIdRegex": "/cricket-live-score/.+-(?!(?:scorecard|stats|news|commentary|overs|squads|match-center)(?:/|$))([a-zA-Z0-9]{2,8})(?:-(?:scorecard|stats|news|commentary|overs|squads|match-center))?/?$|/(?:live|match|scores|fixtures|scoreboard|match-center)/([a-zA-Z0-9_-]+)",
   "jsonTaps": [
     {
       "urlRegex": "^https://api\\.goscorer\\.com/api/v3/getSV3\\?key=[a-zA-Z0-9_-]+$",

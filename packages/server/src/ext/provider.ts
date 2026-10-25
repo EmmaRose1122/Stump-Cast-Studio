@@ -52,6 +52,11 @@ export class ExtensionProvider implements MatchProvider {
       };
       return;
     }
+    const invalid = ExtensionProvider.invalidReason(update);
+    if (invalid) {
+      this.rejected = { matchId: update.matchId, at: this.now(), reason: invalid };
+      return;
+    }
 
     // Merge with existing data for the same match (e.g., live page + squads page)
     const existing = this.latest.get(update.matchId);
@@ -145,22 +150,23 @@ export class ExtensionProvider implements MatchProvider {
     existing: RawUpdate['fields']['teams'],
     incoming: RawUpdate['fields']['teams']
   ): RawUpdate['fields']['teams'] {
+    if (incoming.length === 0) return existing;
+    // A completed live scrape names both sides. Old or partial entries must not accumulate into a
+    // third "team" ("DEN P1" alongside "Denmark" and "Papua New Guinea"), because the match schema
+    // keeps two and the extra one pushes the real opponent out.
+    if (incoming.length >= 2) return incoming;
+    if (existing.length >= 2) return existing;
     const byName = new Map<string, RawUpdate['fields']['teams'][0]>();
     for (const t of [...existing, ...incoming]) {
       const key = t.name.toLowerCase();
-      const existingTeam = byName.get(key);
-      if (!existingTeam) {
-        byName.set(key, t);
-      } else {
-        // Merge squad data, logo, players
-        byName.set(key, {
-          ...existingTeam,
-          ...t,
-          logoUrl: t.logoUrl || existingTeam.logoUrl,
-          squad: t.squad?.length ? t.squad : existingTeam.squad,
-          players: t.players?.length ? t.players : existingTeam.players,
-        });
-      }
+      const previous = byName.get(key);
+      byName.set(key, previous ? {
+        ...previous,
+        ...t,
+        logoUrl: t.logoUrl || previous.logoUrl,
+        squad: t.squad?.length ? t.squad : previous.squad,
+        players: t.players?.length ? t.players : previous.players,
+      } : t);
     }
     return [...byName.values()];
   }
@@ -282,6 +288,18 @@ export class ExtensionProvider implements MatchProvider {
    * could not read, not a match. Publishing one used to wipe whatever was on air and fill
    * "Pick the match" with rows like `Batting vs Team B · 0-0`.
    */
+  /** Reasons a scrape cannot be attached to a real Crex match or cannot represent cricket. */
+  static invalidReason(u: RawUpdate): string | null {
+    if (u.source === 'crex' && (!/^[a-z0-9]{2,12}$/i.test(u.matchId) || /^unknown$/i.test(u.matchId))) {
+      return 'Crex match id is a page path, not a match key';
+    }
+    const innings = u.fields.innings.at(-1);
+    if (innings && innings.runs > 0 && innings.overs === 0 && innings.balls === 0) {
+      return 'score has runs but no legal balls';
+    }
+    return null;
+  }
+
   static isBlankScrape(u: RawUpdate): boolean {
     if (u.source === 'manual') return false;
     const named = u.fields.teams.some((t) => t.name.trim().length > 0);

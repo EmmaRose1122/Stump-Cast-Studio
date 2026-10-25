@@ -21,6 +21,21 @@ describe('GeminiCommentator', () => {
     const g = new GeminiCommentator({ getApiKey: () => null, fetchFn });
     expect(await g.line(req())).toBeNull();
     expect(fetchFn).not.toHaveBeenCalled();
+    expect(g.lastError()).toBe('No Gemini API key');
+  });
+
+  it('reports the provider error instead of failing silently', async () => {
+    const g = new GeminiCommentator({
+      getApiKey: () => 'k',
+      fetchFn: vi.fn(async () => ({
+        ok: false,
+        status: 429,
+        text: async () => 'quota exceeded',
+      }) as unknown as Response),
+    });
+    expect(await g.line(req())).toBeNull();
+    expect(g.lastError()).toContain('Gemini HTTP 429');
+    expect(g.lastError()).toContain('quota exceeded');
   });
 
   it('sends the key as a header, never in the url', async () => {
@@ -59,6 +74,36 @@ describe('GeminiCommentator', () => {
         }),
       }).line(req()),
     ).toBeNull();
+  });
+
+  it('gives the analyst verified facts and forbids invented records or history', async () => {
+    const fetchFn = vi.fn(async () => response('भारत का दबाव बढ़ रहा है। अगले ओवर निर्णायक होंगे।'));
+    const g = new GeminiCommentator({ getApiKey: () => 'k', fetchFn });
+    const text = await g.line(req({ mode: 'analysis', moment: 'analyse the chase' }));
+    const [, init] = fetchFn.mock.calls[0] as unknown as [string, RequestInit];
+    const prompt = String(init.body);
+    expect(prompt).toContain('expert analyst');
+    expect(prompt).toContain('Verified facts');
+    expect(prompt).toContain('Never invent head-to-head records');
+    expect(prompt).toContain('cautious forecast');
+    expect(text).toBe('भारत का दबाव बढ़ रहा है। अगले ओवर निर्णायक होंगे।');
+  });
+
+  it('rejects a truncated answer instead of speaking half a sentence', async () => {
+    const g = new GeminiCommentator({
+      getApiKey: () => 'k',
+      fetchFn: vi.fn(async () => response('ہاں بالکل، اس مرح')),
+    });
+    expect(await g.line(req({ mode: 'analysis' }))).toBeNull();
+    expect(g.lastError()).toMatch(/no usable commentary/);
+  });
+
+  it('keeps only one sentence for live commentary', async () => {
+    const g = new GeminiCommentator({
+      getApiKey: () => 'k',
+      fetchFn: vi.fn(async () => response('पहला वाक्य। दूसरा वाक्य।')),
+    });
+    expect(await g.line(req())).toBe('पहला वाक्य।');
   });
 
   it('gives up on a slow model rather than holding up the broadcast', async () => {

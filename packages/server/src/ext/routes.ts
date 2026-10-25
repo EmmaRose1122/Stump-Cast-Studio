@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import {
+  APP_VERSION,
   ExtClientMessageSchema,
   ExtCommandSchema,
   PairRequestSchema,
@@ -355,7 +356,7 @@ export const registerExtRoutes = (
       provider.ingest(raw);
       provider.recordHeartbeat({
         type: 'heartbeat',
-        extensionVersion: '1.2.0',
+        extensionVersion: APP_VERSION,
         selectorsVersion: 1,
         tabs: [
           {
@@ -377,7 +378,7 @@ export const registerExtRoutes = (
     hub.broadcast('health', 'extension-connected', {});
     provider.recordHeartbeat({
       type: 'heartbeat',
-      extensionVersion: '1.2.0',
+      extensionVersion: APP_VERSION,
       selectorsVersion: 1,
       tabs: [],
     });
@@ -417,7 +418,7 @@ export const registerExtRoutes = (
         hub.broadcast('health', 'extension-connected', {});
         provider.recordHeartbeat({
           type: 'heartbeat',
-          extensionVersion: payload.version || '1.2.0',
+          extensionVersion: payload.version || APP_VERSION,
           selectorsVersion: 1,
           tabs: [],
         });
@@ -428,7 +429,7 @@ export const registerExtRoutes = (
           sendMsg('on_air', { matchId: mId, url: payload.url });
           provider.recordHeartbeat({
             type: 'heartbeat',
-            extensionVersion: '1.2.0',
+            extensionVersion: APP_VERSION,
             selectorsVersion: 1,
             tabs: [
               {
@@ -447,7 +448,7 @@ export const registerExtRoutes = (
             provider.ingest(rawUpdate);
             provider.recordHeartbeat({
               type: 'heartbeat',
-              extensionVersion: '1.2.0',
+              extensionVersion: APP_VERSION,
               selectorsVersion: 1,
               tabs: [
                 {
