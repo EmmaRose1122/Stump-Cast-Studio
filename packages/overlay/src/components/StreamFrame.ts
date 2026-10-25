@@ -36,10 +36,12 @@ export class StreamFrame extends OverlayComponent {
       <div class="sf-cam-container">
         <div class="sf-cam-box sf-cam-1">
           <video class="sf-cam-video sf-cam-1-video" autoplay playsinline muted></video>
+          <span class="sf-cam-scan"></span>
           <span class="sf-cam-label">CAM 1 · HOST</span>
         </div>
         <div class="sf-cam-box sf-cam-2 is-offline">
           <video class="sf-cam-video sf-cam-2-video" autoplay playsinline muted></video>
+          <span class="sf-cam-scan"></span>
           <span class="sf-cam-label">CAM 2</span>
         </div>
       </div>

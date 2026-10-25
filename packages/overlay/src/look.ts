@@ -1,4 +1,5 @@
 import type { Look } from '@stumpcast/shared';
+import { applyDesignAttrs } from './lookDesign';
 
 /** CSS custom-property name for a token: `colors.accent2` -> `--color-accent2`. */
 const cssName = (group: string, key: string) => `--${group}-${key.replace(/[^a-zA-Z0-9]+/g, '-')}`;
@@ -25,6 +26,7 @@ export const lookToCssVars = (look: Look): Record<string, string> => {
 export const applyLook = (look: Look, root: HTMLElement = document.documentElement): void => {
   for (const [k, v] of Object.entries(lookToCssVars(look))) root.style.setProperty(k, v);
   root.dataset.look = look.id;
+  applyDesignAttrs(root, look);
   root.dataset.scorePosition = look.layoutVariant.scorePosition;
   root.dataset.playerCard = look.layoutVariant.playerCardStyle;
   root.dataset.middleLayout = look.layoutVariant.middleLayout;

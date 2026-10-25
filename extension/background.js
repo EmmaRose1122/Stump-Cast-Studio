@@ -7230,6 +7230,7 @@
       /** Sources that know the format (the manual scorer) say so instead of guessing from text. */
       format: external_exports.enum(["T20", "ODI", "TEST", "OTHER"]).optional(),
       oversLimit: external_exports.number().int().positive().optional(),
+      winProb: external_exports.object({ teamA: external_exports.number().min(0).max(1), teamB: external_exports.number().min(0).max(1) }).refine((p) => Math.abs(p.teamA + p.teamB - 1) <= 5e-3, "win probabilities must sum to 1").optional(),
       /** Multi-page fetch results from extension (live, scorecard, squads, etc.) */
       multiPageData: external_exports.array(external_exports.unknown()).optional()
     }),

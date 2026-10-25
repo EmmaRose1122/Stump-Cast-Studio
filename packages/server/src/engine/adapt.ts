@@ -280,6 +280,7 @@ export const rawToBaseState = (raw: RawUpdate, updatedAt: string): MatchState =>
     day: f.day,
     session: sessionOf(f.session),
     result: f.resultText && inferStatus(raw, true) === 'result' ? f.resultText : undefined,
+    winProb: f.winProb,
     updatedAt,
   };
 };

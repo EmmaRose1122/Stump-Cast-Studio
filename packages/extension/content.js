@@ -7230,6 +7230,7 @@
       /** Sources that know the format (the manual scorer) say so instead of guessing from text. */
       format: external_exports.enum(["T20", "ODI", "TEST", "OTHER"]).optional(),
       oversLimit: external_exports.number().int().positive().optional(),
+      winProb: external_exports.object({ teamA: external_exports.number().min(0).max(1), teamB: external_exports.number().min(0).max(1) }).refine((p) => Math.abs(p.teamA + p.teamB - 1) <= 5e-3, "win probabilities must sum to 1").optional(),
       /** Multi-page fetch results from extension (live, scorecard, squads, etc.) */
       multiPageData: external_exports.array(external_exports.unknown()).optional()
     }),
@@ -9403,6 +9404,22 @@
     const venue = / from (.+?) with ball by ball commentary/i.exec(description)?.[1]?.trim();
     const balls = recentBalls(row);
     const missing = current ? [] : ["score", "overs"];
+    let winProb;
+    const wpStr = text(row, "wp");
+    if (wpStr) {
+      const wpParts = wpStr.split(",");
+      const favKey = wpParts[0]?.trim();
+      const rawVal = parseFloat(wpParts[1]?.trim() ?? "");
+      if (favKey && !Number.isNaN(rawVal)) {
+        const pct = rawVal > 100 ? rawVal / 100 : rawVal;
+        if (pct >= 0 && pct <= 100) {
+          const isTeam1 = favKey === teamIds[0];
+          const p1 = Math.round((isTeam1 ? pct : 100 - pct) * 10) / 1e3;
+          const p2 = Math.round((1 - p1) * 1e3) / 1e3;
+          winProb = { teamA: p1, teamB: p2 };
+        }
+      }
+    }
     return {
       source: "crex",
       matchId,
@@ -9424,6 +9441,7 @@
         rrr,
         day,
         format,
+        winProb,
         oversLimit: totalBalls ? totalBalls / ballsPerOver : void 0,
         preMatch: matchState === 0 || void 0
       },
@@ -9720,6 +9738,100 @@
     }
   };
 
+  // src/content/winprob.ts
+  var norm2 = (s) => (s ?? "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  var extractWinProbFromDom = (doc, teams) => {
+    if (!teams || teams.length < 2) return void 0;
+    const t1Names = [norm2(teams[0]?.name), norm2(teams[0]?.short)].filter(Boolean);
+    const t2Names = [norm2(teams[1]?.name), norm2(teams[1]?.short)].filter(Boolean);
+    const selectors = [
+      '[class*="predictor"]',
+      '[class*="win-pred"]',
+      '[class*="win_pred"]',
+      '[class*="win-prob"]',
+      '[class*="win_prob"]',
+      '[class*="win-per"]',
+      '[class*="winPredict"]',
+      '[class*="winProb"]',
+      '[class*="winPercent"]',
+      '[class*="win-bar"]',
+      '[class*="cb-mat-pred"]',
+      ".cb-win-prb",
+      ".cb-wp-box",
+      "#miniscore-branding-container"
+    ];
+    const candidateElements = [];
+    for (const sel of selectors) {
+      try {
+        const els = doc.querySelectorAll(sel);
+        for (const el of els) candidateElements.push(el);
+      } catch {
+      }
+    }
+    try {
+      const all = doc.querySelectorAll("h1, h2, h3, h4, h5, h6, span, div, p, strong, b");
+      for (const el of all) {
+        if (el.children.length <= 3 && /win\s*(?:predictor|probability|prediction|%|chance)/i.test(el.textContent ?? "")) {
+          candidateElements.push(el);
+        }
+      }
+    } catch {
+    }
+    const parseFromContainer = (container) => {
+      const text2 = container.textContent ?? "";
+      const matches = Array.from(text2.matchAll(/(\d{1,2}(?:\.\d+)?)\s*%/g));
+      let p1;
+      let p2;
+      if (matches.length >= 2) {
+        const v1 = parseFloat(matches[0][1]);
+        const v2 = parseFloat(matches[1][1]);
+        if (!Number.isNaN(v1) && !Number.isNaN(v2) && v1 + v2 >= 95 && v1 + v2 <= 105) {
+          p1 = v1;
+          p2 = v2;
+        }
+      }
+      if (p1 === void 0) {
+        const barElements = container.querySelectorAll('[style*="width"]');
+        for (const bar of barElements) {
+          const style = bar.getAttribute("style") ?? "";
+          const widthMatch = /width:\s*(\d{1,2}(?:\.\d+)?)\s*%/i.exec(style);
+          if (widthMatch) {
+            const w = parseFloat(widthMatch[1]);
+            if (!Number.isNaN(w) && w >= 1 && w <= 99) {
+              p1 = w;
+              p2 = 100 - w;
+              break;
+            }
+          }
+        }
+      }
+      if (p1 === void 0 || p2 === void 0) return void 0;
+      const lowerText = norm2(text2);
+      const pos1 = Math.min(...t1Names.map((n) => lowerText.indexOf(n)).filter((idx) => idx >= 0));
+      const pos2 = Math.min(...t2Names.map((n) => lowerText.indexOf(n)).filter((idx) => idx >= 0));
+      let team1Pct = p1;
+      let team2Pct = p2;
+      if (pos2 >= 0 && (pos1 < 0 || pos2 < pos1)) {
+        team1Pct = p2;
+        team2Pct = p1;
+      }
+      const total = team1Pct + team2Pct;
+      if (total <= 0) return void 0;
+      const normA = Math.round(team1Pct / total * 1e3) / 1e3;
+      const normB = Math.round((1 - normA) * 1e3) / 1e3;
+      return { teamA: normA, teamB: normB };
+    };
+    for (const el of candidateElements) {
+      let curr = el;
+      for (let depth = 0; curr && depth < 3; depth++) {
+        const res = parseFromContainer(curr);
+        if (res) return res;
+        curr = curr.parentElement;
+      }
+    }
+    return void 0;
+  };
+
   // src/content/index.ts
   var DEBOUNCE_MS = 1e3;
   var start = async () => {
@@ -9788,6 +9900,10 @@
         send: (msg) => {
           if (msg.type === "score-update") {
             attachPictures(msg.update, document, location.href);
+            if (!msg.update.fields.winProb) {
+              const wp = extractWinProbFromDom(document, msg.update.fields.teams);
+              if (wp) msg.update.fields.winProb = wp;
+            }
             console.debug("[StumpCast] Streamed score update:", msg.update.fields.status || msg.update.matchId);
           }
           return chrome.runtime.sendMessage(msg);

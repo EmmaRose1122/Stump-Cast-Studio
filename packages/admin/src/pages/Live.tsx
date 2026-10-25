@@ -34,6 +34,7 @@ const QUICK = [
   { id: 'striker-profile', label: 'STRIKER', icon: '👤' },
   { id: 'bowler-spell', label: 'BOWLER', icon: '🎯' },
   { id: 'partnership', label: 'PARTNER', icon: '🤝' },
+  { id: 'win-prob', label: 'WIN PREDICTOR', icon: '⚡' },
   { id: 'wagon-wheel', label: 'WAGON', icon: '🕸️' },
   { id: 'match-situation', label: 'SITUATION', icon: '📊' },
   { id: 'full-scorecard', label: 'SCORECARD', icon: '📋' },
@@ -85,10 +86,18 @@ const OnStreamBanner = () => {
         <h2 className="font-heading text-xl font-black text-blue-950 truncate">
           {m.title}
         </h2>
-        <p className="font-sans text-sm font-semibold text-blue-800">
-          {m.status === 'live' ? `Live Match - CRR ${m.crr.toFixed(2)}` : m.status}
-          {m.rrr !== undefined ? ` · Need ${m.rrr.toFixed(2)} RRR` : ''}
-        </p>
+        <div className="flex flex-wrap items-center gap-3">
+          <p className="font-sans text-sm font-semibold text-blue-800">
+            {m.status === 'live' ? `Live Match - CRR ${m.crr.toFixed(2)}` : m.status}
+            {m.rrr !== undefined ? ` · Need ${m.rrr.toFixed(2)} RRR` : ''}
+          </p>
+          {m.winProb && (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-bold text-emerald-800 border border-emerald-200">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              Win Pred: {m.teams[0]?.short ?? 'T1'} {Math.round(m.winProb.teamA * 100)}% - {m.teams[1]?.short ?? 'T2'} {Math.round(m.winProb.teamB * 100)}%
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Right Column: Score Block */}

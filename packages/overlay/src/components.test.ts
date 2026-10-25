@@ -2,6 +2,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   ALL_LOOKS,
+  ALL_PRO_LOOKS,
   DEFAULT_LOOK,
   FREE_LOOKS,
   PRO_LOOKS,
@@ -30,6 +31,7 @@ import { UpgradePopup } from './components/UpgradePopup';
 import { ballChip, situationText } from './format';
 import { applyLayout, createZones } from './layout';
 import { applyLook } from './look';
+import { LOOK_DESIGNS } from './lookDesign';
 
 const mount = <T extends { mount(stage: HTMLElement, look: typeof graphiteTeal): void }>(c: T) => {
   const stage = document.createElement('div');
@@ -103,6 +105,27 @@ describe('Looks', () => {
     expect(root.dataset.broadcastBadgeStyle).toBe('cutout-right');
     expect(root.dataset.broadcastBarStyle).toBe('arrow');
     expect(root.dataset.statTheme).toBe('light-orange');
+    expect(root.dataset.designBar).toBe('ribbon');
+    expect(root.dataset.designCamera).toBe('ribbon');
+    expect(root.dataset.designCameraPosition).toBe('bottom-right');
+    expect(root.dataset.designOrnament).toBe('blade');
+    expect(root.dataset.designAnimation).toBe('sweep');
+  });
+
+  it('gives every Pro look a distinct full broadcast kit', () => {
+    const broadcastLooks = ALL_PRO_LOOKS.filter((look) => look.plan === 'pro');
+    expect(Object.keys(LOOK_DESIGNS)).toHaveLength(broadcastLooks.length);
+    expect(broadcastLooks.every((look) => LOOK_DESIGNS[look.id])).toBe(true);
+
+    const kits = new Set(Object.values(LOOK_DESIGNS).map((design) => design.kit));
+    expect(kits.size).toBe(Object.keys(LOOK_DESIGNS).length);
+
+    const combinations = new Set(
+      Object.values(LOOK_DESIGNS).map(
+        (d) => `${d.bar}|${d.camera}|${d.cameraPosition}|${d.ornament}|${d.animation}`,
+      ),
+    );
+    expect(combinations.size).toBe(Object.keys(LOOK_DESIGNS).length);
   });
 });
 
@@ -115,7 +138,7 @@ describe('ScoreBar', () => {
     expect(text).toContain('RSA');
     expect(text).toContain('98-2');
     expect(text).toContain('11.3');
-    expect(text).toContain('Projected 170');
+    expect(text).toContain(`Projected ${t20.projected}`);
     expect(text).toContain('CRR 8.52');
     expect(stage.querySelector('.sb-rrr')!.hasAttribute('hidden')).toBe(true);
   });

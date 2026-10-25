@@ -111,6 +111,10 @@ export const RawUpdateSchema = z.object({
     /** Sources that know the format (the manual scorer) say so instead of guessing from text. */
     format: z.enum(['T20', 'ODI', 'TEST', 'OTHER']).optional(),
     oversLimit: z.number().int().positive().optional(),
+    winProb: z
+      .object({ teamA: z.number().min(0).max(1), teamB: z.number().min(0).max(1) })
+      .refine((p) => Math.abs(p.teamA + p.teamB - 1) <= 0.005, 'win probabilities must sum to 1')
+      .optional(),
     /** Multi-page fetch results from extension (live, scorecard, squads, etc.) */
     multiPageData: z.array(z.unknown()).optional(),
   }),

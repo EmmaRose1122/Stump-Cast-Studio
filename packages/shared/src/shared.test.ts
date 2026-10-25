@@ -10,6 +10,7 @@ import {
   createPlayer,
   createSettings,
   createTeam,
+  deriveStats,
   fixtures,
   runRate,
   slug,
@@ -95,6 +96,39 @@ describe('schemas', () => {
       wicketsLeft: 5,
     };
     expect(battingWinProb(tenOvers)).toBeGreaterThan(0.4);
+  });
+
+  it('preserves authoritative scraped win probability in deriveStats without overwriting', () => {
+    const scraped = {
+      ...fixtures.t20,
+      winProb: { teamA: 0.78, teamB: 0.22 },
+    };
+    const derived = deriveStats(scraped);
+    expect(derived.winProb).toEqual({ teamA: 0.78, teamB: 0.22 });
+  });
+
+  it('calibrates early overs win probability to stay balanced instead of swinging to 5% or 95%', () => {
+    const earlySlow = deriveStats({
+      ...fixtures.t20,
+      currentInnings: 1,
+      target: undefined,
+      score: { runs: 3, wkts: 0, overs: 1, balls: 0 },
+      winProb: undefined,
+    });
+    // A team at 3/0 after 1 over with all 10 wickets in hand should remain between 35% and 55%
+    expect(earlySlow.winProb!.teamA).toBeGreaterThan(0.35);
+    expect(earlySlow.winProb!.teamA).toBeLessThan(0.55);
+
+    const earlyFast = deriveStats({
+      ...fixtures.t20,
+      currentInnings: 1,
+      target: undefined,
+      score: { runs: 16, wkts: 0, overs: 1, balls: 0 },
+      winProb: undefined,
+    });
+    // A team at 16/0 after 1 over should be ahead, but not an absurd 98%
+    expect(earlyFast.winProb!.teamA).toBeGreaterThan(0.55);
+    expect(earlyFast.winProb!.teamA).toBeLessThan(0.78);
   });
 
   it('validates an engine event and defaults payload', () => {

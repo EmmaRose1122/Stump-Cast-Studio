@@ -235,6 +235,24 @@ const liveUpdate = (config: SelectorConfig, input: AdapterInput, row: ObjectRow)
   const venue = / from (.+?) with ball by ball commentary/i.exec(description)?.[1]?.trim();
   const balls = recentBalls(row);
   const missing = current ? [] : ['score', 'overs'];
+
+  let winProb: Fields['winProb'];
+  const wpStr = text(row, 'wp');
+  if (wpStr) {
+    const wpParts = wpStr.split(',');
+    const favKey = wpParts[0]?.trim();
+    const rawVal = parseFloat(wpParts[1]?.trim() ?? '');
+    if (favKey && !Number.isNaN(rawVal)) {
+      const pct = rawVal > 100 ? rawVal / 100 : rawVal;
+      if (pct >= 0 && pct <= 100) {
+        const isTeam1 = favKey === teamIds[0];
+        const p1 = Math.round((isTeam1 ? pct : 100 - pct) * 10) / 1000;
+        const p2 = Math.round((1 - p1) * 1000) / 1000;
+        winProb = { teamA: p1, teamB: p2 };
+      }
+    }
+  }
+
   return {
     source: 'crex',
     matchId,
@@ -256,6 +274,7 @@ const liveUpdate = (config: SelectorConfig, input: AdapterInput, row: ObjectRow)
       rrr,
       day,
       format,
+      winProb,
       oversLimit: totalBalls ? totalBalls / ballsPerOver : undefined,
       preMatch: matchState === 0 || undefined,
     },

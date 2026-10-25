@@ -7,6 +7,7 @@ import type { SelectorBundle } from '@stumpcast/shared';
 import { TAP_MARKER, isTapMessage, type ContentMessage, type TapConfigEnvelope } from '../messages';
 import { createPipeline } from './pipeline';
 import { attachPictures } from './pictures';
+import { extractWinProbFromDom } from './winprob';
 
 const DEBOUNCE_MS = 1000;
 type Site = 'cricbuzz' | 'crex';
@@ -99,6 +100,10 @@ const start = async () => {
           // Last chance to look at the live DOM: the crests and faces the page is showing right now
           // travel with the score, so a new team or batter is on air with its picture.
           attachPictures(msg.update, document, location.href);
+          if (!msg.update.fields.winProb) {
+            const wp = extractWinProbFromDom(document, msg.update.fields.teams);
+            if (wp) msg.update.fields.winProb = wp;
+          }
           console.debug('[StumpCast] Streamed score update:', msg.update.fields.status || msg.update.matchId);
         }
         // Rejection is meaningful: the pipeline retries the update instead of losing the ball.

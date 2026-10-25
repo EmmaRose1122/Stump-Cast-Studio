@@ -128,8 +128,15 @@ export const deriveStats = (base: MatchState): MatchState => {
         s.projected = parTotal;
         s.projectedPlus2 = parTotal + Math.round(2 * limit);
       } else {
-        s.projected = Math.round(s.score.runs + s.crr * oversLeft);
-        s.projectedPlus2 = Math.round(s.score.runs + (s.crr + 2) * oversLeft);
+        const par = limit >= 40 ? PAR.ODI : PAR.T20;
+        const bowledOvers = s.score.overs + s.score.balls / 6;
+        // Blend observed CRR with par rate so early overs don't produce extreme projections
+        const crrWeight = clamp(bowledOvers / (limit * 0.45), 0.15, 1.0);
+        // Wicket resource factor: wickets in hand dictate ability to sustain/accelerate scoring rate
+        const wktResource = Math.pow(clamp(s.wicketsLeft, 1, 10) / 10, 0.4);
+        const expRemainingRate = ((1 - crrWeight) * par.rate + crrWeight * s.crr) * wktResource;
+        s.projected = Math.round(s.score.runs + expRemainingRate * oversLeft);
+        s.projectedPlus2 = Math.round(s.score.runs + (expRemainingRate + 2) * oversLeft);
       }
     }
   }
@@ -164,6 +171,14 @@ export const deriveStats = (base: MatchState): MatchState => {
       s.winProb = { teamA: 0.5, teamB: 0.5 };
       return s;
     }
+  }
+
+  // Authoritative scraped win probability from live site (Crex / Cricbuzz) or provider ALWAYS wins
+  if (base.winProb && typeof base.winProb.teamA === 'number' && typeof base.winProb.teamB === 'number') {
+    const a = clamp(round(base.winProb.teamA, 3), 0, 1);
+    const b = clamp(round(1 - a, 3), 0, 1);
+    s.winProb = { teamA: a, teamB: b };
+    return s;
   }
 
   const p = battingWinProb(s);

@@ -94,6 +94,7 @@ describe('crex live getSV3 response', () => {
         json: {
           a: 'IO.8X', b: '1V5', c: '4.9.0.7', i: '5/0.4*.1', j: '9/0(2.3',
           p: '9J2.AUZ', q: '3.8', r: '0.0.1.3', s: '0.7*', t: '0.0.2.0',
+          wp: 'IO,6460,15401,0',
         },
       }],
     });
@@ -102,6 +103,7 @@ describe('crex live getSV3 response', () => {
     expect(update.fields.teams?.map((team) => team.name)).toEqual(['Denmark', 'Papua New Guinea']);
     expect(update.fields.innings).toEqual([{ team: 'Denmark', runs: 9, wkts: 0, overs: 2, balls: 3 }]);
     expect(update.fields.batters?.map((batter) => batter.name)).toEqual(['Musa Mahmood', 'Hamid Shah']);
+    expect(update.fields.winProb).toEqual({ teamA: 0.646, teamB: 0.354 });
   });
 
   it('does not apply a tapped response from another match', () => {
