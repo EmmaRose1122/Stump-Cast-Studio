@@ -17,6 +17,8 @@ export class StreamFrame extends OverlayComponent {
   private activeStream: MediaStream | null = null;
   private secondaryStream: MediaStream | null = null;
   private cameraMode: 'none' | 'one' | 'two' = 'none';
+  /** Look-gallery frames show the camera monitor without opening a real webcam. */
+  private designPreview = false;
   /** A permission prompt can take seconds; settings updates must not open a second request. */
   private starting = false;
   private startingSecond = false;
@@ -37,6 +39,7 @@ export class StreamFrame extends OverlayComponent {
         <div class="sf-cam-box sf-cam-1">
           <video class="sf-cam-video sf-cam-1-video" autoplay playsinline muted></video>
           <span class="sf-cam-scan"></span>
+          <span class="sf-cam-slate"><strong>NO SIGNAL</strong><span>CAMERA STANDBY</span></span>
           <span class="sf-cam-label">CAM 1 · HOST</span>
         </div>
         <div class="sf-cam-box sf-cam-2 is-offline">
@@ -73,6 +76,7 @@ export class StreamFrame extends OverlayComponent {
 
   private attach(video: HTMLVideoElement, stream: MediaStream): void {
     video.srcObject = stream;
+    video.closest('.sf-cam-box')?.classList.add('is-live');
     void video.play().catch(() => undefined);
   }
 
@@ -140,6 +144,7 @@ export class StreamFrame extends OverlayComponent {
       // already stopped
     }
     if (this.cam2Video) this.cam2Video.srcObject = null;
+    this.cam2Box.classList.remove('is-live');
     this.cam2Box.classList.add('is-offline');
   }
 
@@ -152,11 +157,14 @@ export class StreamFrame extends OverlayComponent {
     }
     this.activeStream = null;
     if (this.cam1Video) this.cam1Video.srcObject = null;
+    this.cam1Box.classList.remove('is-live');
   }
 
   setCameraMode(mode: 'none' | 'one' | 'two'): void {
     this.cameraMode = mode;
-    this.root.dataset.cameraMode = mode;
+    // A real camera choice always wins over the gallery slate.
+    if (mode !== 'none') this.designPreview = false;
+    this.syncCamera();
     if (mode === 'none') {
       this.stopCameraFeed();
       return;
@@ -167,6 +175,21 @@ export class StreamFrame extends OverlayComponent {
     }
     if (!this.activeStream) void this.startCameraFeed();
     else if (mode === 'two') void this.startSecondCamera(this.activeStream);
+  }
+
+  /**
+   * Shows the camera monitor with a standby slate for the look gallery. Calling it must not touch
+   * `getUserMedia`: a wall of preview iframes would otherwise open a camera per card.
+   */
+  showDesignPreview(): void {
+    this.designPreview = true;
+    this.syncCamera();
+  }
+
+  private syncCamera(): void {
+    this.root.dataset.cameraMode = this.designPreview ? 'one' : this.cameraMode;
+    if (this.designPreview) this.root.dataset.designPreview = '1';
+    else delete this.root.dataset.designPreview;
   }
 
   override destroy(): void {

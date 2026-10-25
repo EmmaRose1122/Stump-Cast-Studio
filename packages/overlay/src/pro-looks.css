@@ -894,3 +894,1006 @@ html[data-design-camera] #stage[data-layout] .sf-cam-label { z-index: 6 !importa
     animation: none !important;
   }
 }
+
+/* ==========================================================================================
+   SIGNATURE HEADER COMPOSITIONS
+   Banner, column, centred, bookend, compact and marquee each read as a different broadcast
+   package rather than a re-skin of the same bar. The 124px arena band gives 119px of content box.
+   ========================================================================================== */
+
+html[data-design-bar='banner'] #stage[data-layout='arena'] .sb-bat .sb-score-inline,
+html[data-design-bar='banner'] #stage[data-layout='arena'] .sb-bat .sb-overs-inline,
+html[data-design-bar='column'] #stage[data-layout='arena'] .sb-bat .sb-score-inline,
+html[data-design-bar='column'] #stage[data-layout='arena'] .sb-bat .sb-overs-inline,
+html[data-design-bar='centered'] #stage[data-layout='arena'] .sb-bat .sb-score-inline,
+html[data-design-bar='centered'] #stage[data-layout='arena'] .sb-bat .sb-overs-inline,
+html[data-design-bar='bookend'] #stage[data-layout='arena'] .sb-bat .sb-score-inline,
+html[data-design-bar='bookend'] #stage[data-layout='arena'] .sb-bat .sb-overs-inline,
+html[data-design-bar='marquee'] #stage[data-layout='arena'] .sb-bat .sb-score-inline,
+html[data-design-bar='marquee'] #stage[data-layout='arena'] .sb-bat .sb-overs-inline {
+  display: none !important;
+}
+html[data-design-bar='banner'] #stage[data-layout='arena'] .sb-score-wrap,
+html[data-design-bar='column'] #stage[data-layout='arena'] .sb-score-wrap,
+html[data-design-bar='centered'] #stage[data-layout='arena'] .sb-score-wrap,
+html[data-design-bar='bookend'] #stage[data-layout='arena'] .sb-score-wrap,
+html[data-design-bar='marquee'] #stage[data-layout='arena'] .sb-score-wrap {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 0;
+  overflow: hidden;
+}
+html[data-design-bar='banner'] #stage[data-layout='arena'] .sb-score,
+html[data-design-bar='column'] #stage[data-layout='arena'] .sb-score,
+html[data-design-bar='centered'] #stage[data-layout='arena'] .sb-score,
+html[data-design-bar='bookend'] #stage[data-layout='arena'] .sb-score,
+html[data-design-bar='marquee'] #stage[data-layout='arena'] .sb-score {
+  line-height: 0.88 !important;
+}
+html[data-design-bar='banner'] #stage[data-layout='arena'] .sb-bat,
+html[data-design-bar='banner'] #stage[data-layout='arena'] .sb-bowl,
+html[data-design-bar='column'] #stage[data-layout='arena'] .sb-bat,
+html[data-design-bar='column'] #stage[data-layout='arena'] .sb-bowl,
+html[data-design-bar='centered'] #stage[data-layout='arena'] .sb-bat,
+html[data-design-bar='centered'] #stage[data-layout='arena'] .sb-bowl,
+html[data-design-bar='bookend'] #stage[data-layout='arena'] .sb-bat,
+html[data-design-bar='bookend'] #stage[data-layout='arena'] .sb-bowl,
+html[data-design-bar='marquee'] #stage[data-layout='arena'] .sb-bat,
+html[data-design-bar='marquee'] #stage[data-layout='arena'] .sb-bowl {
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Banner — score flag on the left, teams and their meta strip to the right. */
+html[data-design-bar='banner'] #stage[data-layout='arena'] .c-scorebar {
+  grid-template-columns: minmax(230px, 300px) minmax(0, 1fr) minmax(0, 1fr) !important;
+  grid-template-rows: 86px 30px !important;
+  grid-template-areas:
+    'score bat bowl'
+    'score meta meta' !important;
+  column-gap: 24px !important;
+  row-gap: 0 !important;
+  align-content: center !important;
+}
+html[data-design-bar='banner'] #stage[data-layout='arena'] .sb-score-wrap {
+  grid-area: score !important;
+  height: 116px !important;
+  align-self: center;
+  background: linear-gradient(135deg, var(--color-accent), var(--color-accent2)) !important;
+  clip-path: polygon(0 0, 100% 0, calc(100% - 24px) 100%, 0 100%);
+  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.45) !important;
+}
+html[data-design-bar='banner'] #stage[data-layout='arena'] .sb-score {
+  color: var(--color-bg) !important;
+  font-size: 62px !important;
+  text-shadow: none !important;
+}
+html[data-design-bar='banner'] #stage[data-layout='arena'] .sb-overs {
+  color: color-mix(in srgb, var(--color-bg) 82%, transparent) !important;
+  font-size: 24px !important;
+}
+html[data-design-bar='banner'] #stage[data-layout='arena'] .sb-bat {
+  grid-area: bat !important;
+}
+html[data-design-bar='banner'] #stage[data-layout='arena'] .sb-bowl {
+  grid-area: bowl !important;
+}
+html[data-design-bar='banner'] #stage[data-layout='arena'] .sb-meta {
+  grid-area: meta !important;
+  height: 30px !important;
+  min-height: 30px !important;
+  justify-content: flex-end !important;
+  border-top: 1px solid color-mix(in srgb, var(--color-accent) 28%, transparent) !important;
+}
+
+/* Column — tall score flag at the left, the two teams stacked beside it, meta rail at the right. */
+html[data-design-bar='column'] #stage[data-layout='arena'] .c-scorebar {
+  grid-template-columns: minmax(210px, 250px) minmax(260px, 1fr) 190px !important;
+  grid-template-rows: 58px 56px !important;
+  grid-template-areas:
+    'score bat meta'
+    'score bowl meta' !important;
+  column-gap: 22px !important;
+  row-gap: 0 !important;
+  align-content: center !important;
+}
+html[data-design-bar='column'] #stage[data-layout='arena'] .sb-score-wrap {
+  grid-area: score !important;
+  height: 114px !important;
+  background: linear-gradient(150deg, color-mix(in srgb, var(--color-accent) 22%, transparent), transparent 70%) !important;
+  border-left: 6px solid var(--color-accent) !important;
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 18px), calc(100% - 18px) 100%, 0 100%);
+}
+html[data-design-bar='column'] #stage[data-layout='arena'] .sb-score {
+  color: var(--color-accent) !important;
+  font-size: 60px !important;
+  text-shadow: 0 0 20px color-mix(in srgb, var(--color-accent) 45%, transparent) !important;
+}
+html[data-design-bar='column'] #stage[data-layout='arena'] .sb-overs {
+  color: var(--color-text) !important;
+  font-size: 24px !important;
+}
+html[data-design-bar='column'] #stage[data-layout='arena'] .sb-bat,
+html[data-design-bar='column'] #stage[data-layout='arena'] .sb-bowl {
+  gap: 14px !important;
+  padding: 0 4px !important;
+}
+html[data-design-bar='column'] #stage[data-layout='arena'] .sb-team-copy {
+  display: contents !important;
+}
+html[data-design-bar='column'] #stage[data-layout='arena'] .sb-short {
+  display: none !important;
+}
+html[data-design-bar='column'] #stage[data-layout='arena'] .sb-live-row {
+  display: contents !important;
+}
+html[data-design-bar='column'] #stage[data-layout='arena'] .sb-name {
+  font-size: 23px !important;
+}
+html[data-design-bar='column'] #stage[data-layout='arena'] .sb-bat .sb-history,
+html[data-design-bar='column'] #stage[data-layout='arena'] .sb-bowl .sb-history {
+  font-size: 24px !important;
+  margin: 0 !important;
+  color: color-mix(in srgb, var(--color-text) 80%, transparent) !important;
+}
+html[data-design-bar='column'] #stage[data-layout='arena'] .sb-crest {
+  width: 54px !important;
+  height: 38px !important;
+}
+html[data-design-bar='column'] #stage[data-layout='arena'] .sb-meta {
+  grid-area: meta !important;
+  height: 114px !important;
+  min-height: 114px !important;
+  min-width: 0 !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  padding: 0 10px !important;
+  border-left: 1px solid color-mix(in srgb, var(--color-accent) 34%, transparent) !important;
+  border-right: 0 !important;
+}
+html[data-design-bar='column'] #stage[data-layout='arena'] .sb-need-val {
+  font-size: 42px !important;
+}
+html[data-design-bar='column'] #stage[data-layout='arena'] .sb-brand-pill {
+  font-size: 8px !important;
+  padding: 1px 6px !important;
+}
+
+/* Centred — team names above and below a dead-centre score, data pinned to the top corners. */
+html[data-design-bar='centered'] #stage[data-layout='arena'] .c-scorebar {
+  grid-template-columns: minmax(0, 1fr) !important;
+  grid-template-rows: 26px 64px 26px !important;
+  grid-template-areas:
+    'bat'
+    'score'
+    'bowl' !important;
+  align-content: center !important;
+  position: relative !important;
+}
+html[data-design-bar='centered'] #stage[data-layout='arena'] .sb-bat,
+html[data-design-bar='centered'] #stage[data-layout='arena'] .sb-bowl {
+  width: 100% !important;
+  justify-content: center !important;
+  gap: 10px !important;
+}
+html[data-design-bar='centered'] #stage[data-layout='arena'] .sb-team-copy {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: baseline !important;
+  gap: 10px !important;
+  min-width: 0;
+}
+html[data-design-bar='centered'] #stage[data-layout='arena'] .sb-short {
+  display: none !important;
+}
+html[data-design-bar='centered'] #stage[data-layout='arena'] .sb-bat .sb-live-row {
+  display: none !important;
+}
+html[data-design-bar='centered'] #stage[data-layout='arena'] .sb-bat .sb-history {
+  display: none !important;
+}
+html[data-design-bar='centered'] #stage[data-layout='arena'] .sb-bowl .sb-history {
+  display: inline !important;
+  font-size: 20px !important;
+  margin: 0 !important;
+  color: color-mix(in srgb, var(--color-text) 78%, transparent) !important;
+}
+html[data-design-bar='centered'] #stage[data-layout='arena'] .sb-name {
+  font-size: 23px !important;
+}
+html[data-design-bar='centered'] #stage[data-layout='arena'] .sb-crest {
+  width: 48px !important;
+  height: 32px !important;
+}
+html[data-design-bar='centered'] #stage[data-layout='arena'] .sb-score-wrap {
+  grid-area: score !important;
+  height: 64px !important;
+  background: radial-gradient(ellipse at 50% 50%, color-mix(in srgb, var(--color-accent) 20%, transparent), transparent 62%) !important;
+}
+html[data-design-bar='centered'] #stage[data-layout='arena'] .sb-score {
+  color: var(--color-accent) !important;
+  font-size: 58px !important;
+}
+html[data-design-bar='centered'] #stage[data-layout='arena'] .sb-overs {
+  color: color-mix(in srgb, var(--color-text) 78%, transparent) !important;
+  font-size: 23px !important;
+}
+html[data-design-bar='centered'] #stage[data-layout='arena'] .sb-meta {
+  position: absolute !important;
+  top: 6px !important;
+  right: 18px !important;
+  width: auto !important;
+  height: 22px !important;
+  min-height: 0 !important;
+  min-width: 0 !important;
+  padding: 0 !important;
+  gap: 10px !important;
+  flex-direction: row !important;
+  justify-content: flex-end !important;
+  align-items: center !important;
+  background: transparent !important;
+  border: 0 !important;
+  z-index: 3;
+}
+html[data-design-bar='centered'] #stage[data-layout='arena'] .sb-need-badge {
+  flex-direction: row !important;
+  align-items: baseline !important;
+  gap: 6px !important;
+}
+html[data-design-bar='centered'] #stage[data-layout='arena'] .sb-need-label {
+  font-size: 10px !important;
+}
+html[data-design-bar='centered'] #stage[data-layout='arena'] .sb-need-val {
+  font-size: 20px !important;
+  margin: 0 !important;
+}
+html[data-design-bar='centered'] #stage[data-layout='arena'] .sb-brand-pill {
+  display: none !important;
+}
+
+/* Bookend — solid team end caps around a recessed score window. */
+html[data-design-bar='bookend'] #stage[data-layout='arena'] .c-scorebar {
+  grid-template-columns: minmax(290px, 360px) minmax(0, 1fr) minmax(290px, 360px) !important;
+  grid-template-rows: 86px 30px !important;
+  grid-template-areas:
+    'bat score bowl'
+    'meta meta meta' !important;
+  column-gap: 0 !important;
+  row-gap: 0 !important;
+  align-content: center !important;
+}
+html[data-design-bar='bookend'] #stage[data-layout='arena'] .sb-bat,
+html[data-design-bar='bookend'] #stage[data-layout='arena'] .sb-bowl {
+  background: linear-gradient(120deg, var(--color-accent2), var(--color-accent)) !important;
+  color: var(--color-bg) !important;
+  padding: 0 24px !important;
+  gap: 14px !important;
+}
+html[data-design-bar='bookend'] #stage[data-layout='arena'] .sb-bat {
+  grid-area: bat !important;
+  clip-path: polygon(0 0, 100% 0, calc(100% - 18px) 50%, 100% 100%, 0 100%);
+}
+html[data-design-bar='bookend'] #stage[data-layout='arena'] .sb-bowl {
+  grid-area: bowl !important;
+  justify-content: flex-end !important;
+  text-align: right !important;
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%, 18px 50%);
+}
+html[data-design-bar='bookend'] #stage[data-layout='arena'] .sb-bat .sb-name,
+html[data-design-bar='bookend'] #stage[data-layout='arena'] .sb-bowl .sb-name,
+html[data-design-bar='bookend'] #stage[data-layout='arena'] .sb-bat .sb-short,
+html[data-design-bar='bookend'] #stage[data-layout='arena'] .sb-bowl .sb-short,
+html[data-design-bar='bookend'] #stage[data-layout='arena'] .sb-bat .sb-history,
+html[data-design-bar='bookend'] #stage[data-layout='arena'] .sb-bowl .sb-history {
+  color: var(--color-bg) !important;
+  text-shadow: none !important;
+}
+html[data-design-bar='bookend'] #stage[data-layout='arena'] .sb-crest {
+  border-color: color-mix(in srgb, var(--color-bg) 70%, transparent) !important;
+  background: color-mix(in srgb, var(--color-bg) 86%, transparent) !important;
+  width: 58px !important;
+  height: 42px !important;
+}
+html[data-design-bar='bookend'] #stage[data-layout='arena'] .sb-score-wrap {
+  grid-area: score !important;
+  height: 86px !important;
+  background: color-mix(in srgb, var(--color-surface) 82%, black) !important;
+  box-shadow: inset 0 0 26px rgba(0, 0, 0, 0.7) !important;
+  border-left: 1px solid color-mix(in srgb, var(--color-accent) 45%, transparent);
+  border-right: 1px solid color-mix(in srgb, var(--color-accent) 45%, transparent);
+}
+html[data-design-bar='bookend'] #stage[data-layout='arena'] .sb-score {
+  font-size: 56px !important;
+}
+html[data-design-bar='bookend'] #stage[data-layout='arena'] .sb-meta {
+  grid-area: meta !important;
+  height: 30px !important;
+  min-height: 30px !important;
+  border-top: 1px solid color-mix(in srgb, var(--color-accent) 34%, transparent) !important;
+}
+
+/* Compact — one glass strip: teams either side of a data pill, score inline. */
+html[data-design-bar='compact'] #stage[data-layout='arena'] .c-scorebar {
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) !important;
+  grid-template-rows: 84px !important;
+  grid-template-areas: 'bat meta bowl' !important;
+  column-gap: 14px !important;
+  align-content: center !important;
+  padding: 0 10px !important;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  clip-path: none !important;
+}
+html[data-design-bar='compact'] #stage[data-layout='arena'] .c-scorebar::before,
+html[data-design-bar='compact'] #stage[data-layout='arena'] .c-scorebar::after {
+  display: none !important;
+}
+html[data-design-bar='compact'] #stage[data-layout='arena'] .sb-score-wrap {
+  display: none !important;
+}
+html[data-design-bar='compact'] #stage[data-layout='arena'] .sb-bat,
+html[data-design-bar='compact'] #stage[data-layout='arena'] .sb-bowl,
+html[data-design-bar='compact'] #stage[data-layout='arena'] .sb-meta {
+  height: 72px !important;
+  min-height: 0 !important;
+  align-self: center;
+  padding: 0 22px !important;
+  background: color-mix(in srgb, var(--color-surface) 72%, transparent) !important;
+  border: 1px solid color-mix(in srgb, var(--color-accent) 40%, transparent) !important;
+  border-radius: 999px !important;
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.14);
+  backdrop-filter: blur(16px) saturate(1.2);
+}
+html[data-design-bar='compact'] #stage[data-layout='arena'] .sb-bat,
+html[data-design-bar='compact'] #stage[data-layout='arena'] .sb-bowl {
+  gap: 12px !important;
+}
+html[data-design-bar='compact'] #stage[data-layout='arena'] .sb-team-copy {
+  display: contents !important;
+}
+html[data-design-bar='compact'] #stage[data-layout='arena'] .sb-short {
+  display: none !important;
+}
+html[data-design-bar='compact'] #stage[data-layout='arena'] .sb-name {
+  font-size: 21px !important;
+}
+html[data-design-bar='compact'] #stage[data-layout='arena'] .sb-crest {
+  width: 46px !important;
+  height: 32px !important;
+}
+html[data-design-bar='compact'] #stage[data-layout='arena'] .sb-bat .sb-score-inline {
+  display: block !important;
+  font-size: 44px !important;
+}
+html[data-design-bar='compact'] #stage[data-layout='arena'] .sb-bat .sb-overs-inline {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: baseline !important;
+  gap: 3px !important;
+}
+html[data-design-bar='compact'] #stage[data-layout='arena'] .sb-bat .sb-overs-num {
+  font-size: 22px !important;
+}
+html[data-design-bar='compact'] #stage[data-layout='arena'] .sb-overs-label {
+  font-size: 9px !important;
+}
+html[data-design-bar='compact'] #stage[data-layout='arena'] .sb-bat .sb-history {
+  display: none !important;
+}
+html[data-design-bar='compact'] #stage[data-layout='arena'] .sb-bowl .sb-history {
+  font-size: 30px !important;
+  margin: 0 !important;
+}
+html[data-design-bar='compact'] #stage[data-layout='arena'] .sb-meta {
+  flex-direction: row !important;
+  gap: 10px !important;
+  min-width: 0 !important;
+  border-left: 1px solid color-mix(in srgb, var(--color-accent) 40%, transparent) !important;
+  border-right: 1px solid color-mix(in srgb, var(--color-accent) 40%, transparent) !important;
+}
+html[data-design-bar='compact'] #stage[data-layout='arena'] .sb-need-badge {
+  flex-direction: row !important;
+  align-items: baseline !important;
+  gap: 6px !important;
+}
+html[data-design-bar='compact'] #stage[data-layout='arena'] .sb-need-label {
+  font-size: 10px !important;
+}
+html[data-design-bar='compact'] #stage[data-layout='arena'] .sb-need-val {
+  font-size: 24px !important;
+  margin: 0 !important;
+}
+html[data-design-bar='compact'] #stage[data-layout='arena'] .sb-brand-pill {
+  display: none !important;
+}
+html[data-design-bar='compact'][data-design-animation='drift'] #stage[data-layout='arena'] .c-scorebar {
+  animation: design-bar-drift 9s ease-in-out infinite;
+}
+
+/* Marquee — teams on top, a full-width score ribbon beneath them. */
+html[data-design-bar='marquee'] #stage[data-layout='arena'] .c-scorebar {
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) !important;
+  grid-template-rows: 62px 52px !important;
+  grid-template-areas:
+    'bat meta bowl'
+    'score score score' !important;
+  row-gap: 2px !important;
+  align-content: center !important;
+}
+html[data-design-bar='marquee'] #stage[data-layout='arena'] .sb-bat {
+  grid-area: bat !important;
+  padding-left: 8px !important;
+}
+html[data-design-bar='marquee'] #stage[data-layout='arena'] .sb-bowl {
+  grid-area: bowl !important;
+  padding-right: 8px !important;
+}
+html[data-design-bar='marquee'] #stage[data-layout='arena'] .sb-bat .sb-live-row {
+  display: none !important;
+}
+html[data-design-bar='marquee'] #stage[data-layout='arena'] .sb-name {
+  font-size: 24px !important;
+}
+html[data-design-bar='marquee'] #stage[data-layout='arena'] .sb-crest {
+  width: 60px !important;
+  height: 38px !important;
+}
+html[data-design-bar='marquee'] #stage[data-layout='arena'] .sb-bowl .sb-history {
+  font-size: 30px !important;
+  margin: 2px 0 0 !important;
+}
+html[data-design-bar='marquee'] #stage[data-layout='arena'] .sb-meta {
+  grid-area: meta !important;
+  height: 62px !important;
+  min-height: 62px !important;
+  justify-content: center !important;
+  border-left: 0 !important;
+  border-right: 0 !important;
+}
+html[data-design-bar='marquee'] #stage[data-layout='arena'] .sb-need-val {
+  font-size: 34px !important;
+}
+html[data-design-bar='marquee'] #stage[data-layout='arena'] .sb-brand-pill {
+  display: none !important;
+}
+html[data-design-bar='marquee'] #stage[data-layout='arena'] .sb-score-wrap {
+  grid-area: score !important;
+  height: 52px !important;
+  border-top: 1px solid color-mix(in srgb, var(--color-accent) 42%, transparent) !important;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--color-accent) 16%, transparent), transparent) !important;
+}
+html[data-design-bar='marquee'] #stage[data-layout='arena'] .sb-score {
+  font-size: 46px !important;
+}
+html[data-design-bar='marquee'] #stage[data-layout='arena'] .sb-overs {
+  font-size: 22px !important;
+}
+
+/* ==========================================================================================
+   TYPOGRAPHY PACKAGES
+   Same four bundled families, but case, tracking and numeral face change the read completely.
+   ========================================================================================== */
+html[data-design-type='grotesk'] #stage[data-layout] .sb-name {
+  font-family: var(--font-heading) !important;
+  font-weight: 700 !important;
+  text-transform: none !important;
+  letter-spacing: -0.01em !important;
+}
+html[data-design-type='grotesk'] #stage[data-layout] .sb-score,
+html[data-design-type='grotesk'] #stage[data-layout] .sb-score-inline,
+html[data-design-type='grotesk'] #stage[data-layout] .sb-overs-num {
+  font-family: var(--font-numbers) !important;
+  font-weight: 800 !important;
+}
+html[data-design-type='grotesk'] #stage[data-layout] .sb-need-label,
+html[data-design-type='grotesk'] #stage[data-layout] .mc-label,
+html[data-design-type='grotesk'] #stage[data-layout] .to-label,
+html[data-design-type='grotesk'] #stage[data-layout] .tb-label {
+  font-family: var(--font-heading) !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.1em !important;
+}
+
+html[data-design-type='editorial'] #stage[data-layout] .sb-name {
+  font-family: var(--font-heading) !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.06em !important;
+}
+html[data-design-type='editorial'] #stage[data-layout] .sb-score,
+html[data-design-type='editorial'] #stage[data-layout] .sb-score-inline,
+html[data-design-type='editorial'] #stage[data-layout] .sb-overs-num {
+  font-family: var(--font-heading) !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.02em !important;
+}
+html[data-design-type='editorial'] #stage[data-layout] .sb-need-label,
+html[data-design-type='editorial'] #stage[data-layout] .mc-label,
+html[data-design-type='editorial'] #stage[data-layout] .to-label,
+html[data-design-type='editorial'] #stage[data-layout] .tb-label,
+html[data-design-type='editorial'] #stage[data-layout] .mc-heading {
+  font-family: var(--font-heading) !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.2em !important;
+  text-transform: uppercase !important;
+}
+
+html[data-design-type='condensed'] #stage[data-layout] .sb-name {
+  font-family: 'Barlow Condensed' !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.03em !important;
+}
+html[data-design-type='condensed'] #stage[data-layout] .sb-score,
+html[data-design-type='condensed'] #stage[data-layout] .sb-score-inline,
+html[data-design-type='condensed'] #stage[data-layout] .sb-overs-num {
+  font-family: 'Teko' !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.01em !important;
+}
+html[data-design-type='condensed'] #stage[data-layout] .sb-need-label,
+html[data-design-type='condensed'] #stage[data-layout] .mc-label,
+html[data-design-type='condensed'] #stage[data-layout] .to-label,
+html[data-design-type='condensed'] #stage[data-layout] .tb-label,
+html[data-design-type='condensed'] #stage[data-layout] .mc-heading {
+  font-family: 'Barlow Condensed' !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.14em !important;
+  text-transform: uppercase !important;
+}
+
+html[data-design-type='classic'] #stage[data-layout] .sb-name {
+  font-family: var(--font-body) !important;
+  font-weight: 800 !important;
+  text-transform: none !important;
+  letter-spacing: -0.01em !important;
+}
+html[data-design-type='classic'] #stage[data-layout] .sb-score,
+html[data-design-type='classic'] #stage[data-layout] .sb-score-inline,
+html[data-design-type='classic'] #stage[data-layout] .sb-overs-num {
+  font-family: var(--font-body) !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.03em !important;
+}
+html[data-design-type='classic'] #stage[data-layout] .sb-need-label,
+html[data-design-type='classic'] #stage[data-layout] .mc-label,
+html[data-design-type='classic'] #stage[data-layout] .to-label,
+html[data-design-type='classic'] #stage[data-layout] .tb-label,
+html[data-design-type='classic'] #stage[data-layout] .mc-heading {
+  font-family: var(--font-body) !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.1em !important;
+  text-transform: uppercase !important;
+}
+
+html[data-design-type='tech'] #stage[data-layout] .sb-name {
+  font-family: var(--font-body) !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.12em !important;
+}
+html[data-design-type='tech'] #stage[data-layout] .sb-score,
+html[data-design-type='tech'] #stage[data-layout] .sb-score-inline,
+html[data-design-type='tech'] #stage[data-layout] .sb-overs-num {
+  font-family: var(--font-numbers) !important;
+  font-weight: 800 !important;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em !important;
+}
+html[data-design-type='tech'] #stage[data-layout] .sb-need-label,
+html[data-design-type='tech'] #stage[data-layout] .mc-label,
+html[data-design-type='tech'] #stage[data-layout] .to-label,
+html[data-design-type='tech'] #stage[data-layout] .tb-label,
+html[data-design-type='tech'] #stage[data-layout] .mc-heading {
+  font-family: var(--font-body) !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.24em !important;
+  text-transform: uppercase !important;
+}
+
+html[data-design-type='teko'] #stage[data-layout] .sb-name {
+  font-family: 'Teko' !important;
+  font-weight: 600 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.02em !important;
+}
+html[data-design-type='teko'] #stage[data-layout] .sb-score,
+html[data-design-type='teko'] #stage[data-layout] .sb-score-inline,
+html[data-design-type='teko'] #stage[data-layout] .sb-overs-num,
+html[data-design-type='teko'] #stage[data-layout] .sb-need-val {
+  font-family: 'Teko' !important;
+  font-weight: 700 !important;
+}
+html[data-design-type='teko'] #stage[data-layout] .sb-need-label,
+html[data-design-type='teko'] #stage[data-layout] .mc-label,
+html[data-design-type='teko'] #stage[data-layout] .to-label,
+html[data-design-type='teko'] #stage[data-layout] .tb-label,
+html[data-design-type='teko'] #stage[data-layout] .mc-heading {
+  font-family: var(--font-body) !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.18em !important;
+  text-transform: uppercase !important;
+}
+
+html[data-design-type] #stage[data-layout] .sf-cam-label,
+html[data-design-type] #stage[data-layout] .c-stream-frame[data-camera-mode]:not([data-camera-mode='none']) .sf-cam-container::before {
+  font-family: var(--font-heading) !important;
+  letter-spacing: 0.18em !important;
+}
+
+/* ==========================================================================================
+   CREST SHAPES
+   ========================================================================================== */
+html[data-design-crest='round'] #stage[data-layout] .sb-crest {
+  border-radius: 50% !important;
+}
+html[data-design-crest='square'] #stage[data-layout] .sb-crest {
+  border-radius: 4px !important;
+}
+html[data-design-crest='shield'] #stage[data-layout] .sb-crest {
+  border-radius: 5px 5px 8px 8px !important;
+  clip-path: polygon(50% 0, 100% 9%, 100% 62%, 50% 100%, 0 62%, 0 9%);
+}
+html[data-design-crest='banner'] #stage[data-layout] .sb-crest {
+  border-radius: 3px 3px 0 0 !important;
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 76%, 0 100%);
+}
+html[data-design-crest='diamond'] #stage[data-layout] .sb-crest {
+  width: 44px !important;
+  height: 44px !important;
+  border-radius: 0 !important;
+  border: 0 !important;
+  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+}
+html[data-design-crest='plate'] #stage[data-layout] .sb-crest {
+  border-radius: 2px !important;
+  border: 2px solid var(--color-accent) !important;
+  background: color-mix(in srgb, var(--color-surface) 70%, black) !important;
+  clip-path: polygon(0 0, calc(100% - 13px) 0, 100% 13px, 100% 100%, 0 100%);
+  box-shadow: inset 0 -3px 0 var(--color-accent2), 0 4px 12px rgba(0, 0, 0, 0.5) !important;
+}
+html[data-design-crest='shield'] #stage[data-layout] .sb-crest,
+html[data-design-crest='banner'] #stage[data-layout] .sb-crest,
+html[data-design-crest='diamond'] #stage[data-layout] .sb-crest {
+  background: color-mix(in srgb, var(--color-surface) 70%, black) !important;
+}
+
+/* ==========================================================================================
+   PANEL MATERIALS — side rails
+   ========================================================================================== */
+html[data-design-frame='plate'] #stage[data-layout='arena'] :is(.c-matchcentre, .c-thisover, .c-thisball, .c-stats, .c-projected, .c-extras, .c-winpredictor, .c-winprob) {
+  border-radius: 10px !important;
+  border-width: 1px !important;
+}
+html[data-design-frame='cut'] #stage[data-layout='arena'] :is(.c-matchcentre, .c-thisover, .c-thisball, .c-stats, .c-projected, .c-extras, .c-winpredictor, .c-winprob) {
+  border-radius: 0 !important;
+  clip-path: polygon(0 0, calc(100% - 18px) 0, 100% 18px, 100% 100%, 18px 100%, 0 calc(100% - 18px));
+}
+html[data-design-frame='ticket'] #stage[data-layout='arena'] :is(.c-matchcentre, .c-thisover, .c-thisball, .c-stats, .c-projected, .c-extras, .c-winpredictor, .c-winprob) {
+  border-radius: 4px !important;
+  outline: 1px dashed color-mix(in srgb, var(--color-accent) 48%, transparent);
+  outline-offset: -7px;
+}
+html[data-design-frame='outline'] #stage[data-layout='arena'] :is(.c-matchcentre, .c-thisover, .c-thisball, .c-stats, .c-projected, .c-extras, .c-winpredictor, .c-winprob) {
+  background: color-mix(in srgb, var(--color-bg) 42%, transparent) !important;
+  backdrop-filter: blur(10px);
+  border: 1px solid color-mix(in srgb, var(--color-accent) 60%, transparent) !important;
+  box-shadow: none !important;
+}
+html[data-design-frame='capsule'] #stage[data-layout='arena'] :is(.c-matchcentre, .c-thisover, .c-thisball, .c-stats, .c-projected, .c-extras, .c-winpredictor, .c-winprob) {
+  border-radius: 26px !important;
+}
+html[data-design-frame='ledger'] #stage[data-layout='arena'] :is(.c-matchcentre, .c-thisover, .c-thisball, .c-stats, .c-projected, .c-extras, .c-winpredictor, .c-winprob) {
+  border-radius: 2px !important;
+  border-top: 4px solid var(--color-accent) !important;
+  background-image: repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.045) 0 1px, transparent 1px 5px) !important;
+}
+
+/* ==========================================================================================
+   CAMERA MONITORS — viewfinder, polaroid, neon, ticket
+   ========================================================================================== */
+html[data-design-camera='viewfinder'] #stage[data-layout] .sf-cam-box {
+  border: 1px solid rgba(255, 255, 255, 0.34) !important;
+  border-radius: 3px !important;
+  background: #05080b !important;
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.7) !important;
+}
+html[data-design-camera='viewfinder'] #stage[data-layout] .sf-cam-box::before {
+  content: '';
+  position: absolute;
+  inset: 9px;
+  z-index: 4;
+  pointer-events: none;
+  background:
+    linear-gradient(var(--color-accent), var(--color-accent)) left top / 20px 2px no-repeat,
+    linear-gradient(var(--color-accent), var(--color-accent)) left top / 2px 20px no-repeat,
+    linear-gradient(var(--color-accent), var(--color-accent)) right top / 20px 2px no-repeat,
+    linear-gradient(var(--color-accent), var(--color-accent)) right top / 2px 20px no-repeat,
+    linear-gradient(var(--color-accent), var(--color-accent)) left bottom / 20px 2px no-repeat,
+    linear-gradient(var(--color-accent), var(--color-accent)) left bottom / 2px 20px no-repeat,
+    linear-gradient(var(--color-accent), var(--color-accent)) right bottom / 20px 2px no-repeat,
+    linear-gradient(var(--color-accent), var(--color-accent)) right bottom / 2px 20px no-repeat;
+  opacity: 0.9;
+}
+html[data-design-camera='viewfinder'] #stage[data-layout] .sf-cam-box::after {
+  background:
+    linear-gradient(color-mix(in srgb, var(--color-accent) 45%, transparent), color-mix(in srgb, var(--color-accent) 45%, transparent)) center / 1px 42% no-repeat,
+    linear-gradient(color-mix(in srgb, var(--color-accent) 45%, transparent), color-mix(in srgb, var(--color-accent) 45%, transparent)) center / 42% 1px no-repeat;
+  mix-blend-mode: screen;
+}
+html[data-design-camera='viewfinder'] #stage[data-layout] .sf-cam-label {
+  left: 10px !important;
+  bottom: 8px !important;
+  background: transparent !important;
+  color: var(--color-accent) !important;
+  border: 0 !important;
+  font-size: 8px !important;
+  letter-spacing: 0.22em !important;
+}
+html[data-design-camera='viewfinder'] #stage[data-layout] .c-stream-frame[data-camera-mode]:not([data-camera-mode='none']) .sf-cam-container::before {
+  top: 10px;
+  right: 10px;
+  background: transparent;
+  color: var(--color-accent);
+  border-bottom: 1px solid var(--color-accent);
+}
+
+html[data-design-camera='polaroid'] #stage[data-layout] .sf-cam-box {
+  --cam-w: 236px;
+  --cam-h: 206px;
+  border: 10px solid #f4efe4 !important;
+  border-bottom-width: 40px !important;
+  border-radius: 2px !important;
+  background: #101010 !important;
+  box-shadow: 0 22px 38px rgba(0, 0, 0, 0.62) !important;
+  rotate: -2.4deg;
+}
+html[data-design-camera='polaroid'] #stage[data-layout] .sf-cam-label {
+  left: 6px !important;
+  bottom: -32px !important;
+  background: transparent !important;
+  color: #26221b !important;
+  border: 0 !important;
+  font-size: 9px !important;
+  letter-spacing: 0.18em !important;
+}
+html[data-design-camera='polaroid'] #stage[data-layout] .c-stream-frame[data-camera-mode]:not([data-camera-mode='none']) .sf-cam-container::before {
+  top: 8px;
+  right: 8px;
+  background: #f4efe4;
+  color: #26221b;
+  border-radius: 999px;
+}
+
+html[data-design-camera='neon'] #stage[data-layout] .sf-cam-box {
+  border: 1px solid var(--color-accent) !important;
+  border-radius: 12px !important;
+  background: color-mix(in srgb, var(--color-bg) 62%, black) !important;
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--color-accent) 55%, transparent),
+    inset 0 0 26px color-mix(in srgb, var(--color-accent) 22%, transparent),
+    0 0 20px color-mix(in srgb, var(--color-accent) 55%, transparent),
+    0 18px 34px rgba(0, 0, 0, 0.7) !important;
+}
+html[data-design-camera='neon'] #stage[data-layout] .sf-cam-box::after {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--color-accent) 30%, transparent), transparent 40%),
+    repeating-linear-gradient(0deg, transparent 0 3px, rgba(0, 0, 0, 0.25) 3px 4px);
+  mix-blend-mode: screen;
+}
+html[data-design-camera='neon'] #stage[data-layout] .sf-cam-label {
+  background: var(--color-accent) !important;
+  color: var(--color-bg) !important;
+  border-radius: 3px !important;
+  box-shadow: 0 0 12px color-mix(in srgb, var(--color-accent) 70%, transparent);
+}
+html[data-design-camera='neon'] #stage[data-layout] .c-stream-frame[data-camera-mode]:not([data-camera-mode='none']) .sf-cam-container::before {
+  top: 10px;
+  left: 10px;
+  background: transparent;
+  color: var(--color-accent);
+  text-shadow: 0 0 10px var(--color-accent);
+}
+
+html[data-design-camera='ticket'] #stage[data-layout] .sf-cam-box {
+  --cam-w: 280px;
+  --cam-h: 158px;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: linear-gradient(90deg, var(--color-accent) 0 7px, #0a0a0c 7px) !important;
+  clip-path: polygon(0 0, calc(100% - 18px) 0, 100% 18px, 100% 100%, 18px 100%, 0 calc(100% - 18px));
+  box-shadow: 0 18px 34px rgba(0, 0, 0, 0.7) !important;
+}
+html[data-design-camera='ticket'] #stage[data-layout] .sf-cam-label {
+  left: 14px !important;
+  bottom: 8px !important;
+  background: var(--color-accent) !important;
+  color: var(--color-bg) !important;
+  border-radius: 0 !important;
+  padding: 3px 10px !important;
+  clip-path: polygon(0 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
+}
+html[data-design-camera='ticket'] #stage[data-layout] .c-stream-frame[data-camera-mode]:not([data-camera-mode='none']) .sf-cam-container::before {
+  top: 10px;
+  right: 12px;
+  background: transparent;
+  color: var(--color-accent);
+  letter-spacing: 0.28em;
+}
+
+/* ==========================================================================================
+   PREVIEW CAMERA SLATE — the look gallery shows the monitor without opening a webcam.
+   ========================================================================================== */
+.sf-cam-slate {
+  display: none;
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  text-align: center;
+  pointer-events: none;
+  background:
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.035) 0 1px, transparent 1px 4px),
+    radial-gradient(ellipse at 50% 45%, rgba(255, 255, 255, 0.07), transparent 62%),
+    rgba(5, 7, 10, 0.78);
+  backdrop-filter: blur(1.5px) saturate(0.85);
+}
+.sf-cam-slate strong {
+  font-family: var(--font-numbers) !important;
+  font-size: 34px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0.05em;
+  color: var(--color-accent);
+  text-shadow: 0 0 16px color-mix(in srgb, var(--color-accent) 55%, transparent);
+}
+.sf-cam-slate span {
+  font-family: var(--font-heading) !important;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.26em;
+  color: color-mix(in srgb, var(--color-text) 62%, transparent);
+}
+.c-stream-frame[data-design-preview='1'] .sf-cam-slate,
+.c-stream-frame[data-camera-mode='one'] .sf-cam-1:not(.is-live) .sf-cam-slate {
+  display: flex;
+}
+.c-stream-frame[data-design-preview='1'] .sf-cam-1-video,
+.c-stream-frame[data-camera-mode='one'] .sf-cam-1:not(.is-live) .sf-cam-1-video {
+  opacity: 0.14;
+  filter: grayscale(1) contrast(0.7);
+}
+.c-stream-frame[data-design-preview='1'] .sf-cam-scan,
+.c-stream-frame[data-camera-mode='one'] .sf-cam-1:not(.is-live) .sf-cam-scan {
+  opacity: 0.45;
+}
+
+/* ==========================================================================================
+   HEADER FIT GUARDS
+   The header children are content-box by default, so a padded score block used to grow past its
+   grid row and sit under the meta ticker. Border-box plus explicit meta content keeps every
+   signature composition inside the 124px band.
+   ========================================================================================== */
+html[data-design-bar] #stage[data-layout='arena'] .c-scorebar .sb-bat,
+html[data-design-bar] #stage[data-layout='arena'] .c-scorebar .sb-bowl,
+html[data-design-bar] #stage[data-layout='arena'] .c-scorebar .sb-score-wrap,
+html[data-design-bar] #stage[data-layout='arena'] .c-scorebar .sb-meta {
+  box-sizing: border-box !important;
+}
+
+/* Banner and bookend share a compact one-line meta ticker. */
+html[data-design-bar='banner'] #stage[data-layout='arena'] .sb-need-badge,
+html[data-design-bar='bookend'] #stage[data-layout='arena'] .sb-need-badge {
+  flex-direction: row !important;
+  align-items: baseline !important;
+  gap: 7px !important;
+  line-height: 1 !important;
+}
+html[data-design-bar='banner'] #stage[data-layout='arena'] .sb-need-label,
+html[data-design-bar='bookend'] #stage[data-layout='arena'] .sb-need-label {
+  font-size: 11px !important;
+  letter-spacing: 0.16em !important;
+}
+html[data-design-bar='banner'] #stage[data-layout='arena'] .sb-need-val,
+html[data-design-bar='bookend'] #stage[data-layout='arena'] .sb-need-val {
+  font-size: 24px !important;
+  line-height: 1 !important;
+  margin: 0 !important;
+}
+html[data-design-bar='banner'] #stage[data-layout='arena'] .sb-chip,
+html[data-design-bar='bookend'] #stage[data-layout='arena'] .sb-chip,
+html[data-design-bar='marquee'] #stage[data-layout='arena'] .sb-chip {
+  display: none !important;
+}
+html[data-design-bar='banner'] #stage[data-layout='arena'] .sb-chip.sb-crr,
+html[data-design-bar='bookend'] #stage[data-layout='arena'] .sb-chip.sb-crr,
+html[data-design-bar='marquee'] #stage[data-layout='arena'] .sb-chip.sb-crr {
+  display: inline-flex !important;
+  align-items: center;
+  font-size: 12px !important;
+  line-height: 1.4 !important;
+  padding: 1px 9px !important;
+}
+html[data-design-bar='banner'] #stage[data-layout='arena'] .sb-meta,
+html[data-design-bar='bookend'] #stage[data-layout='arena'] .sb-meta {
+  flex-direction: row !important;
+  align-items: center !important;
+}
+html[data-design-bar='marquee'] #stage[data-layout='arena'] .sb-meta {
+  background: transparent !important;
+  border: 0 !important;
+}
+html[data-design-bar='banner'] #stage[data-layout='arena'] .sb-brand-pill,
+html[data-design-bar='bookend'] #stage[data-layout='arena'] .sb-brand-pill {
+  font-size: 9px !important;
+  padding: 1px 7px !important;
+}
+
+/* Scoreboard: the cells own the row height, content never pushes the ticker down. */
+html[data-design-bar='scoreboard'] #stage[data-layout='arena'] .sb-bat,
+html[data-design-bar='scoreboard'] #stage[data-layout='arena'] .sb-bowl {
+  height: 84px !important;
+  min-height: 0 !important;
+}
+html[data-design-bar='scoreboard'] #stage[data-layout='arena'] .sb-score-wrap {
+  height: 84px !important;
+}
+
+/* Marquee: one-line team blocks so the 62px team row cannot crowd the score ribbon. */
+html[data-design-bar='marquee'] #stage[data-layout='arena'] .sb-bat .sb-team-copy,
+html[data-design-bar='marquee'] #stage[data-layout='arena'] .sb-bowl .sb-team-copy {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: baseline !important;
+  gap: 8px !important;
+}
+html[data-design-bar='marquee'] #stage[data-layout='arena'] .sb-short {
+  display: none !important;
+}
+html[data-design-bar='marquee'] #stage[data-layout='arena'] .sb-bowl .sb-history {
+  font-size: 26px !important;
+  margin: 0 !important;
+}
+
+/* Centred: data lives in a slim right-edge stack so no long team name can collide with it. */
+html[data-design-bar='centered'] #stage[data-layout='arena'] .c-scorebar {
+  grid-template-rows: 28px 60px 28px !important;
+}
+html[data-design-bar='centered'] #stage[data-layout='arena'] .sb-crest {
+  width: 42px !important;
+  height: 24px !important;
+}
+html[data-design-bar='centered'] #stage[data-layout='arena'] .sb-name {
+  font-size: 21px !important;
+}
+html[data-design-bar='centered'] #stage[data-layout='arena'] .sb-bowl .sb-history {
+  font-size: 18px !important;
+}
+html[data-design-bar='centered'] #stage[data-layout='arena'] .sb-score-wrap {
+  height: 60px !important;
+  width: auto !important;
+  justify-self: center;
+  padding: 0 28px;
+}
+html[data-design-bar='centered'] #stage[data-layout='arena'] .sb-score {
+  font-size: 54px !important;
+}
+html[data-design-bar='centered'] #stage[data-layout='arena'] .sb-meta {
+  top: 50% !important;
+  right: 16px !important;
+  height: auto !important;
+  flex-direction: column !important;
+  align-items: flex-end !important;
+  gap: 3px !important;
+  transform: translateY(-50%);
+}
+html[data-design-bar='centered'] #stage[data-layout='arena'] .sb-chip.sb-crr {
+  display: inline-flex !important;
+  font-size: 10px !important;
+}

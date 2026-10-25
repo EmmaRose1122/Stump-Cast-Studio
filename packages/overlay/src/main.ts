@@ -264,6 +264,9 @@ upgradePopup.mount(stageEl, look);
 dataBadge.mount(stageEl, look);
 streamFrame.mount(stageEl, look);
 streamFrame.setCameraMode(store.get().settings.video.cameraMode);
+// The Pro look gallery must show each package's camera monitor; the slate avoids a webcam prompt
+// per preview card and the real settings still take over the moment a camera is switched on.
+if (params.preview && params.look && store.get().look.plan === 'pro') streamFrame.showDesignPreview();
 scorePop.mount(stageEl, look);
 // The ball-by-ball pop-up owns the same band as the player cards, so whichever is not on air steps
 // aside rather than stacking text on top of the score.

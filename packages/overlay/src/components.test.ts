@@ -106,6 +106,9 @@ describe('Looks', () => {
     expect(root.dataset.broadcastBarStyle).toBe('arrow');
     expect(root.dataset.statTheme).toBe('light-orange');
     expect(root.dataset.designBar).toBe('ribbon');
+    expect(root.dataset.designType).toBe('condensed');
+    expect(root.dataset.designCrest).toBe('plate');
+    expect(root.dataset.designFrame).toBe('cut');
     expect(root.dataset.designCamera).toBe('ribbon');
     expect(root.dataset.designCameraPosition).toBe('bottom-right');
     expect(root.dataset.designOrnament).toBe('blade');
@@ -122,10 +125,17 @@ describe('Looks', () => {
 
     const combinations = new Set(
       Object.values(LOOK_DESIGNS).map(
-        (d) => `${d.bar}|${d.camera}|${d.cameraPosition}|${d.ornament}|${d.animation}`,
+        (d) => `${d.bar}|${d.type}|${d.crest}|${d.frame}|${d.camera}|${d.cameraPosition}|${d.ornament}|${d.animation}`,
       ),
     );
     expect(combinations.size).toBe(Object.keys(LOOK_DESIGNS).length);
+
+    // The header silhouette + typography + crest shape is what a viewer reads first; no two
+    // Pro looks may repeat that fingerprint even when they share a camera or motion.
+    const headers = new Set(
+      Object.values(LOOK_DESIGNS).map((d) => `${d.bar}|${d.type}|${d.crest}`),
+    );
+    expect(headers.size).toBe(Object.keys(LOOK_DESIGNS).length);
   });
 });
 
