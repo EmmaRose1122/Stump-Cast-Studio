@@ -11,7 +11,6 @@ import {
   DirectorRuleSchema,
   MatchStateSchema,
   buildHistory,
-  ALL_LOOKS,
   APP_VERSION,
 } from '@stumpcast/shared';
 import { z } from 'zod';
@@ -938,7 +937,7 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
   });
   fastify.delete<{ Params: { id: string } }>('/api/looks/:id', async (req, reply) => {
     try {
-      if (req.params.id === 'ink-gold' || ALL_LOOKS.some((l) => l.id === req.params.id)) {
+      if (req.params.id === 'ink-gold' || looks.builtins().some((l) => l.id === req.params.id)) {
         return reply.code(403).send({ error: 'Built-in looks cannot be removed' });
       }
       const wasActive = activeLookId() === req.params.id;

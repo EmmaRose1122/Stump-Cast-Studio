@@ -3,7 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import WebSocket from 'ws';
-import { ALL_PRO_LOOKS, graphiteTeal } from '@stumpcast/shared';
+import { ALL_LOOKS, ALL_PRO_LOOKS, graphiteTeal } from '@stumpcast/shared';
 import { buildApp, type StumpCastApp } from './app';
 import { loadConfig } from './config';
 
@@ -42,16 +42,30 @@ interface Listing {
 }
 
 describe('looks API', () => {
-  it('lists 8 built-ins, locking the 5 Pro looks when unlicensed', async () => {
+  it('lists every shipped look, locking the Pro ones when unlicensed', async () => {
     const { send } = await boot(false);
     const body = (await (await send('GET', '/api/looks')).json()) as {
       licensed: boolean;
       looks: Listing[];
     };
+    const proPack = ALL_PRO_LOOKS.filter((l) => !ALL_LOOKS.some((b) => b.id === l.id));
     expect(body.licensed).toBe(false);
-    expect(body.looks).toHaveLength(8);
-    expect(body.looks.filter((l) => l.locked)).toHaveLength(5);
+    expect(body.looks).toHaveLength(ALL_LOOKS.length + proPack.length);
+    expect(body.looks.filter((l) => l.locked)).toHaveLength(ALL_PRO_LOOKS.length);
     expect(body.looks.find((l) => l.active)!.id).toBe('ink-gold');
+    // The Graphics picker used to see only the 8 built-ins, so a studio could not apply the
+    // Pro packs from there at all.
+    const pl2 = body.looks.filter((l) => l.id.startsWith('p2-'));
+    expect(pl2).toHaveLength(23);
+    expect(pl2.every((l) => l.builtin && l.locked && l.plan === 'pro')).toBe(true);
+  });
+
+  it('activates a Pro Look 2 design for a licensed studio and refuses to delete it', async () => {
+    const { send } = await boot(true);
+    expect((await send('POST', '/api/looks/activate', { id: 'p2-k01' })).status).toBe(200);
+    const active = (await (await send('GET', '/api/looks/active')).json()) as { id: string };
+    expect(active.id).toBe('p2-k01');
+    expect((await send('DELETE', '/api/looks/p2-k01')).status).toBe(403);
   });
 
   it('refuses a Pro look even when the client asks for a preview', async () => {

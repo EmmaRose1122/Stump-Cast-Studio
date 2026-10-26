@@ -58,8 +58,22 @@ export class LookService {
       });
   }
 
+  /**
+   * Every look the app ships: the 8 built-ins, the Pro packs and Pro Look 2. `ALL_LOOKS` alone
+   * used to be the whole story, which is why the Graphics picker only ever offered 8 tiles while
+   * the gallery had dozens.
+   */
+  builtins(): Look[] {
+    const seen = new Set<string>();
+    return [...ALL_LOOKS, ...ALL_PRO_LOOKS].filter((l) => {
+      if (seen.has(l.id)) return false;
+      seen.add(l.id);
+      return true;
+    });
+  }
+
   all(): Look[] {
-    return [...ALL_LOOKS, ...this.custom()];
+    return [...this.builtins(), ...this.custom()];
   }
 
   catalog(): readonly Look[] {
@@ -71,7 +85,7 @@ export class LookService {
   }
 
   list(activeId: string): LookListing[] {
-    const builtin = new Set(ALL_LOOKS.map((l) => l.id));
+    const builtin = new Set(this.builtins().map((l) => l.id));
     const licensed = this.isLicensed();
     return this.all().map((l) => ({
       id: l.id,
@@ -124,7 +138,7 @@ export class LookService {
     if (!SLUG.test(look.id)) {
       throw new LookError('The look id must be lowercase letters, numbers and dashes');
     }
-    if (ALL_LOOKS.some((l) => l.id === look.id) || look.id === 'ink-gold') {
+    if (this.builtins().some((l) => l.id === look.id) || look.id === 'ink-gold') {
       throw new LookError('That id belongs to a built-in look', 409);
     }
     this.db
@@ -139,7 +153,7 @@ export class LookService {
   }
 
   remove(id: string): void {
-    if (ALL_LOOKS.some((l) => l.id === id) || id === 'ink-gold')
+    if (this.builtins().some((l) => l.id === id) || id === 'ink-gold')
       throw new LookError('Built-in looks cannot be removed', 403);
     const existing = this.db.select().from(schema.looks).where(eq(schema.looks.id, id)).get();
     if (!existing) throw new LookError('Unknown look', 404);

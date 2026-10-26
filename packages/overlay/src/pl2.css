@@ -331,12 +331,18 @@
   overflow: hidden;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.65);
 }
-#stage .pl2-video .c-stream-frame {
+/* The live video slot hosts the shared StreamFrame, so the camera feed, LIVE badge, brand
+   badge and standby slate behave exactly as they do in every other look. The longhands are
+   spelled out because the arena rules that place this element carry `!important`, and the
+   `[data-composition]` variant outranks a plain `inset: 0` shorthand. */
+#stage[data-layout] .pl2-stage .pl2-video .c-stream-frame,
+#stage[data-layout][data-composition] .pl2-stage .pl2-video .c-stream-frame {
   display: block !important;
   position: absolute !important;
-  inset: 0 !important;
-  left: 0 !important;
   top: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  left: 0 !important;
   transform: none !important;
   width: 100% !important;
   height: 100% !important;
