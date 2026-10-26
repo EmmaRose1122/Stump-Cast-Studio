@@ -1,0 +1,57 @@
+{
+  "id": "p2-k15",
+  "name": "Royal Silver II",
+  "plan": "pro",
+  "tokens": {
+    "colors": {
+      "bg": "#080E1A",
+      "surface": "#0C1220",
+      "accent": "#CBD5E1",
+      "accent2": "#1E293B",
+      "secondary": "#1E293B",
+      "rival": "#0F172A",
+      "card": "#0F172A",
+      "bowlerCard": "#1E293B",
+      "text": "#F8FAFC",
+      "warn": "#FDE047"
+    },
+    "gradients": {
+      "accent": "linear-gradient(90deg, #cbd5e1, #1e293b)"
+    },
+    "fonts": {
+      "heading": "Space Grotesk",
+      "body": "Inter",
+      "numbers": "Barlow Condensed"
+    },
+    "radii": {
+      "card": 6,
+      "chip": 4
+    },
+    "shadows": {
+      "card": "0 8px 24px rgba(0,0,0,0.65)"
+    },
+    "scoreBarShape": "notched"
+  },
+  "layoutVariant": {
+    "scorePosition": "bottom",
+    "playerCardStyle": "round-badge",
+    "boundaryStyle": "split-bar",
+    "middleLayout": "right-cluster-video",
+    "playerOrder": "striker-left",
+    "broadcastBadgeStyle": "round-left",
+    "broadcastBarStyle": "notched",
+    "statTheme": "light-silver",
+    "teamOrder": "batting-left"
+  },
+  "motion": {
+    "entrance": "swing",
+    "easing": "power2.out",
+    "durationMs": 500
+  },
+  "tags": [
+    "swing entrances",
+    "scores at the bottom",
+    "notched score bar",
+    "round photo badges"
+  ]
+}

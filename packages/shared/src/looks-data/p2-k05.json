@@ -1,0 +1,57 @@
+{
+  "id": "p2-k05",
+  "name": "Neon Lime II",
+  "plan": "pro",
+  "tokens": {
+    "colors": {
+      "bg": "#080E1A",
+      "surface": "#0C1220",
+      "accent": "#84CC16",
+      "accent2": "#1A2E05",
+      "secondary": "#1A2E05",
+      "rival": "#141E08",
+      "card": "#142406",
+      "bowlerCard": "#1A2E05",
+      "text": "#F8FAFC",
+      "warn": "#FDE047"
+    },
+    "gradients": {
+      "accent": "linear-gradient(90deg, #84cc16, #1a2e05)"
+    },
+    "fonts": {
+      "heading": "Space Grotesk",
+      "body": "Inter",
+      "numbers": "Barlow Condensed"
+    },
+    "radii": {
+      "card": 6,
+      "chip": 4
+    },
+    "shadows": {
+      "card": "0 8px 24px rgba(0,0,0,0.65)"
+    },
+    "scoreBarShape": "floating"
+  },
+  "layoutVariant": {
+    "scorePosition": "top",
+    "playerCardStyle": "round-badge",
+    "boundaryStyle": "split-bar",
+    "middleLayout": "right-stats",
+    "playerOrder": "bowler-middle",
+    "broadcastBadgeStyle": "round-right",
+    "broadcastBarStyle": "floating",
+    "statTheme": "dark-lime",
+    "teamOrder": "batting-right"
+  },
+  "motion": {
+    "entrance": "blinds",
+    "easing": "power2.out",
+    "durationMs": 500
+  },
+  "tags": [
+    "blinds entrances",
+    "scores on top",
+    "floating score cards",
+    "photo badges on the right"
+  ]
+}

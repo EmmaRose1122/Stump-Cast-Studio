@@ -42,6 +42,11 @@ export const LookSchema = z.object({
       ])
       .default('left-stats'),
     playerOrder: z.enum(['striker-left', 'bowler-left', 'bowler-middle']).default('striker-left'),
+    /**
+     * Which wing the batting team occupies. Pro Look 2 draws one score bar with a live side and a
+     * "yet to bat" side, so the side swap is part of the design, not the data.
+     */
+    teamOrder: z.enum(['batting-left', 'batting-right']).default('batting-left'),
     broadcastBadgeStyle: z
       .enum([
         'cutout-left',

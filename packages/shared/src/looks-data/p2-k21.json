@@ -1,0 +1,57 @@
+{
+  "id": "p2-k21",
+  "name": "Mono Gold II",
+  "plan": "pro",
+  "tokens": {
+    "colors": {
+      "bg": "#080E1A",
+      "surface": "#0C1220",
+      "accent": "#FBBF24",
+      "accent2": "#09090B",
+      "secondary": "#09090B",
+      "rival": "#09090B",
+      "card": "#09090B",
+      "bowlerCard": "#09090B",
+      "text": "#F8FAFC",
+      "warn": "#FDE047"
+    },
+    "gradients": {
+      "accent": "linear-gradient(90deg, #fbbf24, #09090b)"
+    },
+    "fonts": {
+      "heading": "Space Grotesk",
+      "body": "Inter",
+      "numbers": "Barlow Condensed"
+    },
+    "radii": {
+      "card": 6,
+      "chip": 4
+    },
+    "shadows": {
+      "card": "0 8px 24px rgba(0,0,0,0.65)"
+    },
+    "scoreBarShape": "mono"
+  },
+  "layoutVariant": {
+    "scorePosition": "bottom",
+    "playerCardStyle": "cutout",
+    "boundaryStyle": "split-bar",
+    "middleLayout": "left-stats",
+    "playerOrder": "bowler-middle",
+    "broadcastBadgeStyle": "cutout-left",
+    "broadcastBarStyle": "slanted-mono",
+    "statTheme": "mono-light",
+    "teamOrder": "batting-right"
+  },
+  "motion": {
+    "entrance": "zoom",
+    "easing": "power2.out",
+    "durationMs": 500
+  },
+  "tags": [
+    "zoom entrances",
+    "scores at the bottom",
+    "slanted score bar",
+    "cut-out player photos"
+  ]
+}

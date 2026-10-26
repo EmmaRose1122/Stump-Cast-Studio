@@ -1,0 +1,57 @@
+{
+  "id": "p2-k14",
+  "name": "Royal Gold II",
+  "plan": "pro",
+  "tokens": {
+    "colors": {
+      "bg": "#080E1A",
+      "surface": "#0C1220",
+      "accent": "#EAB308",
+      "accent2": "#172554",
+      "secondary": "#172554",
+      "rival": "#1E1B4B",
+      "card": "#0F172A",
+      "bowlerCard": "#172554",
+      "text": "#F8FAFC",
+      "warn": "#FDE047"
+    },
+    "gradients": {
+      "accent": "linear-gradient(90deg, #eab308, #172554)"
+    },
+    "fonts": {
+      "heading": "Space Grotesk",
+      "body": "Inter",
+      "numbers": "Barlow Condensed"
+    },
+    "radii": {
+      "card": 6,
+      "chip": 4
+    },
+    "shadows": {
+      "card": "0 8px 24px rgba(0,0,0,0.65)"
+    },
+    "scoreBarShape": "flat"
+  },
+  "layoutVariant": {
+    "scorePosition": "top",
+    "playerCardStyle": "round-badge",
+    "boundaryStyle": "split-bar",
+    "middleLayout": "left-stats-partnership",
+    "playerOrder": "bowler-left",
+    "broadcastBadgeStyle": "round-left",
+    "broadcastBarStyle": "flat",
+    "statTheme": "light",
+    "teamOrder": "batting-left"
+  },
+  "motion": {
+    "entrance": "fade",
+    "easing": "power2.out",
+    "durationMs": 500
+  },
+  "tags": [
+    "fade entrances",
+    "scores on top",
+    "round photo badges",
+    "sweeping 4/6 banner"
+  ]
+}

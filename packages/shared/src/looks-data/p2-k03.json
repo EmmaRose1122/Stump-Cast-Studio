@@ -1,0 +1,57 @@
+{
+  "id": "p2-k03",
+  "name": "Neon Cyan II",
+  "plan": "pro",
+  "tokens": {
+    "colors": {
+      "bg": "#080E1A",
+      "surface": "#0C1220",
+      "accent": "#22D3EE",
+      "accent2": "#083344",
+      "secondary": "#083344",
+      "rival": "#0B172A",
+      "card": "#092338",
+      "bowlerCard": "#092338",
+      "text": "#F8FAFC",
+      "warn": "#FDE047"
+    },
+    "gradients": {
+      "accent": "linear-gradient(90deg, #22d3ee, #083344)"
+    },
+    "fonts": {
+      "heading": "Space Grotesk",
+      "body": "Inter",
+      "numbers": "Barlow Condensed"
+    },
+    "radii": {
+      "card": 6,
+      "chip": 4
+    },
+    "shadows": {
+      "card": "0 8px 24px rgba(0,0,0,0.65)"
+    },
+    "scoreBarShape": "flat"
+  },
+  "layoutVariant": {
+    "scorePosition": "bottom",
+    "playerCardStyle": "round-badge",
+    "boundaryStyle": "split-bar",
+    "middleLayout": "left-stats",
+    "playerOrder": "striker-left",
+    "broadcastBadgeStyle": "round-left",
+    "broadcastBarStyle": "flat",
+    "statTheme": "dark-cyan",
+    "teamOrder": "batting-right"
+  },
+  "motion": {
+    "entrance": "glitch",
+    "easing": "power2.out",
+    "durationMs": 500
+  },
+  "tags": [
+    "glitch entrances",
+    "scores at the bottom",
+    "round photo badges",
+    "split-bar 4/6 graphic"
+  ]
+}

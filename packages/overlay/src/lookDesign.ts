@@ -1,4 +1,4 @@
-import type { Look } from '@stumpcast/shared';
+import { isProLook2, type Look } from '@stumpcast/shared';
 
 /**
  * Broadcast design language layered on top of a Look's colour tokens. These are composition
@@ -124,7 +124,8 @@ export const LOOK_DESIGNS: Readonly<Record<string, LookDesign>> = {
 };
 
 export const designForLook = (look: Look): LookDesign | null => {
-  if (look.plan !== 'pro') return null;
+  // Pro Look 2 brings its own stage, so it must not also inherit an arena kit.
+  if (look.plan !== 'pro' || isProLook2(look)) return null;
   return LOOK_DESIGNS[look.id] ?? {
     kit: 'Pro Broadcast',
     bar: 'classic',

@@ -7,10 +7,12 @@ import {
   FREE_LOOKS,
   PRO_LOOKS,
   PRO_LOOKS_23,
+  PRO_LOOKS_PL2,
   createBall,
   deriveStats,
   fixtures,
   graphiteTeal,
+  isProLook2,
   OBS_LAYOUT_PRESETS,
   type EngineEvent,
 } from '@stumpcast/shared';
@@ -32,6 +34,7 @@ import { ballChip, situationText } from './format';
 import { applyLayout, createZones } from './layout';
 import { applyLook } from './look';
 import { LOOK_DESIGNS } from './lookDesign';
+import { ProLook2Stage } from './pl2Stage';
 
 const mount = <T extends { mount(stage: HTMLElement, look: typeof graphiteTeal): void }>(c: T) => {
   const stage = document.createElement('div');
@@ -51,6 +54,33 @@ describe('Looks', () => {
     expect(new Set(ALL_LOOKS.map((l) => l.id)).size).toBe(8);
     // The look a fresh install boots into has to be one a free channel may actually keep.
     expect(DEFAULT_LOOK.plan).toBe('free');
+  });
+
+  it('carries the 23 Pro Look 2 designs with every axis their renderer reads', () => {
+    expect(PRO_LOOKS_PL2).toHaveLength(23);
+    expect(new Set(PRO_LOOKS_PL2.map((l) => l.id)).size).toBe(23);
+    expect(PRO_LOOKS_PL2.every((l) => l.plan === 'pro')).toBe(true);
+    expect(PRO_LOOKS_PL2.every((l) => isProLook2(l))).toBe(true);
+    expect(ALL_PRO_LOOKS).toHaveLength(PRO_LOOKS.length + PRO_LOOKS_23.length + 23);
+    for (const look of PRO_LOOKS_PL2) {
+      // The stage builder switches on these; a missing axis silently paints a default design.
+      expect(look.layoutVariant.broadcastBarStyle).toBeTruthy();
+      expect(look.layoutVariant.broadcastBadgeStyle).toBeTruthy();
+      expect(look.layoutVariant.statTheme).toBeTruthy();
+      expect(look.layoutVariant.teamOrder).toBeTruthy();
+      expect(look.tokens.colors.secondary).toMatch(/^#/);
+      expect(look.tokens.colors.rival).toMatch(/^#/);
+      expect(look.tokens.colors.card).toMatch(/^#/);
+      expect(look.tokens.colors.bowlerCard).toMatch(/^#/);
+    }
+    // Every design in the pack is distinct on the axes the mockup varies.
+    const shapes = new Set(
+      PRO_LOOKS_PL2.map(
+        (l) =>
+          `${l.layoutVariant.scorePosition}|${l.layoutVariant.broadcastBarStyle}|${l.layoutVariant.middleLayout}|${l.layoutVariant.playerOrder}|${l.layoutVariant.broadcastBadgeStyle}`,
+      ),
+    );
+    expect(shapes.size).toBeGreaterThanOrEqual(18);
   });
 
   it('each look differs in shape, entrance and boundary style', () => {
@@ -115,8 +145,9 @@ describe('Looks', () => {
     expect(root.dataset.designAnimation).toBe('sweep');
   });
 
-  it('gives every Pro look a distinct full broadcast kit', () => {
-    const broadcastLooks = ALL_PRO_LOOKS.filter((look) => look.plan === 'pro');
+  it('gives every arena Pro look a distinct full broadcast kit', () => {
+    // Pro Look 2 paints its own stage from the look's layoutVariant, so it has no arena kit entry.
+    const broadcastLooks = ALL_PRO_LOOKS.filter((look) => !isProLook2(look));
     expect(Object.keys(LOOK_DESIGNS)).toHaveLength(broadcastLooks.length);
     expect(broadcastLooks.every((look) => LOOK_DESIGNS[look.id])).toBe(true);
 
@@ -136,6 +167,46 @@ describe('Looks', () => {
       Object.values(LOOK_DESIGNS).map((d) => `${d.bar}|${d.type}|${d.crest}`),
     );
     expect(headers.size).toBe(Object.keys(LOOK_DESIGNS).length);
+  });
+});
+
+describe('Pro Look 2 stage', () => {
+  const pl2Look = PRO_LOOKS_PL2.find((l) => l.id === 'p2-k01')!;
+
+  it('paints the pack from live state and patches the next ball in place', () => {
+    const stage = document.createElement('div');
+    const pl2 = new ProLook2Stage();
+    pl2.mount(stage, pl2Look);
+    pl2.update(t20);
+
+    const canvas = stage.querySelector<HTMLElement>('.pl2-canvas')!;
+    expect(canvas.dataset.look).toBe(pl2Look.id);
+    expect(canvas.dataset.barStyle).toBeTruthy();
+    expect(stage.querySelectorAll('.pl2-pcard')).toHaveLength(3);
+    const score = stage.querySelector<HTMLElement>('[data-bind="team1-score"]')!;
+    expect(score.textContent).toBe(`${t20.score.runs}-${t20.score.wkts}`);
+
+    // A delivery must not rebuild the stage: that replays the entrance animation and throws the
+    // re-parented camera element away.
+    pl2.update({ ...t20, score: { ...t20.score, runs: t20.score.runs + 4 } });
+    expect(stage.querySelector('[data-bind="team1-score"]')).toBe(score);
+    expect(score.textContent).toBe(`${t20.score.runs + 4}-${t20.score.wkts}`);
+  });
+
+  it('escapes feed text instead of letting it into markup', () => {
+    const stage = document.createElement('div');
+    const pl2 = new ProLook2Stage();
+    pl2.mount(stage, pl2Look);
+    pl2.update({
+      ...t20,
+      batters: [
+        { ...t20.batters[0], name: '<img src=x onerror=alert(1)>' },
+        t20.batters[1],
+      ],
+    });
+    expect(stage.querySelector('.pl2-pcard img')).toBeNull();
+    expect(stage.querySelector<HTMLElement>('[data-bind="striker-name"]')!.textContent!.toLowerCase()).toContain('<img src=x');
+    expect(stage.querySelectorAll('[data-bind="striker-name"]')).toHaveLength(1);
   });
 });
 

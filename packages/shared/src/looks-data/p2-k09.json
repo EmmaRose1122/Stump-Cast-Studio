@@ -1,0 +1,57 @@
+{
+  "id": "p2-k09",
+  "name": "Retro Amber LED II",
+  "plan": "pro",
+  "tokens": {
+    "colors": {
+      "bg": "#080E1A",
+      "surface": "#0C1220",
+      "accent": "#F59E0B",
+      "accent2": "#1C1917",
+      "secondary": "#1C1917",
+      "rival": "#1C1917",
+      "card": "#18130A",
+      "bowlerCard": "#18130A",
+      "text": "#F8FAFC",
+      "warn": "#FDE047"
+    },
+    "gradients": {
+      "accent": "linear-gradient(90deg, #f59e0b, #1c1917)"
+    },
+    "fonts": {
+      "heading": "Space Grotesk",
+      "body": "Inter",
+      "numbers": "Barlow Condensed"
+    },
+    "radii": {
+      "card": 6,
+      "chip": 4
+    },
+    "shadows": {
+      "card": "0 8px 24px rgba(0,0,0,0.65)"
+    },
+    "scoreBarShape": "flat"
+  },
+  "layoutVariant": {
+    "scorePosition": "bottom",
+    "playerCardStyle": "cutout",
+    "boundaryStyle": "split-bar",
+    "middleLayout": "left-stats-projected",
+    "playerOrder": "bowler-left",
+    "broadcastBadgeStyle": "cutout-right",
+    "broadcastBarStyle": "flat-led",
+    "statTheme": "led-amber",
+    "teamOrder": "batting-left"
+  },
+  "motion": {
+    "entrance": "flip",
+    "easing": "power2.out",
+    "durationMs": 500
+  },
+  "tags": [
+    "flip entrances",
+    "scores at the bottom",
+    "flat score bar",
+    "mirrored player cards"
+  ]
+}

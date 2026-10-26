@@ -5077,6 +5077,11 @@
         "right-cluster-partnership"
       ]).default("left-stats"),
       playerOrder: external_exports.enum(["striker-left", "bowler-left", "bowler-middle"]).default("striker-left"),
+      /**
+       * Which wing the batting team occupies. Pro Look 2 draws one score bar with a live side and a
+       * "yet to bat" side, so the side swap is part of the design, not the data.
+       */
+      teamOrder: external_exports.enum(["batting-left", "batting-right"]).default("batting-left"),
       broadcastBadgeStyle: external_exports.enum([
         "cutout-left",
         "cutout-right",
@@ -6943,6 +6948,1363 @@
     ]
   };
 
+  // ../shared/src/looks-data/p2-k01.json
+  var p2_k01_default = {
+    id: "p2-k01",
+    name: "Stadium Gold II",
+    plan: "pro",
+    tokens: {
+      colors: {
+        bg: "#080E1A",
+        surface: "#0C1220",
+        accent: "#EAB308",
+        accent2: "#0E7490",
+        secondary: "#0E7490",
+        rival: "#B91C1C",
+        card: "#0E6482",
+        bowlerCard: "#991B1B",
+        text: "#F8FAFC",
+        warn: "#FDE047"
+      },
+      gradients: {
+        accent: "linear-gradient(90deg, #eab308, #0e7490)"
+      },
+      fonts: {
+        heading: "Space Grotesk",
+        body: "Inter",
+        numbers: "Barlow Condensed"
+      },
+      radii: {
+        card: 6,
+        chip: 4
+      },
+      shadows: {
+        card: "0 8px 24px rgba(0,0,0,0.65)"
+      },
+      scoreBarShape: "flat"
+    },
+    layoutVariant: {
+      scorePosition: "top",
+      playerCardStyle: "cutout",
+      boundaryStyle: "split-bar",
+      middleLayout: "left-stats",
+      playerOrder: "bowler-left",
+      broadcastBadgeStyle: "cutout-left",
+      broadcastBarStyle: "flat",
+      statTheme: "light",
+      teamOrder: "batting-left"
+    },
+    motion: {
+      entrance: "slide",
+      easing: "power2.out",
+      durationMs: 500
+    },
+    tags: [
+      "slide entrances",
+      "scores on top",
+      "cut-out player photos",
+      "split-bar 4/6 graphic"
+    ]
+  };
+
+  // ../shared/src/looks-data/p2-k02.json
+  var p2_k02_default = {
+    id: "p2-k02",
+    name: "Stadium Emerald II",
+    plan: "pro",
+    tokens: {
+      colors: {
+        bg: "#080E1A",
+        surface: "#0C1220",
+        accent: "#10B981",
+        accent2: "#0F766E",
+        secondary: "#0F766E",
+        rival: "#B91C1C",
+        card: "#0F676C",
+        bowlerCard: "#881D24",
+        text: "#F8FAFC",
+        warn: "#FDE047"
+      },
+      gradients: {
+        accent: "linear-gradient(90deg, #10b981, #0f766e)"
+      },
+      fonts: {
+        heading: "Space Grotesk",
+        body: "Inter",
+        numbers: "Barlow Condensed"
+      },
+      radii: {
+        card: 6,
+        chip: 4
+      },
+      shadows: {
+        card: "0 8px 24px rgba(0,0,0,0.65)"
+      },
+      scoreBarShape: "floating"
+    },
+    layoutVariant: {
+      scorePosition: "bottom",
+      playerCardStyle: "round-badge",
+      boundaryStyle: "split-bar",
+      middleLayout: "right-cluster-recent",
+      playerOrder: "striker-left",
+      broadcastBadgeStyle: "round-right",
+      broadcastBarStyle: "floating",
+      statTheme: "light-green",
+      teamOrder: "batting-left"
+    },
+    motion: {
+      entrance: "rise",
+      easing: "power2.out",
+      durationMs: 500
+    },
+    tags: [
+      "rise entrances",
+      "scores at the bottom",
+      "floating score cards",
+      "photo badges on the right"
+    ]
+  };
+
+  // ../shared/src/looks-data/p2-k03.json
+  var p2_k03_default = {
+    id: "p2-k03",
+    name: "Neon Cyan II",
+    plan: "pro",
+    tokens: {
+      colors: {
+        bg: "#080E1A",
+        surface: "#0C1220",
+        accent: "#22D3EE",
+        accent2: "#083344",
+        secondary: "#083344",
+        rival: "#0B172A",
+        card: "#092338",
+        bowlerCard: "#092338",
+        text: "#F8FAFC",
+        warn: "#FDE047"
+      },
+      gradients: {
+        accent: "linear-gradient(90deg, #22d3ee, #083344)"
+      },
+      fonts: {
+        heading: "Space Grotesk",
+        body: "Inter",
+        numbers: "Barlow Condensed"
+      },
+      radii: {
+        card: 6,
+        chip: 4
+      },
+      shadows: {
+        card: "0 8px 24px rgba(0,0,0,0.65)"
+      },
+      scoreBarShape: "flat"
+    },
+    layoutVariant: {
+      scorePosition: "bottom",
+      playerCardStyle: "round-badge",
+      boundaryStyle: "split-bar",
+      middleLayout: "left-stats",
+      playerOrder: "striker-left",
+      broadcastBadgeStyle: "round-left",
+      broadcastBarStyle: "flat",
+      statTheme: "dark-cyan",
+      teamOrder: "batting-right"
+    },
+    motion: {
+      entrance: "glitch",
+      easing: "power2.out",
+      durationMs: 500
+    },
+    tags: [
+      "glitch entrances",
+      "scores at the bottom",
+      "round photo badges",
+      "split-bar 4/6 graphic"
+    ]
+  };
+
+  // ../shared/src/looks-data/p2-k04.json
+  var p2_k04_default = {
+    id: "p2-k04",
+    name: "Neon Magenta II",
+    plan: "pro",
+    tokens: {
+      colors: {
+        bg: "#080E1A",
+        surface: "#0C1220",
+        accent: "#E879F9",
+        accent2: "#4A044E",
+        secondary: "#4A044E",
+        rival: "#1E1B4B",
+        card: "#2E1065",
+        bowlerCard: "#3B0764",
+        text: "#F8FAFC",
+        warn: "#FDE047"
+      },
+      gradients: {
+        accent: "linear-gradient(90deg, #e879f9, #4a044e)"
+      },
+      fonts: {
+        heading: "Space Grotesk",
+        body: "Inter",
+        numbers: "Barlow Condensed"
+      },
+      radii: {
+        card: 6,
+        chip: 4
+      },
+      shadows: {
+        card: "0 8px 24px rgba(0,0,0,0.65)"
+      },
+      scoreBarShape: "arrow"
+    },
+    layoutVariant: {
+      scorePosition: "top",
+      playerCardStyle: "cutout",
+      boundaryStyle: "split-bar",
+      middleLayout: "left-stats",
+      playerOrder: "bowler-left",
+      broadcastBadgeStyle: "cutout-right",
+      broadcastBarStyle: "arrow",
+      statTheme: "dark-magenta",
+      teamOrder: "batting-left"
+    },
+    motion: {
+      entrance: "iris",
+      easing: "power2.out",
+      durationMs: 500
+    },
+    tags: [
+      "iris entrances",
+      "scores on top",
+      "arrow score bar",
+      "mirrored player cards"
+    ]
+  };
+
+  // ../shared/src/looks-data/p2-k05.json
+  var p2_k05_default = {
+    id: "p2-k05",
+    name: "Neon Lime II",
+    plan: "pro",
+    tokens: {
+      colors: {
+        bg: "#080E1A",
+        surface: "#0C1220",
+        accent: "#84CC16",
+        accent2: "#1A2E05",
+        secondary: "#1A2E05",
+        rival: "#141E08",
+        card: "#142406",
+        bowlerCard: "#1A2E05",
+        text: "#F8FAFC",
+        warn: "#FDE047"
+      },
+      gradients: {
+        accent: "linear-gradient(90deg, #84cc16, #1a2e05)"
+      },
+      fonts: {
+        heading: "Space Grotesk",
+        body: "Inter",
+        numbers: "Barlow Condensed"
+      },
+      radii: {
+        card: 6,
+        chip: 4
+      },
+      shadows: {
+        card: "0 8px 24px rgba(0,0,0,0.65)"
+      },
+      scoreBarShape: "floating"
+    },
+    layoutVariant: {
+      scorePosition: "top",
+      playerCardStyle: "round-badge",
+      boundaryStyle: "split-bar",
+      middleLayout: "right-stats",
+      playerOrder: "bowler-middle",
+      broadcastBadgeStyle: "round-right",
+      broadcastBarStyle: "floating",
+      statTheme: "dark-lime",
+      teamOrder: "batting-right"
+    },
+    motion: {
+      entrance: "blinds",
+      easing: "power2.out",
+      durationMs: 500
+    },
+    tags: [
+      "blinds entrances",
+      "scores on top",
+      "floating score cards",
+      "photo badges on the right"
+    ]
+  };
+
+  // ../shared/src/looks-data/p2-k08.json
+  var p2_k08_default = {
+    id: "p2-k08",
+    name: "Broadcast Teal II",
+    plan: "pro",
+    tokens: {
+      colors: {
+        bg: "#080E1A",
+        surface: "#0C1220",
+        accent: "#0D9488",
+        accent2: "#FFFFFF",
+        secondary: "#FFFFFF",
+        rival: "#FFFFFF",
+        card: "#FFFFFF",
+        bowlerCard: "#FFFFFF",
+        text: "#F8FAFC",
+        warn: "#FDE047"
+      },
+      gradients: {
+        accent: "linear-gradient(90deg, #0d9488, #ffffff)"
+      },
+      fonts: {
+        heading: "Space Grotesk",
+        body: "Inter",
+        numbers: "Barlow Condensed"
+      },
+      radii: {
+        card: 6,
+        chip: 4
+      },
+      shadows: {
+        card: "0 8px 24px rgba(0,0,0,0.65)"
+      },
+      scoreBarShape: "floating"
+    },
+    layoutVariant: {
+      scorePosition: "bottom",
+      playerCardStyle: "cutout",
+      boundaryStyle: "split-bar",
+      middleLayout: "left-stats",
+      playerOrder: "striker-left",
+      broadcastBadgeStyle: "cutout-left",
+      broadcastBarStyle: "floating-white",
+      statTheme: "broadcast-white",
+      teamOrder: "batting-right"
+    },
+    motion: {
+      entrance: "curtain",
+      easing: "power2.out",
+      durationMs: 500
+    },
+    tags: [
+      "curtain entrances",
+      "scores at the bottom",
+      "floating score cards",
+      "cut-out player photos"
+    ]
+  };
+
+  // ../shared/src/looks-data/p2-k09.json
+  var p2_k09_default = {
+    id: "p2-k09",
+    name: "Retro Amber LED II",
+    plan: "pro",
+    tokens: {
+      colors: {
+        bg: "#080E1A",
+        surface: "#0C1220",
+        accent: "#F59E0B",
+        accent2: "#1C1917",
+        secondary: "#1C1917",
+        rival: "#1C1917",
+        card: "#18130A",
+        bowlerCard: "#18130A",
+        text: "#F8FAFC",
+        warn: "#FDE047"
+      },
+      gradients: {
+        accent: "linear-gradient(90deg, #f59e0b, #1c1917)"
+      },
+      fonts: {
+        heading: "Space Grotesk",
+        body: "Inter",
+        numbers: "Barlow Condensed"
+      },
+      radii: {
+        card: 6,
+        chip: 4
+      },
+      shadows: {
+        card: "0 8px 24px rgba(0,0,0,0.65)"
+      },
+      scoreBarShape: "flat"
+    },
+    layoutVariant: {
+      scorePosition: "bottom",
+      playerCardStyle: "cutout",
+      boundaryStyle: "split-bar",
+      middleLayout: "left-stats-projected",
+      playerOrder: "bowler-left",
+      broadcastBadgeStyle: "cutout-right",
+      broadcastBarStyle: "flat-led",
+      statTheme: "led-amber",
+      teamOrder: "batting-left"
+    },
+    motion: {
+      entrance: "flip",
+      easing: "power2.out",
+      durationMs: 500
+    },
+    tags: [
+      "flip entrances",
+      "scores at the bottom",
+      "flat score bar",
+      "mirrored player cards"
+    ]
+  };
+
+  // ../shared/src/looks-data/p2-k10.json
+  var p2_k10_default = {
+    id: "p2-k10",
+    name: "Retro Green LED II",
+    plan: "pro",
+    tokens: {
+      colors: {
+        bg: "#080E1A",
+        surface: "#0C1220",
+        accent: "#22C55E",
+        accent2: "#052E16",
+        secondary: "#052E16",
+        rival: "#051B11",
+        card: "#061C10",
+        bowlerCard: "#061C10",
+        text: "#F8FAFC",
+        warn: "#FDE047"
+      },
+      gradients: {
+        accent: "linear-gradient(90deg, #22c55e, #052e16)"
+      },
+      fonts: {
+        heading: "Space Grotesk",
+        body: "Inter",
+        numbers: "Barlow Condensed"
+      },
+      radii: {
+        card: 6,
+        chip: 4
+      },
+      shadows: {
+        card: "0 8px 24px rgba(0,0,0,0.65)"
+      },
+      scoreBarShape: "slanted"
+    },
+    layoutVariant: {
+      scorePosition: "top",
+      playerCardStyle: "cutout",
+      boundaryStyle: "split-bar",
+      middleLayout: "left-stats",
+      playerOrder: "bowler-middle",
+      broadcastBadgeStyle: "cutout-left",
+      broadcastBarStyle: "slanted-led",
+      statTheme: "led-green",
+      teamOrder: "batting-left"
+    },
+    motion: {
+      entrance: "unfold",
+      easing: "power2.out",
+      durationMs: 500
+    },
+    tags: [
+      "unfold entrances",
+      "scores on top",
+      "slanted score bar",
+      "cut-out player photos"
+    ]
+  };
+
+  // ../shared/src/looks-data/p2-k11.json
+  var p2_k11_default = {
+    id: "p2-k11",
+    name: "Street Blaze II",
+    plan: "pro",
+    tokens: {
+      colors: {
+        bg: "#080E1A",
+        surface: "#0C1220",
+        accent: "#F97316",
+        accent2: "#1E293B",
+        secondary: "#1E293B",
+        rival: "#1C1917",
+        card: "#18181B",
+        bowlerCard: "#18181B",
+        text: "#F8FAFC",
+        warn: "#FDE047"
+      },
+      gradients: {
+        accent: "linear-gradient(90deg, #f97316, #1e293b)"
+      },
+      fonts: {
+        heading: "Space Grotesk",
+        body: "Inter",
+        numbers: "Barlow Condensed"
+      },
+      radii: {
+        card: 6,
+        chip: 4
+      },
+      shadows: {
+        card: "0 8px 24px rgba(0,0,0,0.65)"
+      },
+      scoreBarShape: "arrow"
+    },
+    layoutVariant: {
+      scorePosition: "bottom",
+      playerCardStyle: "cutout",
+      boundaryStyle: "split-bar",
+      middleLayout: "right-cluster-video",
+      playerOrder: "bowler-middle",
+      broadcastBadgeStyle: "cutout-right",
+      broadcastBarStyle: "arrow",
+      statTheme: "light-orange",
+      teamOrder: "batting-right"
+    },
+    motion: {
+      entrance: "skew",
+      easing: "power2.out",
+      durationMs: 500
+    },
+    tags: [
+      "skew entrances",
+      "scores at the bottom",
+      "arrow score bar",
+      "mirrored player cards"
+    ]
+  };
+
+  // ../shared/src/looks-data/p2-k12.json
+  var p2_k12_default = {
+    id: "p2-k12",
+    name: "Street Pink II",
+    plan: "pro",
+    tokens: {
+      colors: {
+        bg: "#080E1A",
+        surface: "#0C1220",
+        accent: "#EC4899",
+        accent2: "#500724",
+        secondary: "#500724",
+        rival: "#1F1224",
+        card: "#3B0726",
+        bowlerCard: "#3B0726",
+        text: "#F8FAFC",
+        warn: "#FDE047"
+      },
+      gradients: {
+        accent: "linear-gradient(90deg, #ec4899, #500724)"
+      },
+      fonts: {
+        heading: "Space Grotesk",
+        body: "Inter",
+        numbers: "Barlow Condensed"
+      },
+      radii: {
+        card: 6,
+        chip: 4
+      },
+      shadows: {
+        card: "0 8px 24px rgba(0,0,0,0.65)"
+      },
+      scoreBarShape: "arrow"
+    },
+    layoutVariant: {
+      scorePosition: "bottom",
+      playerCardStyle: "round-badge",
+      boundaryStyle: "split-bar",
+      middleLayout: "left-stats",
+      playerOrder: "striker-left",
+      broadcastBadgeStyle: "round-right",
+      broadcastBarStyle: "arrow",
+      statTheme: "light-pink",
+      teamOrder: "batting-right"
+    },
+    motion: {
+      entrance: "pop",
+      easing: "power2.out",
+      durationMs: 500
+    },
+    tags: [
+      "pop entrances",
+      "scores at the bottom",
+      "arrow score bar",
+      "photo badges on the right"
+    ]
+  };
+
+  // ../shared/src/looks-data/p2-k13.json
+  var p2_k13_default = {
+    id: "p2-k13",
+    name: "Street Yellow II",
+    plan: "pro",
+    tokens: {
+      colors: {
+        bg: "#080E1A",
+        surface: "#0C1220",
+        accent: "#EAB308",
+        accent2: "#1E293B",
+        secondary: "#1E293B",
+        rival: "#18181B",
+        card: "#18181B",
+        bowlerCard: "#18181B",
+        text: "#F8FAFC",
+        warn: "#FDE047"
+      },
+      gradients: {
+        accent: "linear-gradient(90deg, #eab308, #1e293b)"
+      },
+      fonts: {
+        heading: "Space Grotesk",
+        body: "Inter",
+        numbers: "Barlow Condensed"
+      },
+      radii: {
+        card: 6,
+        chip: 4
+      },
+      shadows: {
+        card: "0 8px 24px rgba(0,0,0,0.65)"
+      },
+      scoreBarShape: "arrow"
+    },
+    layoutVariant: {
+      scorePosition: "top",
+      playerCardStyle: "cutout",
+      boundaryStyle: "split-bar",
+      middleLayout: "right-stats-striker",
+      playerOrder: "bowler-left",
+      broadcastBadgeStyle: "cutout-right",
+      broadcastBarStyle: "arrow",
+      statTheme: "light-yellow",
+      teamOrder: "batting-right"
+    },
+    motion: {
+      entrance: "drop",
+      easing: "power2.out",
+      durationMs: 500
+    },
+    tags: [
+      "drop entrances",
+      "scores on top",
+      "arrow score bar",
+      "mirrored player cards"
+    ]
+  };
+
+  // ../shared/src/looks-data/p2-k14.json
+  var p2_k14_default = {
+    id: "p2-k14",
+    name: "Royal Gold II",
+    plan: "pro",
+    tokens: {
+      colors: {
+        bg: "#080E1A",
+        surface: "#0C1220",
+        accent: "#EAB308",
+        accent2: "#172554",
+        secondary: "#172554",
+        rival: "#1E1B4B",
+        card: "#0F172A",
+        bowlerCard: "#172554",
+        text: "#F8FAFC",
+        warn: "#FDE047"
+      },
+      gradients: {
+        accent: "linear-gradient(90deg, #eab308, #172554)"
+      },
+      fonts: {
+        heading: "Space Grotesk",
+        body: "Inter",
+        numbers: "Barlow Condensed"
+      },
+      radii: {
+        card: 6,
+        chip: 4
+      },
+      shadows: {
+        card: "0 8px 24px rgba(0,0,0,0.65)"
+      },
+      scoreBarShape: "flat"
+    },
+    layoutVariant: {
+      scorePosition: "top",
+      playerCardStyle: "round-badge",
+      boundaryStyle: "split-bar",
+      middleLayout: "left-stats-partnership",
+      playerOrder: "bowler-left",
+      broadcastBadgeStyle: "round-left",
+      broadcastBarStyle: "flat",
+      statTheme: "light",
+      teamOrder: "batting-left"
+    },
+    motion: {
+      entrance: "fade",
+      easing: "power2.out",
+      durationMs: 500
+    },
+    tags: [
+      "fade entrances",
+      "scores on top",
+      "round photo badges",
+      "sweeping 4/6 banner"
+    ]
+  };
+
+  // ../shared/src/looks-data/p2-k15.json
+  var p2_k15_default = {
+    id: "p2-k15",
+    name: "Royal Silver II",
+    plan: "pro",
+    tokens: {
+      colors: {
+        bg: "#080E1A",
+        surface: "#0C1220",
+        accent: "#CBD5E1",
+        accent2: "#1E293B",
+        secondary: "#1E293B",
+        rival: "#0F172A",
+        card: "#0F172A",
+        bowlerCard: "#1E293B",
+        text: "#F8FAFC",
+        warn: "#FDE047"
+      },
+      gradients: {
+        accent: "linear-gradient(90deg, #cbd5e1, #1e293b)"
+      },
+      fonts: {
+        heading: "Space Grotesk",
+        body: "Inter",
+        numbers: "Barlow Condensed"
+      },
+      radii: {
+        card: 6,
+        chip: 4
+      },
+      shadows: {
+        card: "0 8px 24px rgba(0,0,0,0.65)"
+      },
+      scoreBarShape: "notched"
+    },
+    layoutVariant: {
+      scorePosition: "bottom",
+      playerCardStyle: "round-badge",
+      boundaryStyle: "split-bar",
+      middleLayout: "right-cluster-video",
+      playerOrder: "striker-left",
+      broadcastBadgeStyle: "round-left",
+      broadcastBarStyle: "notched",
+      statTheme: "light-silver",
+      teamOrder: "batting-left"
+    },
+    motion: {
+      entrance: "swing",
+      easing: "power2.out",
+      durationMs: 500
+    },
+    tags: [
+      "swing entrances",
+      "scores at the bottom",
+      "notched score bar",
+      "round photo badges"
+    ]
+  };
+
+  // ../shared/src/looks-data/p2-k16.json
+  var p2_k16_default = {
+    id: "p2-k16",
+    name: "Glass Sky II",
+    plan: "pro",
+    tokens: {
+      colors: {
+        bg: "#080E1A",
+        surface: "#0C1220",
+        accent: "#38BDF8",
+        accent2: "#0C4A6E",
+        secondary: "#0C4A6E",
+        rival: "#1E293B",
+        card: "#0F2942",
+        bowlerCard: "#0F2942",
+        text: "#F8FAFC",
+        warn: "#FDE047"
+      },
+      gradients: {
+        accent: "linear-gradient(90deg, #38bdf8, #0c4a6e)"
+      },
+      fonts: {
+        heading: "Space Grotesk",
+        body: "Inter",
+        numbers: "Barlow Condensed"
+      },
+      radii: {
+        card: 6,
+        chip: 4
+      },
+      shadows: {
+        card: "0 8px 24px rgba(0,0,0,0.65)"
+      },
+      scoreBarShape: "flat"
+    },
+    layoutVariant: {
+      scorePosition: "top",
+      playerCardStyle: "cutout",
+      boundaryStyle: "split-bar",
+      middleLayout: "left-stats",
+      playerOrder: "bowler-middle",
+      broadcastBadgeStyle: "cutout-left",
+      broadcastBarStyle: "flat",
+      statTheme: "glass-sky",
+      teamOrder: "batting-right"
+    },
+    motion: {
+      entrance: "blur",
+      easing: "power2.out",
+      durationMs: 500
+    },
+    tags: [
+      "blur entrances",
+      "scores on top",
+      "flat score bar",
+      "cut-out player photos"
+    ]
+  };
+
+  // ../shared/src/looks-data/p2-k17.json
+  var p2_k17_default = {
+    id: "p2-k17",
+    name: "Glass Rose II",
+    plan: "pro",
+    tokens: {
+      colors: {
+        bg: "#080E1A",
+        surface: "#0C1220",
+        accent: "#FB7185",
+        accent2: "#4C0519",
+        secondary: "#4C0519",
+        rival: "#881337",
+        card: "#1F1224",
+        bowlerCard: "#3B0A21",
+        text: "#F8FAFC",
+        warn: "#FDE047"
+      },
+      gradients: {
+        accent: "linear-gradient(90deg, #fb7185, #4c0519)"
+      },
+      fonts: {
+        heading: "Space Grotesk",
+        body: "Inter",
+        numbers: "Barlow Condensed"
+      },
+      radii: {
+        card: 6,
+        chip: 4
+      },
+      shadows: {
+        card: "0 8px 24px rgba(0,0,0,0.65)"
+      },
+      scoreBarShape: "flat"
+    },
+    layoutVariant: {
+      scorePosition: "bottom",
+      playerCardStyle: "round-badge",
+      boundaryStyle: "split-bar",
+      middleLayout: "left-stats",
+      playerOrder: "bowler-left",
+      broadcastBadgeStyle: "round-left",
+      broadcastBarStyle: "flat",
+      statTheme: "light-rose",
+      teamOrder: "batting-left"
+    },
+    motion: {
+      entrance: "zoom-out",
+      easing: "power2.out",
+      durationMs: 500
+    },
+    tags: [
+      "zoom-out entrances",
+      "scores at the bottom",
+      "round photo badges",
+      "corner 4/6 tag"
+    ]
+  };
+
+  // ../shared/src/looks-data/p2-k18.json
+  var p2_k18_default = {
+    id: "p2-k18",
+    name: "Glass Mint II",
+    plan: "pro",
+    tokens: {
+      colors: {
+        bg: "#080E1A",
+        surface: "#0C1220",
+        accent: "#34D399",
+        accent2: "#064E3B",
+        secondary: "#064E3B",
+        rival: "#7F1D1D",
+        card: "#0F2926",
+        bowlerCard: "#0F2926",
+        text: "#F8FAFC",
+        warn: "#FDE047"
+      },
+      gradients: {
+        accent: "linear-gradient(90deg, #34d399, #064e3b)"
+      },
+      fonts: {
+        heading: "Space Grotesk",
+        body: "Inter",
+        numbers: "Barlow Condensed"
+      },
+      radii: {
+        card: 6,
+        chip: 4
+      },
+      shadows: {
+        card: "0 8px 24px rgba(0,0,0,0.65)"
+      },
+      scoreBarShape: "notched"
+    },
+    layoutVariant: {
+      scorePosition: "top",
+      playerCardStyle: "cutout",
+      boundaryStyle: "split-bar",
+      middleLayout: "right-stats-projected",
+      playerOrder: "striker-left",
+      broadcastBadgeStyle: "cutout-right",
+      broadcastBarStyle: "notched",
+      statTheme: "light-green",
+      teamOrder: "batting-left"
+    },
+    motion: {
+      entrance: "slide-right",
+      easing: "power2.out",
+      durationMs: 500
+    },
+    tags: [
+      "slide-right entrances",
+      "scores on top",
+      "notched score bar",
+      "mirrored player cards"
+    ]
+  };
+
+  // ../shared/src/looks-data/p2-k19.json
+  var p2_k19_default = {
+    id: "p2-k19",
+    name: "Carbon Red II",
+    plan: "pro",
+    tokens: {
+      colors: {
+        bg: "#080E1A",
+        surface: "#0C1220",
+        accent: "#EF4444",
+        accent2: "#18181B",
+        secondary: "#18181B",
+        rival: "#7F1D1D",
+        card: "#18181B",
+        bowlerCard: "#3B1212",
+        text: "#F8FAFC",
+        warn: "#FDE047"
+      },
+      gradients: {
+        accent: "linear-gradient(90deg, #ef4444, #18181b)"
+      },
+      fonts: {
+        heading: "Space Grotesk",
+        body: "Inter",
+        numbers: "Barlow Condensed"
+      },
+      radii: {
+        card: 6,
+        chip: 4
+      },
+      shadows: {
+        card: "0 8px 24px rgba(0,0,0,0.65)"
+      },
+      scoreBarShape: "slanted"
+    },
+    layoutVariant: {
+      scorePosition: "bottom",
+      playerCardStyle: "cutout",
+      boundaryStyle: "split-bar",
+      middleLayout: "right-cluster-recent",
+      playerOrder: "bowler-left",
+      broadcastBadgeStyle: "cutout-left",
+      broadcastBarStyle: "slanted",
+      statTheme: "light-red",
+      teamOrder: "batting-left"
+    },
+    motion: {
+      entrance: "stretch",
+      easing: "power2.out",
+      durationMs: 500
+    },
+    tags: [
+      "stretch entrances",
+      "scores at the bottom",
+      "slanted score bar",
+      "cut-out player photos"
+    ]
+  };
+
+  // ../shared/src/looks-data/p2-k20.json
+  var p2_k20_default = {
+    id: "p2-k20",
+    name: "Carbon Orange II",
+    plan: "pro",
+    tokens: {
+      colors: {
+        bg: "#080E1A",
+        surface: "#0C1220",
+        accent: "#FB923C",
+        accent2: "#1C1917",
+        secondary: "#1C1917",
+        rival: "#431407",
+        card: "#18181B",
+        bowlerCard: "#1C1917",
+        text: "#F8FAFC",
+        warn: "#FDE047"
+      },
+      gradients: {
+        accent: "linear-gradient(90deg, #fb923c, #1c1917)"
+      },
+      fonts: {
+        heading: "Space Grotesk",
+        body: "Inter",
+        numbers: "Barlow Condensed"
+      },
+      radii: {
+        card: 6,
+        chip: 4
+      },
+      shadows: {
+        card: "0 8px 24px rgba(0,0,0,0.65)"
+      },
+      scoreBarShape: "slanted"
+    },
+    layoutVariant: {
+      scorePosition: "top",
+      playerCardStyle: "badge",
+      boundaryStyle: "split-bar",
+      middleLayout: "left-stats",
+      playerOrder: "striker-left",
+      broadcastBadgeStyle: "square-left",
+      broadcastBarStyle: "slanted",
+      statTheme: "light-orange",
+      teamOrder: "batting-right"
+    },
+    motion: {
+      entrance: "diamond",
+      easing: "power2.out",
+      durationMs: 500
+    },
+    tags: [
+      "diamond entrances",
+      "scores on top",
+      "slanted score bar",
+      "round photo badges"
+    ]
+  };
+
+  // ../shared/src/looks-data/p2-k21.json
+  var p2_k21_default = {
+    id: "p2-k21",
+    name: "Mono Gold II",
+    plan: "pro",
+    tokens: {
+      colors: {
+        bg: "#080E1A",
+        surface: "#0C1220",
+        accent: "#FBBF24",
+        accent2: "#09090B",
+        secondary: "#09090B",
+        rival: "#09090B",
+        card: "#09090B",
+        bowlerCard: "#09090B",
+        text: "#F8FAFC",
+        warn: "#FDE047"
+      },
+      gradients: {
+        accent: "linear-gradient(90deg, #fbbf24, #09090b)"
+      },
+      fonts: {
+        heading: "Space Grotesk",
+        body: "Inter",
+        numbers: "Barlow Condensed"
+      },
+      radii: {
+        card: 6,
+        chip: 4
+      },
+      shadows: {
+        card: "0 8px 24px rgba(0,0,0,0.65)"
+      },
+      scoreBarShape: "mono"
+    },
+    layoutVariant: {
+      scorePosition: "bottom",
+      playerCardStyle: "cutout",
+      boundaryStyle: "split-bar",
+      middleLayout: "left-stats",
+      playerOrder: "bowler-middle",
+      broadcastBadgeStyle: "cutout-left",
+      broadcastBarStyle: "slanted-mono",
+      statTheme: "mono-light",
+      teamOrder: "batting-right"
+    },
+    motion: {
+      entrance: "zoom",
+      easing: "power2.out",
+      durationMs: 500
+    },
+    tags: [
+      "zoom entrances",
+      "scores at the bottom",
+      "slanted score bar",
+      "cut-out player photos"
+    ]
+  };
+
+  // ../shared/src/looks-data/p2-k22.json
+  var p2_k22_default = {
+    id: "p2-k22",
+    name: "Mono Ice II",
+    plan: "pro",
+    tokens: {
+      colors: {
+        bg: "#080E1A",
+        surface: "#0C1220",
+        accent: "#38BDF8",
+        accent2: "#09090B",
+        secondary: "#09090B",
+        rival: "#09090B",
+        card: "#09090B",
+        bowlerCard: "#09090B",
+        text: "#F8FAFC",
+        warn: "#FDE047"
+      },
+      gradients: {
+        accent: "linear-gradient(90deg, #38bdf8, #09090b)"
+      },
+      fonts: {
+        heading: "Space Grotesk",
+        body: "Inter",
+        numbers: "Barlow Condensed"
+      },
+      radii: {
+        card: 6,
+        chip: 4
+      },
+      shadows: {
+        card: "0 8px 24px rgba(0,0,0,0.65)"
+      },
+      scoreBarShape: "notched"
+    },
+    layoutVariant: {
+      scorePosition: "bottom",
+      playerCardStyle: "badge",
+      boundaryStyle: "split-bar",
+      middleLayout: "left-stats",
+      playerOrder: "striker-left",
+      broadcastBadgeStyle: "square-right",
+      broadcastBarStyle: "notched-mono",
+      statTheme: "mono-light",
+      teamOrder: "batting-left"
+    },
+    motion: {
+      entrance: "spin",
+      easing: "power2.out",
+      durationMs: 500
+    },
+    tags: [
+      "spin entrances",
+      "scores at the bottom",
+      "notched score bar",
+      "photo badges on the right"
+    ]
+  };
+
+  // ../shared/src/looks-data/p2-k23.json
+  var p2_k23_default = {
+    id: "p2-k23",
+    name: "Festival Sunset II",
+    plan: "pro",
+    tokens: {
+      colors: {
+        bg: "#080E1A",
+        surface: "#0C1220",
+        accent: "#F43F5E",
+        accent2: "#9D174D",
+        secondary: "#9D174D",
+        rival: "#C2410C",
+        card: "#701A47",
+        bowlerCard: "#9A3412",
+        text: "#F8FAFC",
+        warn: "#FDE047"
+      },
+      gradients: {
+        accent: "linear-gradient(90deg, #f43f5e, #9d174d)"
+      },
+      fonts: {
+        heading: "Space Grotesk",
+        body: "Inter",
+        numbers: "Barlow Condensed"
+      },
+      radii: {
+        card: 6,
+        chip: 4
+      },
+      shadows: {
+        card: "0 8px 24px rgba(0,0,0,0.65)"
+      },
+      scoreBarShape: "notched"
+    },
+    layoutVariant: {
+      scorePosition: "bottom",
+      playerCardStyle: "round-badge",
+      boundaryStyle: "split-bar",
+      middleLayout: "left-stats",
+      playerOrder: "bowler-middle",
+      broadcastBadgeStyle: "round-right",
+      broadcastBarStyle: "notched-sunset",
+      statTheme: "light-pink",
+      teamOrder: "batting-left"
+    },
+    motion: {
+      entrance: "drop",
+      easing: "power2.out",
+      durationMs: 500
+    },
+    tags: [
+      "drop entrances",
+      "scores at the bottom",
+      "notched score bar",
+      "photo badges on the right"
+    ]
+  };
+
+  // ../shared/src/looks-data/p2-k24.json
+  var p2_k24_default = {
+    id: "p2-k24",
+    name: "Festival Aurora II",
+    plan: "pro",
+    tokens: {
+      colors: {
+        bg: "#080E1A",
+        surface: "#0C1220",
+        accent: "#06B6D4",
+        accent2: "#5B21B6",
+        secondary: "#5B21B6",
+        rival: "#0284C7",
+        card: "#0284C7",
+        bowlerCard: "#1D4ED8",
+        text: "#F8FAFC",
+        warn: "#FDE047"
+      },
+      gradients: {
+        accent: "linear-gradient(90deg, #06b6d4, #5b21b6)"
+      },
+      fonts: {
+        heading: "Space Grotesk",
+        body: "Inter",
+        numbers: "Barlow Condensed"
+      },
+      radii: {
+        card: 6,
+        chip: 4
+      },
+      shadows: {
+        card: "0 8px 24px rgba(0,0,0,0.65)"
+      },
+      scoreBarShape: "glass"
+    },
+    layoutVariant: {
+      scorePosition: "top",
+      playerCardStyle: "round-badge",
+      boundaryStyle: "split-bar",
+      middleLayout: "right-cluster-partnership",
+      playerOrder: "bowler-middle",
+      broadcastBadgeStyle: "round-right",
+      broadcastBarStyle: "flat-aurora",
+      statTheme: "light",
+      teamOrder: "batting-right"
+    },
+    motion: {
+      entrance: "zoom",
+      easing: "power2.out",
+      durationMs: 500
+    },
+    tags: [
+      "zoom entrances",
+      "scores on top",
+      "flat score bar",
+      "photo badges on the right"
+    ]
+  };
+
+  // ../shared/src/looks-data/p2-k25.json
+  var p2_k25_default = {
+    id: "p2-k25",
+    name: "Mono Mint II",
+    plan: "pro",
+    tokens: {
+      colors: {
+        bg: "#080E1A",
+        surface: "#0C1220",
+        accent: "#22C55E",
+        accent2: "#090D16",
+        secondary: "#090D16",
+        rival: "#090D16",
+        card: "#090D16",
+        bowlerCard: "#090D16",
+        text: "#F8FAFC",
+        warn: "#FDE047"
+      },
+      gradients: {
+        accent: "linear-gradient(90deg, #22c55e, #090d16)"
+      },
+      fonts: {
+        heading: "Space Grotesk",
+        body: "Inter",
+        numbers: "Barlow Condensed"
+      },
+      radii: {
+        card: 6,
+        chip: 4
+      },
+      shadows: {
+        card: "0 8px 24px rgba(0,0,0,0.65)"
+      },
+      scoreBarShape: "notched"
+    },
+    layoutVariant: {
+      scorePosition: "top",
+      playerCardStyle: "badge",
+      boundaryStyle: "split-bar",
+      middleLayout: "left-stats",
+      playerOrder: "striker-left",
+      broadcastBadgeStyle: "square-left",
+      broadcastBarStyle: "notched-mono",
+      statTheme: "mono-light",
+      teamOrder: "batting-right"
+    },
+    motion: {
+      entrance: "pop",
+      easing: "power2.out",
+      durationMs: 500
+    },
+    tags: [
+      "pop entrances",
+      "scores on top",
+      "notched score bar",
+      "round photo badges"
+    ]
+  };
+
   // ../shared/src/looks.ts
   var graphiteTeal = LookSchema.parse(graphite_teal_default);
   var coralDusk = LookSchema.parse(coral_dusk_default);
@@ -6987,8 +8349,33 @@
     sc_arctic_mint_default,
     sc_volt_carbon_default
   ].map((j) => LookSchema.parse(j));
-  var ALL_PRO_LOOKS = [...PRO_LOOKS, ...PRO_LOOKS_23];
-  var ALL_AVAILABLE_LOOKS = [...ALL_LOOKS, ...PRO_LOOKS_23];
+  var PRO_LOOKS_PL2 = [
+    p2_k01_default,
+    p2_k02_default,
+    p2_k03_default,
+    p2_k04_default,
+    p2_k05_default,
+    p2_k08_default,
+    p2_k09_default,
+    p2_k10_default,
+    p2_k11_default,
+    p2_k12_default,
+    p2_k13_default,
+    p2_k14_default,
+    p2_k15_default,
+    p2_k16_default,
+    p2_k17_default,
+    p2_k18_default,
+    p2_k19_default,
+    p2_k20_default,
+    p2_k21_default,
+    p2_k22_default,
+    p2_k23_default,
+    p2_k24_default,
+    p2_k25_default
+  ].map((j) => LookSchema.parse(j));
+  var ALL_PRO_LOOKS = [...PRO_LOOKS, ...PRO_LOOKS_23, ...PRO_LOOKS_PL2];
+  var ALL_AVAILABLE_LOOKS = [...ALL_LOOKS, ...PRO_LOOKS_23, ...PRO_LOOKS_PL2];
 
   // ../shared/src/layouts.ts
   var OBS_LAYOUT_IDS = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"];

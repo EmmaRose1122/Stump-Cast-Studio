@@ -2,9 +2,11 @@ import './fonts.css';
 import './style.css';
 import './cards.css';
 import './pro-looks.css';
+import './pl2.css';
 import {
   CardCommandSchema,
   EngineEventSchema,
+  isProLook2,
   LookSchema,
   MatchHistorySchema,
   MatchStateSchema,
@@ -42,6 +44,7 @@ import { mountGallery } from './cards/gallery';
 import { StreamFrame } from './components/StreamFrame';
 import { ResultScreen } from './components/ResultScreen';
 import { PreMatchScreen } from './components/PreMatchScreen';
+import { ProLook2Stage } from './pl2Stage';
 import {
   applyBackground,
   applyComposition,
@@ -245,6 +248,33 @@ const streamFrame = new StreamFrame();
 const scorePop = new ScorePop();
 const resultScreen = new ResultScreen();
 const preMatchScreen = new PreMatchScreen();
+const pl2Stage = new ProLook2Stage();
+
+/**
+ * Pro Look 2 replaces the whole base picture, so the arena/fullscreen component tree steps aside
+ * while it is on air. The rails are parked in a detached host rather than hidden with CSS: the
+ * layout rules that place them all carry `!important`, and an arms race over specificity is a
+ * worse deal than moving the same elements back and forth. The shared StreamFrame element moves
+ * into the design's video slot, so one camera implementation, one slate and one LIVE badge serve
+ * every look. Cards, watermark, data badge, score pop and the result/pre-match screens stay put.
+ */
+const pl2Park = document.createElement('div');
+pl2Park.hidden = true;
+const zoneOrder = [zones.main, zones.left, zones.right, zones.bottom, zones.top];
+const syncPl2Stage = (active: Look): void => {
+  if (!isProLook2(active)) {
+    delete stageEl.dataset.pl2;
+    pl2Stage.attachVideo(null);
+    for (const zone of zoneOrder) if (zone.parentElement !== stageEl) stageEl.append(zone);
+    if (playerBand.parentElement !== stageEl) stageEl.append(playerBand);
+    if (streamFrame.element.parentElement !== stageEl) stageEl.append(streamFrame.element);
+    return;
+  }
+  stageEl.dataset.pl2 = '1';
+  for (const zone of zoneOrder) if (!zone.classList.contains('zone-card')) pl2Park.append(zone);
+  pl2Park.append(playerBand);
+  pl2Stage.attachVideo(streamFrame.element);
+};
 
 /**
  * The Pro look gallery has to show each package's camera monitor. The standby slate is used
@@ -283,6 +313,8 @@ scorePop.onVisibility = (visible) => {
 };
 resultScreen.mount(stageEl, look);
 preMatchScreen.mount(stageEl, look);
+pl2Stage.mount(stageEl, look);
+syncPl2Stage(look);
 placePlayers(store.get().settings.layout, store.get().look);
 placeArenaPanels(store.get().settings.layout, store.get().look);
 fitArenaCluster();
@@ -321,6 +353,7 @@ const components = [
   scorePop,
   resultScreen,
   preMatchScreen,
+  pl2Stage,
 ];
 
 const syncOnAirScreen = (s: typeof store extends { get(): infer G } ? G : never) => {
@@ -394,6 +427,7 @@ store.subscribe((s, prev) => {
   if (s.look !== prev.look) {
     applyLook(s.look);
     syncDesignPreview(s.look);
+    syncPl2Stage(s.look);
     for (const c of components) c.setLook(s.look);
     placePlayers(s.settings.layout, s.look);
     placeArenaPanels(s.settings.layout, s.look);
