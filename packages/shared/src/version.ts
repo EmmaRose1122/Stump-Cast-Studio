@@ -1,2 +1,2 @@
-/** Single application release version. Keep package manifests and extension manifest in sync. */
-export const APP_VERSION = '1.3.0';
+/** Generated from package.json by scripts/sync-version.mjs — do not edit by hand. */
+export const APP_VERSION = '1.3.6';

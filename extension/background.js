@@ -6955,8 +6955,8 @@
     plan: "pro",
     tokens: {
       colors: {
-        bg: "#080E1A",
-        surface: "#0C1220",
+        bg: "#1D1606",
+        surface: "#443718",
         accent: "#EAB308",
         accent2: "#0E7490",
         secondary: "#0E7490",
@@ -6964,7 +6964,11 @@
         card: "#0E6482",
         bowlerCard: "#991B1B",
         text: "#F8FAFC",
-        warn: "#FDE047"
+        warn: "#FDE047",
+        panel: "#3a2c0c",
+        panelDeep: "#241B07",
+        wingShade: "#2D2209",
+        rivalShade: "#32260A"
       },
       gradients: {
         accent: "linear-gradient(90deg, #eab308, #0e7490)"
@@ -7014,8 +7018,8 @@
     plan: "pro",
     tokens: {
       colors: {
-        bg: "#080E1A",
-        surface: "#0C1220",
+        bg: "#071A14",
+        surface: "#193D32",
         accent: "#10B981",
         accent2: "#0F766E",
         secondary: "#0F766E",
@@ -7023,7 +7027,11 @@
         card: "#0F676C",
         bowlerCard: "#881D24",
         text: "#F8FAFC",
-        warn: "#FDE047"
+        warn: "#FDE047",
+        panel: "#0d3327",
+        panelDeep: "#082018",
+        wingShade: "#0A281E",
+        rivalShade: "#0B2C22"
       },
       gradients: {
         accent: "linear-gradient(90deg, #10b981, #0f766e)"
@@ -7073,8 +7081,8 @@
     plan: "pro",
     tokens: {
       colors: {
-        bg: "#080E1A",
-        surface: "#0C1220",
+        bg: "#06161C",
+        surface: "#173642",
         accent: "#22D3EE",
         accent2: "#083344",
         secondary: "#083344",
@@ -7082,7 +7090,11 @@
         card: "#092338",
         bowlerCard: "#092338",
         text: "#F8FAFC",
-        warn: "#FDE047"
+        warn: "#FDE047",
+        panel: "#0b2b38",
+        panelDeep: "#071B23",
+        wingShade: "#09222C",
+        rivalShade: "#092530"
       },
       gradients: {
         accent: "linear-gradient(90deg, #22d3ee, #083344)"
@@ -7132,8 +7144,8 @@
     plan: "pro",
     tokens: {
       colors: {
-        bg: "#080E1A",
-        surface: "#0C1220",
+        bg: "#1A0818",
+        surface: "#3D1C39",
         accent: "#E879F9",
         accent2: "#4A044E",
         secondary: "#4A044E",
@@ -7141,7 +7153,11 @@
         card: "#2E1065",
         bowlerCard: "#3B0764",
         text: "#F8FAFC",
-        warn: "#FDE047"
+        warn: "#FDE047",
+        panel: "#33102f",
+        panelDeep: "#200A1D",
+        wingShade: "#280C25",
+        rivalShade: "#2C0E28"
       },
       gradients: {
         accent: "linear-gradient(90deg, #e879f9, #4a044e)"
@@ -7191,8 +7207,8 @@
     plan: "pro",
     tokens: {
       colors: {
-        bg: "#080E1A",
-        surface: "#0C1220",
+        bg: "#151B06",
+        surface: "#344018",
         accent: "#84CC16",
         accent2: "#1A2E05",
         secondary: "#1A2E05",
@@ -7200,7 +7216,11 @@
         card: "#142406",
         bowlerCard: "#1A2E05",
         text: "#F8FAFC",
-        warn: "#FDE047"
+        warn: "#FDE047",
+        panel: "#29360c",
+        panelDeep: "#192107",
+        wingShade: "#202A09",
+        rivalShade: "#232E0A"
       },
       gradients: {
         accent: "linear-gradient(90deg, #84cc16, #1a2e05)"
@@ -7250,8 +7270,8 @@
     plan: "pro",
     tokens: {
       colors: {
-        bg: "#080E1A",
-        surface: "#0C1220",
+        bg: "#07191A",
+        surface: "#193C3E",
         accent: "#0D9488",
         accent2: "#FFFFFF",
         secondary: "#FFFFFF",
@@ -7259,7 +7279,11 @@
         card: "#FFFFFF",
         bowlerCard: "#FFFFFF",
         text: "#F8FAFC",
-        warn: "#FDE047"
+        warn: "#FDE047",
+        panel: "#0d3234",
+        panelDeep: "#081F20",
+        wingShade: "#0A2729",
+        rivalShade: "#0B2B2D"
       },
       gradients: {
         accent: "linear-gradient(90deg, #0d9488, #ffffff)"
@@ -7309,8 +7333,8 @@
     plan: "pro",
     tokens: {
       colors: {
-        bg: "#080E1A",
-        surface: "#0C1220",
+        bg: "#1D1205",
+        surface: "#442F15",
         accent: "#F59E0B",
         accent2: "#1C1917",
         secondary: "#1C1917",
@@ -7318,7 +7342,11 @@
         card: "#18130A",
         bowlerCard: "#18130A",
         text: "#F8FAFC",
-        warn: "#FDE047"
+        warn: "#FDE047",
+        panel: "#3a2409",
+        panelDeep: "#241606",
+        wingShade: "#2D1C07",
+        rivalShade: "#321F08"
       },
       gradients: {
         accent: "linear-gradient(90deg, #f59e0b, #1c1917)"
@@ -7368,8 +7396,8 @@
     plan: "pro",
     tokens: {
       colors: {
-        bg: "#080E1A",
-        surface: "#0C1220",
+        bg: "#061B10",
+        surface: "#183F2B",
         accent: "#22C55E",
         accent2: "#052E16",
         secondary: "#052E16",
@@ -7377,7 +7405,11 @@
         card: "#061C10",
         bowlerCard: "#061C10",
         text: "#F8FAFC",
-        warn: "#FDE047"
+        warn: "#FDE047",
+        panel: "#0c3520",
+        panelDeep: "#072114",
+        wingShade: "#092919",
+        rivalShade: "#0A2E1C"
       },
       gradients: {
         accent: "linear-gradient(90deg, #22c55e, #052e16)"
@@ -7427,8 +7459,8 @@
     plan: "pro",
     tokens: {
       colors: {
-        bg: "#080E1A",
-        surface: "#0C1220",
+        bg: "#1D0D05",
+        surface: "#442516",
         accent: "#F97316",
         accent2: "#1E293B",
         secondary: "#1E293B",
@@ -7436,7 +7468,11 @@
         card: "#18181B",
         bowlerCard: "#18181B",
         text: "#F8FAFC",
-        warn: "#FDE047"
+        warn: "#FDE047",
+        panel: "#3a1a0a",
+        panelDeep: "#241006",
+        wingShade: "#2D1408",
+        rivalShade: "#321609"
       },
       gradients: {
         accent: "linear-gradient(90deg, #f97316, #1e293b)"
@@ -7486,8 +7522,8 @@
     plan: "pro",
     tokens: {
       colors: {
-        bg: "#080E1A",
-        surface: "#0C1220",
+        bg: "#1C0812",
+        surface: "#421B2F",
         accent: "#EC4899",
         accent2: "#500724",
         secondary: "#500724",
@@ -7495,7 +7531,11 @@
         card: "#3B0726",
         bowlerCard: "#3B0726",
         text: "#F8FAFC",
-        warn: "#FDE047"
+        warn: "#FDE047",
+        panel: "#380f24",
+        panelDeep: "#230916",
+        wingShade: "#2C0C1C",
+        rivalShade: "#300D1F"
       },
       gradients: {
         accent: "linear-gradient(90deg, #ec4899, #500724)"
@@ -7545,8 +7585,8 @@
     plan: "pro",
     tokens: {
       colors: {
-        bg: "#080E1A",
-        surface: "#0C1220",
+        bg: "#1A1306",
+        surface: "#3D3117",
         accent: "#EAB308",
         accent2: "#1E293B",
         secondary: "#1E293B",
@@ -7554,7 +7594,11 @@
         card: "#18181B",
         bowlerCard: "#18181B",
         text: "#F8FAFC",
-        warn: "#FDE047"
+        warn: "#FDE047",
+        panel: "#33260b",
+        panelDeep: "#201807",
+        wingShade: "#281E09",
+        rivalShade: "#2C2109"
       },
       gradients: {
         accent: "linear-gradient(90deg, #eab308, #1e293b)"
@@ -7604,8 +7648,8 @@
     plan: "pro",
     tokens: {
       colors: {
-        bg: "#080E1A",
-        surface: "#0C1220",
+        bg: "#1D1508",
+        surface: "#44351C",
         accent: "#EAB308",
         accent2: "#172554",
         secondary: "#172554",
@@ -7613,7 +7657,11 @@
         card: "#0F172A",
         bowlerCard: "#172554",
         text: "#F8FAFC",
-        warn: "#FDE047"
+        warn: "#FDE047",
+        panel: "#3a2a10",
+        panelDeep: "#241A0A",
+        wingShade: "#2D210C",
+        rivalShade: "#32240E"
       },
       gradients: {
         accent: "linear-gradient(90deg, #eab308, #172554)"
@@ -7663,8 +7711,8 @@
     plan: "pro",
     tokens: {
       colors: {
-        bg: "#080E1A",
-        surface: "#0C1220",
+        bg: "#0F131B",
+        surface: "#28313F",
         accent: "#CBD5E1",
         accent2: "#1E293B",
         secondary: "#1E293B",
@@ -7672,7 +7720,11 @@
         card: "#0F172A",
         bowlerCard: "#1E293B",
         text: "#F8FAFC",
-        warn: "#FDE047"
+        warn: "#FDE047",
+        panel: "#1d2635",
+        panelDeep: "#121821",
+        wingShade: "#171E29",
+        rivalShade: "#19212E"
       },
       gradients: {
         accent: "linear-gradient(90deg, #cbd5e1, #1e293b)"
@@ -7722,8 +7774,8 @@
     plan: "pro",
     tokens: {
       colors: {
-        bg: "#080E1A",
-        surface: "#0C1220",
+        bg: "#06161D",
+        surface: "#183744",
         accent: "#38BDF8",
         accent2: "#0C4A6E",
         secondary: "#0C4A6E",
@@ -7731,7 +7783,11 @@
         card: "#0F2942",
         bowlerCard: "#0F2942",
         text: "#F8FAFC",
-        warn: "#FDE047"
+        warn: "#FDE047",
+        panel: "#0c2c3a",
+        panelDeep: "#071B24",
+        wingShade: "#09222D",
+        rivalShade: "#0A2632"
       },
       gradients: {
         accent: "linear-gradient(90deg, #38bdf8, #0c4a6e)"
@@ -7781,8 +7837,8 @@
     plan: "pro",
     tokens: {
       colors: {
-        bg: "#080E1A",
-        surface: "#0C1220",
+        bg: "#1C080D",
+        surface: "#421C25",
         accent: "#FB7185",
         accent2: "#4C0519",
         secondary: "#4C0519",
@@ -7790,7 +7846,11 @@
         card: "#1F1224",
         bowlerCard: "#3B0A21",
         text: "#F8FAFC",
-        warn: "#FDE047"
+        warn: "#FDE047",
+        panel: "#381019",
+        panelDeep: "#230A10",
+        wingShade: "#2C0C14",
+        rivalShade: "#300E16"
       },
       gradients: {
         accent: "linear-gradient(90deg, #fb7185, #4c0519)"
@@ -7840,8 +7900,8 @@
     plan: "pro",
     tokens: {
       colors: {
-        bg: "#080E1A",
-        surface: "#0C1220",
+        bg: "#071A15",
+        surface: "#1A3D35",
         accent: "#34D399",
         accent2: "#064E3B",
         secondary: "#064E3B",
@@ -7849,7 +7909,11 @@
         card: "#0F2926",
         bowlerCard: "#0F2926",
         text: "#F8FAFC",
-        warn: "#FDE047"
+        warn: "#FDE047",
+        panel: "#0e332a",
+        panelDeep: "#09201A",
+        wingShade: "#0B2821",
+        rivalShade: "#0C2C24"
       },
       gradients: {
         accent: "linear-gradient(90deg, #34d399, #064e3b)"
@@ -7899,8 +7963,8 @@
     plan: "pro",
     tokens: {
       colors: {
-        bg: "#080E1A",
-        surface: "#0C1220",
+        bg: "#1C0808",
+        surface: "#421C1B",
         accent: "#EF4444",
         accent2: "#18181B",
         secondary: "#18181B",
@@ -7908,7 +7972,11 @@
         card: "#18181B",
         bowlerCard: "#3B1212",
         text: "#F8FAFC",
-        warn: "#FDE047"
+        warn: "#FDE047",
+        panel: "#38100f",
+        panelDeep: "#230A09",
+        wingShade: "#2C0C0C",
+        rivalShade: "#300E0D"
       },
       gradients: {
         accent: "linear-gradient(90deg, #ef4444, #18181b)"
@@ -7958,8 +8026,8 @@
     plan: "pro",
     tokens: {
       colors: {
-        bg: "#080E1A",
-        surface: "#0C1220",
+        bg: "#1C1006",
+        surface: "#422B18",
         accent: "#FB923C",
         accent2: "#1C1917",
         secondary: "#1C1917",
@@ -7967,7 +8035,11 @@
         card: "#18181B",
         bowlerCard: "#1C1917",
         text: "#F8FAFC",
-        warn: "#FDE047"
+        warn: "#FDE047",
+        panel: "#38200c",
+        panelDeep: "#231407",
+        wingShade: "#2C1909",
+        rivalShade: "#301C0A"
       },
       gradients: {
         accent: "linear-gradient(90deg, #fb923c, #1c1917)"
@@ -8017,8 +8089,8 @@
     plan: "pro",
     tokens: {
       colors: {
-        bg: "#080E1A",
-        surface: "#0C1220",
+        bg: "#1A1607",
+        surface: "#3D3719",
         accent: "#FBBF24",
         accent2: "#09090B",
         secondary: "#09090B",
@@ -8026,7 +8098,11 @@
         card: "#09090B",
         bowlerCard: "#09090B",
         text: "#F8FAFC",
-        warn: "#FDE047"
+        warn: "#FDE047",
+        panel: "#332c0d",
+        panelDeep: "#201B08",
+        wingShade: "#28220A",
+        rivalShade: "#2C260B"
       },
       gradients: {
         accent: "linear-gradient(90deg, #fbbf24, #09090b)"
@@ -8076,8 +8152,8 @@
     plan: "pro",
     tokens: {
       colors: {
-        bg: "#080E1A",
-        surface: "#0C1220",
+        bg: "#09171C",
+        surface: "#1E3842",
         accent: "#38BDF8",
         accent2: "#09090B",
         secondary: "#09090B",
@@ -8085,7 +8161,11 @@
         card: "#09090B",
         bowlerCard: "#09090B",
         text: "#F8FAFC",
-        warn: "#FDE047"
+        warn: "#FDE047",
+        panel: "#122d38",
+        panelDeep: "#0B1C23",
+        wingShade: "#0E232C",
+        rivalShade: "#0F2730"
       },
       gradients: {
         accent: "linear-gradient(90deg, #38bdf8, #09090b)"
@@ -8135,8 +8215,8 @@
     plan: "pro",
     tokens: {
       colors: {
-        bg: "#080E1A",
-        surface: "#0C1220",
+        bg: "#1C080C",
+        surface: "#411B24",
         accent: "#F43F5E",
         accent2: "#9D174D",
         secondary: "#9D174D",
@@ -8144,7 +8224,11 @@
         card: "#701A47",
         bowlerCard: "#9A3412",
         text: "#F8FAFC",
-        warn: "#FDE047"
+        warn: "#FDE047",
+        panel: "#370f18",
+        panelDeep: "#22090F",
+        wingShade: "#2B0C13",
+        rivalShade: "#2F0D15"
       },
       gradients: {
         accent: "linear-gradient(90deg, #f43f5e, #9d174d)"
@@ -8194,8 +8278,8 @@
     plan: "pro",
     tokens: {
       colors: {
-        bg: "#080E1A",
-        surface: "#0C1220",
+        bg: "#0A1118",
+        surface: "#202D39",
         accent: "#06B6D4",
         accent2: "#5B21B6",
         secondary: "#5B21B6",
@@ -8203,7 +8287,11 @@
         card: "#0284C7",
         bowlerCard: "#1D4ED8",
         text: "#F8FAFC",
-        warn: "#FDE047"
+        warn: "#FDE047",
+        panel: "#14222f",
+        panelDeep: "#0C151D",
+        wingShade: "#101B25",
+        rivalShade: "#111D28"
       },
       gradients: {
         accent: "linear-gradient(90deg, #06b6d4, #5b21b6)"
@@ -8253,8 +8341,8 @@
     plan: "pro",
     tokens: {
       colors: {
-        bg: "#080E1A",
-        surface: "#0C1220",
+        bg: "#071B11",
+        surface: "#1A3F2D",
         accent: "#22C55E",
         accent2: "#090D16",
         secondary: "#090D16",
@@ -8262,7 +8350,11 @@
         card: "#090D16",
         bowlerCard: "#090D16",
         text: "#F8FAFC",
-        warn: "#FDE047"
+        warn: "#FDE047",
+        panel: "#0e3522",
+        panelDeep: "#092115",
+        wingShade: "#0B291B",
+        rivalShade: "#0C2E1D"
       },
       gradients: {
         accent: "linear-gradient(90deg, #22c55e, #090d16)"

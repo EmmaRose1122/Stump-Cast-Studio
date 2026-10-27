@@ -1,7 +1,7 @@
 {
   "name": "stumpcast",
   "private": true,
-  "version": "1.3.5",
+  "version": "1.3.6",
   "type": "module",
   "packageManager": "pnpm@12.11.2",
   "pnpm": {
@@ -13,9 +13,9 @@
     "node": ">=20"
   },
   "scripts": {
-    "dev": "pnpm -r --parallel --if-present --filter @stumpcast/server --filter @stumpcast/admin --filter @stumpcast/overlay run dev",
+    "dev": "node scripts/sync-version.mjs && pnpm -r --parallel --if-present --filter @stumpcast/server --filter @stumpcast/admin --filter @stumpcast/overlay run dev",
     "dev:desktop": "pnpm --filter @stumpcast/desktop dev",
-    "build": "pnpm -r --if-present run build",
+    "build": "node scripts/sync-version.mjs && pnpm -r --if-present run build",
     "test": "vitest run",
     "lint": "eslint .",
     "format": "prettier --write .",
