@@ -204,9 +204,45 @@ describe('Pro Look 2 stage', () => {
         t20.batters[1],
       ],
     });
-    expect(stage.querySelector('.pl2-pcard img')).toBeNull();
+    // The card legitimately carries the portrait <img>; what must not exist is the injected one.
+    expect(stage.querySelector('.pl2-pcard img[src="x"]')).toBeNull();
+    expect(stage.querySelector('.pl2-pcard img[onerror]')).toBeNull();
     expect(stage.querySelector<HTMLElement>('[data-bind="striker-name"]')!.textContent!.toLowerCase()).toContain('<img src=x');
     expect(stage.querySelectorAll('[data-bind="striker-name"]')).toHaveLength(1);
+  });
+
+  it('uses the uploaded player photo over the drawn fallback', () => {
+    const stage = document.createElement('div');
+    const pl2 = new ProLook2Stage();
+    pl2.mount(stage, pl2Look);
+    pl2.update(t20);
+    const host = stage.querySelector<HTMLElement>('[data-photo="striker"]')!;
+    const img = host.querySelector('img');
+    expect(img?.getAttribute('src')).toContain(`/assets/players/${encodeURIComponent(t20.batters[0].playerId)}.webp`);
+
+    // A wicket brings a new batter: the portrait has to follow the id, not stay on the old face.
+    const nextBatter = { ...t20.batters[1], playerId: 'new-batter', name: 'New Batter', onStrike: true };
+    pl2.update({ ...t20, batters: [nextBatter, { ...t20.batters[0], onStrike: false }] });
+    expect(stage.querySelector<HTMLElement>('[data-photo="striker"]')!.querySelector('img')?.getAttribute('src')).toContain('new-batter');
+  });
+
+  it('re-homes the CAM 1 monitor into the design and returns it on look switch', () => {
+    const stage = document.createElement('div');
+    const frame = new StreamFrame();
+    frame.mount(stage, pl2Look);
+    const pl2 = new ProLook2Stage();
+    pl2.mount(stage, pl2Look);
+    pl2.update(t20);
+
+    pl2.attachCamera(frame);
+    const win = stage.querySelector<HTMLElement>('[data-pl2-cam]')!;
+    expect(win.querySelector('.sf-cam-1')).not.toBeNull();
+
+    frame.setCameraMode('one');
+    expect(win.dataset.camMode).toBe('one');
+
+    pl2.attachCamera(null);
+    expect(stage.querySelector('.c-stream-frame .sf-cam-container .sf-cam-1')).not.toBeNull();
   });
 });
 

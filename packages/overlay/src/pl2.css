@@ -378,3 +378,72 @@
 #stage .pl2-pcard-body {
   min-height: 0;
 }
+/* Player portraits: the drawn cricketer stays as the fallback under a real uploaded photo. */
+#stage .pl2-photo {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+#stage .pl2-photo svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+#stage .pl2-photo.has-image svg {
+  display: none;
+}
+#stage .pl2-round-badge,
+#stage .pl2-square-badge {
+  position: relative;
+}
+/* The camera monitor is re-homed into this window, so the window owns the placement. */
+#stage .pl2-cam-window {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+#stage .pl2-cam-placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+}
+#stage .pl2-cam-window .sf-cam-1 {
+  position: absolute;
+  inset: 0;
+  width: auto;
+  height: auto;
+  border: 0;
+  border-radius: 0;
+}
+#stage .pl2-cam-window[data-cam-mode='none'] .sf-cam-1 {
+  display: none;
+}
+#stage .pl2-cam-window[data-cam-mode='one'] .pl2-cam-placeholder,
+#stage .pl2-cam-window[data-cam-mode='two'] .pl2-cam-placeholder {
+  display: none;
+}
+/* The standby slate is gated on the stream frame's own mode attributes, which stop matching once
+   the monitor is re-homed; the window carries the mode instead. Sized for the small window. */
+#stage .pl2-cam-window[data-cam-mode='one'] .sf-cam-1:not(.is-live) .sf-cam-slate,
+#stage .pl2-cam-window[data-cam-mode='two'] .sf-cam-1:not(.is-live) .sf-cam-slate {
+  display: flex;
+}
+#stage .pl2-cam-window[data-cam-mode='one'] .sf-cam-1:not(.is-live) .sf-cam-1-video,
+#stage .pl2-cam-window[data-cam-mode='two'] .sf-cam-1:not(.is-live) .sf-cam-1-video {
+  opacity: 0.14;
+  filter: grayscale(1) contrast(0.7);
+}
+#stage .pl2-cam-window .sf-cam-slate strong {
+  font-size: 22px;
+}
+#stage .pl2-cam-window .sf-cam-slate span {
+  font-size: 7px;
+}

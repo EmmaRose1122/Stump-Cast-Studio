@@ -19,6 +19,7 @@ export class StreamFrame extends OverlayComponent {
   private cameraMode: 'none' | 'one' | 'two' = 'none';
   /** Look-gallery frames show the camera monitor without opening a real webcam. */
   private designPreview = false;
+  private cameraHost: HTMLElement | null = null;
   /** A permission prompt can take seconds; settings updates must not open a second request. */
   private starting = false;
   private startingSecond = false;
@@ -186,8 +187,26 @@ export class StreamFrame extends OverlayComponent {
     this.syncCamera();
   }
 
+  /**
+   * Re-home the CAM 1 monitor into another element. Pro Look 2 draws its own camera window, and
+   * the operator expects the feed inside that window rather than a picture-in-picture over the
+   * video. Passing `null` puts the monitor back into the stream frame.
+   */
+  attachCameraTo(host: HTMLElement | null): void {
+    this.cameraHost = host;
+    if (host) {
+      if (this.cam1Box.parentElement !== host) host.append(this.cam1Box);
+    } else if (this.cam1Box.parentElement !== this.camContainer) {
+      this.camContainer.append(this.cam1Box);
+    }
+    this.syncCamera();
+  }
+
   private syncCamera(): void {
-    this.root.dataset.cameraMode = this.designPreview ? 'one' : this.cameraMode;
+    const mode = this.designPreview ? 'one' : this.cameraMode;
+    this.root.dataset.cameraMode = mode;
+    // The host keeps the mode because the CSS that reveals the monitor keys off an ancestor.
+    if (this.cameraHost) this.cameraHost.dataset.camMode = mode;
     if (this.designPreview) this.root.dataset.designPreview = '1';
     else delete this.root.dataset.designPreview;
   }

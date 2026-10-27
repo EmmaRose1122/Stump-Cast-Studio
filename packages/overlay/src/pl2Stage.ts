@@ -1,4 +1,5 @@
 import { isProLook2, type BallEvent, type Look, type MatchState } from '@stumpcast/shared';
+import { assetUrl, attachImage } from './assets';
 import { OverlayComponent } from './component';
 
 /**
@@ -12,6 +13,7 @@ import { OverlayComponent } from './component';
  */
 
 interface Pl2Player {
+  playerId: string;
   name: string;
   runs: number;
   balls: number;
@@ -41,7 +43,15 @@ interface Pl2Board {
   tossNote: string;
   striker: Pl2Player;
   nonStriker: Pl2Player;
-  bowler: { name: string; wickets: number; runs: number; overs: string; dots: number; maidens: number };
+  bowler: {
+    playerId: string;
+    name: string;
+    wickets: number;
+    runs: number;
+    overs: string;
+    dots: number;
+    maidens: number;
+  };
 }
 
 const upper = (value: string): string => (value || '').toUpperCase();
@@ -114,9 +124,24 @@ export const boardFrom = (state: MatchState): Pl2Board => {
     tossNote: state.toss
       ? `${short(state.teams.find((t) => t.id === state.toss?.winnerTeamId) ?? batting)} OPT TO ${upper(state.toss.decision)}`
       : 'TOSS PENDING',
-    striker: { name: upper(striker.name), runs: striker.runs, balls: striker.balls, fours: striker.fours, sixes: striker.sixes },
-    nonStriker: { name: upper(partner.name), runs: partner.runs, balls: partner.balls, fours: partner.fours, sixes: partner.sixes },
+    striker: {
+      playerId: striker.playerId,
+      name: upper(striker.name),
+      runs: striker.runs,
+      balls: striker.balls,
+      fours: striker.fours,
+      sixes: striker.sixes,
+    },
+    nonStriker: {
+      playerId: partner.playerId,
+      name: upper(partner.name),
+      runs: partner.runs,
+      balls: partner.balls,
+      fours: partner.fours,
+      sixes: partner.sixes,
+    },
     bowler: {
+      playerId: state.bowler.playerId,
       name: upper(state.bowler.name),
       wickets: state.bowler.wkts,
       runs: state.bowler.runs,
@@ -310,11 +335,14 @@ const playerCard = (
   const bodyGrad = isBowler
     ? 'linear-gradient(90deg, #450a0a 0%, var(--look-bowler-card-bg) 100%)'
     : 'linear-gradient(90deg, #081d30 0%, var(--look-card-bg) 100%)';
+  // The photo slot keeps the drawn cricketer as its fallback; the real asset is layered on top
+  // after paint, so a missing upload still reads as a designed card instead of an empty frame.
+  const portrait = `<span class="pl2-photo" data-photo="${roleKey}">${headSvg()}</span>`;
   const photo = badge.startsWith('round')
-    ? `<div class="pl2-round-badge">${headSvg()}</div>`
+    ? `<div class="pl2-round-badge">${portrait}</div>`
     : badge.startsWith('square')
-      ? `<div class="pl2-square-badge">${headSvg()}</div>`
-      : `<div class="pl2-cutout-wrap">${headSvg()}</div>`;
+      ? `<div class="pl2-square-badge">${portrait}</div>`
+      : `<div class="pl2-cutout-wrap">${portrait}</div>`;
   return `
     <div class="pl2-pcard" data-role="${roleKey}" style="background:${bodyGrad};">
       <div class="pl2-role-tab ${photoRight ? 'tab-left' : 'tab-right'}" style="background:${tabBg}; color:${tabTxt};">${label}</div>
@@ -397,16 +425,22 @@ const statCellHtml = (label: string, value: string): string => `
     <div style="height:44px; display:flex; align-items:center; justify-content:center; font-size:28px; font-weight:900; color:var(--look-cell-txt);">${value}</div>
   </div>`;
 
-/** The designed CAM 1 monitor. The real feed lives in the big video slot, so this stays decorative. */
+/**
+ * The designed CAM 1 monitor. The live camera monitor is re-homed into `[data-pl2-cam]` by the
+ * StreamFrame, so the operator's camera shows inside this window; the placeholder stays for a
+ * studio with no camera switched on.
+ */
 const camBox = (): string => `
-  <div style="height:184px; border-radius:5px; border:1.5px solid var(--look-accent); background:#0c1526; display:flex; flex-direction:column; justify-content:space-between; overflow:hidden; box-shadow:0 6px 16px rgba(0,0,0,0.6);">
-    <div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; color:#64748b;">
-      <svg viewBox="0 0 24 24" style="width:28px; height:28px; margin-bottom:4px; stroke:currentColor;" fill="none" stroke-width="1.8">
-        <rect x="2" y="6" width="14" height="12" rx="2"/><polygon points="16,10 22,7 22,17 16,14"/>
-      </svg>
-      <span style="font-size:12px; font-weight:800; letter-spacing:0.08em;">CAM 1</span>
+  <div style="height:184px; border-radius:5px; border:1.5px solid var(--look-accent); background:#0c1526; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 6px 16px rgba(0,0,0,0.6);">
+    <div class="pl2-cam-window" data-pl2-cam>
+      <div class="pl2-cam-placeholder">
+        <svg viewBox="0 0 24 24" style="width:28px; height:28px; margin-bottom:4px; stroke:currentColor;" fill="none" stroke-width="1.8">
+          <rect x="2" y="6" width="14" height="12" rx="2"/><polygon points="16,10 22,7 22,17 16,14"/>
+        </svg>
+        <span style="font-size:12px; font-weight:800; letter-spacing:0.08em;">CAM 1</span>
+      </div>
     </div>
-    <div style="height:26px; padding:0 10px; background:linear-gradient(90deg, var(--look-secondary) 0%, #091929 100%); border-top:1px solid var(--look-accent-alpha); display:flex; align-items:center; gap:6px;">
+    <div style="height:26px; padding:0 10px; background:linear-gradient(90deg, var(--look-secondary) 0%, #091929 100%); border-top:1px solid var(--look-accent-alpha); display:flex; align-items:center; gap:6px; flex-shrink:0;">
       <span style="width:6px; height:6px; border-radius:50%; background:var(--look-accent);"></span>
       <span style="font-size:11.5px; font-weight:800; letter-spacing:0.06em; color:#ffffff;">STREAMER 1</span>
     </div>
@@ -619,9 +653,9 @@ export const emptyBoard = (): Pl2Board => ({
   lastOv: '—',
   proj: '—',
   tossNote: 'TOSS PENDING',
-  striker: { name: '—', runs: 0, balls: 0, fours: 0, sixes: 0 },
-  nonStriker: { name: '—', runs: 0, balls: 0, fours: 0, sixes: 0 },
-  bowler: { name: '—', wickets: 0, runs: 0, overs: '0.0', dots: 0, maidens: 0 },
+  striker: { playerId: '', name: '—', runs: 0, balls: 0, fours: 0, sixes: 0 },
+  nonStriker: { playerId: '', name: '—', runs: 0, balls: 0, fours: 0, sixes: 0 },
+  bowler: { playerId: '', name: '—', wickets: 0, runs: 0, overs: '0.0', dots: 0, maidens: 0 },
 });
 
 /** Every `data-bind` leaf the stage paints, keyed by its bind name. */
@@ -676,21 +710,30 @@ export const bindingsFor = (b: Pl2Board): Record<string, string> => ({
   'proj-d': String((parseInt(b.proj, 10) || 0) + 66),
 });
 
-/** The three ball-chip strips differ in size and in how many balls they show. */const chipStrip = (bind: string, balls: string[]): string => {
+/** The three ball-chip strips differ in size and in how many balls they show. */
+const chipStrip = (bind: string, balls: string[]): string => {
   if (bind === 'over-balls') return ballChips(balls, 32);
   if (bind === 'over-balls-sm') return ballChips(balls, 27);
   return ballChips(balls.slice(1), 28);
 };
 
+/** The camera API this stage needs; keeps the renderer free of the StreamFrame import cycle. */
+export interface Pl2CameraHost {
+  element: HTMLElement;
+  attachCameraTo(host: HTMLElement | null): void;
+}
+
 /**
- * The Pro Look 2 stage component. `attachVideo` hands over the shared StreamFrame element so the
- * camera feed, LIVE badge and standby slate behave exactly as they do in every other look.
+ * The Pro Look 2 stage component. `attachVideo` hands over the shared StreamFrame element and
+ * `attachCamera` re-homes its CAM 1 monitor into this design's camera window.
  */
 export class ProLook2Stage extends OverlayComponent {
   protected override readonly alwaysVisible = true;
   private board: Pl2Board = emptyBoard();
   private builtFor: string | null = null;
   private video: HTMLElement | null = null;
+  private camera: Pl2CameraHost | null = null;
+  private photoIds = '';
 
   protected build(): HTMLElement {
     const root = document.createElement('div');
@@ -703,9 +746,16 @@ export class ProLook2Stage extends OverlayComponent {
     if (el) this.placeVideo();
   }
 
+  attachCamera(frame: Pl2CameraHost | null): void {
+    if (this.camera && this.camera !== frame) this.camera.attachCameraTo(null);
+    this.camera = frame;
+    this.placeCamera();
+  }
+
   override setLook(look: Look): void {
     super.setLook(look);
     this.builtFor = null;
+    this.photoIds = '';
     this.paint();
   }
 
@@ -721,11 +771,41 @@ export class ProLook2Stage extends OverlayComponent {
     for (const [k, v] of Object.entries(pl2Vars(this.look))) this.root.style.setProperty(k, v);
     this.root.innerHTML = pl2StageHtml(this.look, this.board);
     this.placeVideo();
+    this.placeCamera();
+    this.photoIds = '';
+    this.syncPhotos();
   }
 
   private placeVideo(): void {
     const slot = this.root?.querySelector<HTMLElement>('[data-pl2-video]');
     if (slot && this.video) slot.append(this.video);
+  }
+
+  private placeCamera(): void {
+    const host = this.root?.querySelector<HTMLElement>('[data-pl2-cam]') ?? null;
+    if (this.camera) this.camera.attachCameraTo(host);
+  }
+
+  /**
+   * Player photos come from the same asset store the arena cards use. A missing file removes the
+   * `<img>` and leaves the drawn cricketer, so an un-uploaded squad still looks like a broadcast.
+   */
+  private syncPhotos(): void {
+    if (!this.root) return;
+    const ids = [this.board.striker.playerId, this.board.nonStriker.playerId, this.board.bowler.playerId].join('|');
+    if (ids === this.photoIds) return;
+    this.photoIds = ids;
+    const players: Record<string, { playerId: string }> = {
+      striker: this.board.striker,
+      nonstriker: this.board.nonStriker,
+      bowler: this.board.bowler,
+    };
+    for (const host of Array.from(this.root.querySelectorAll<HTMLElement>('[data-photo]'))) {
+      const player = players[host.dataset.photo ?? ''];
+      host.querySelector('img')?.remove();
+      host.classList.remove('has-image');
+      if (player?.playerId) attachImage(host, assetUrl('players', player.playerId));
+    }
   }
 
   private patch(): void {
@@ -740,5 +820,6 @@ export class ProLook2Stage extends OverlayComponent {
       const next = values[key];
       if (next !== undefined && el.textContent !== next) el.textContent = next;
     }
+    this.syncPhotos();
   }
 }

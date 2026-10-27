@@ -264,6 +264,7 @@ const zoneOrder = [zones.main, zones.left, zones.right, zones.bottom, zones.top]
 const syncPl2Stage = (active: Look): void => {
   if (!isProLook2(active)) {
     delete stageEl.dataset.pl2;
+    pl2Stage.attachCamera(null);
     pl2Stage.attachVideo(null);
     for (const zone of zoneOrder) if (zone.parentElement !== stageEl) stageEl.append(zone);
     if (playerBand.parentElement !== stageEl) stageEl.append(playerBand);
@@ -274,6 +275,7 @@ const syncPl2Stage = (active: Look): void => {
   for (const zone of zoneOrder) if (!zone.classList.contains('zone-card')) pl2Park.append(zone);
   pl2Park.append(playerBand);
   pl2Stage.attachVideo(streamFrame.element);
+  pl2Stage.attachCamera(streamFrame);
 };
 
 /**
