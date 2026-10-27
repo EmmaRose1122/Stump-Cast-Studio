@@ -1,5 +1,5 @@
-import type { MatchState } from '@stumpcast/shared';
-import { assetUrl, attachImage } from '../assets';
+import { slug, type MatchState } from '@stumpcast/shared';
+import { attachPlayerPhoto } from '../assets';
 import { OverlayComponent } from '../component';
 import { economyRate, strikeRate } from '../format';
 
@@ -42,14 +42,13 @@ const makeCard = (): CardRefs => {
 
 /** Set the photo only when its source changed: avoids flashing initials on every score update. */
 const setPhoto = (c: CardRefs, playerId: string, name: string): void => {
-  const url = assetUrl('players', playerId);
-  const key = `${playerId}|${url}`;
+  const key = `${playerId}|${name}`;
   if (c.photoKey === key) return;
   c.photoKey = key;
   c.photo.replaceChildren();
   c.photo.classList.remove('has-image');
   c.photo.textContent = initials(name);
-  attachImage(c.photo, url);
+  attachPlayerPhoto(c.photo, [playerId, slug(name)]);
 };
 
 /** Both batters. The photo slot falls back to initials until an image has been uploaded. */

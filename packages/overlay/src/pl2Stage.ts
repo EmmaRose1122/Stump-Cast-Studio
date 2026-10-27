@@ -1,5 +1,5 @@
-import { isProLook2, type BallEvent, type Look, type MatchState } from '@stumpcast/shared';
-import { assetUrl, attachImage } from './assets';
+import { isProLook2, slug, type BallEvent, type Look, type MatchState } from '@stumpcast/shared';
+import { attachPlayerPhoto } from './assets';
 import { OverlayComponent } from './component';
 
 /**
@@ -855,7 +855,7 @@ export class ProLook2Stage extends OverlayComponent {
     const ids = [this.board.striker.playerId, this.board.nonStriker.playerId, this.board.bowler.playerId].join('|');
     if (ids === this.photoIds) return;
     this.photoIds = ids;
-    const players: Record<string, { playerId: string }> = {
+    const players: Record<string, { playerId: string; name: string }> = {
       striker: this.board.striker,
       nonstriker: this.board.nonStriker,
       bowler: this.board.bowler,
@@ -864,7 +864,7 @@ export class ProLook2Stage extends OverlayComponent {
       const player = players[host.dataset.photo ?? ''];
       host.querySelector('img')?.remove();
       host.classList.remove('has-image');
-      if (player?.playerId) attachImage(host, assetUrl('players', player.playerId));
+      if (player) attachPlayerPhoto(host, [player.playerId, slug(player.name)]);
     }
   }
 

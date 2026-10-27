@@ -471,6 +471,14 @@ export const VideoPage = () => {
     setAudioLevel(0);
   }, []);
 
+  /** Releasing only the local preview leaves cameraMode on `one`, so every overlay keeps the feed. */
+  const stopCameraEverywhere = useCallback(() => {
+    stopWebcam();
+    setCameraHostCount('none');
+    saveVideo.mutate({ cameraMode: 'none' });
+    toast({ title: 'Camera stopped — Cam 1 feed is off in every window', kind: 'info' });
+  }, [saveVideo, stopWebcam, toast]);
+
   const startWebcam = useCallback(async (devId?: string) => {
     try {
       stopWebcam();
@@ -1439,7 +1447,7 @@ export const VideoPage = () => {
                   </button>
                 ) : (
                   <button
-                    onClick={stopWebcam}
+                    onClick={stopCameraEverywhere}
                     className="rounded-lg bg-rose-600 px-4 py-1.5 text-xs font-bold text-white uppercase hover:bg-rose-500 transition shadow-sm flex items-center gap-1.5 cursor-pointer"
                   >
                     <span>⏹</span> Stop Camera
@@ -1519,11 +1527,15 @@ export const VideoPage = () => {
                       onChange={(e) => {
                         const checked = e.target.checked;
                         setRouteToCam1(checked);
-                        const newMode = checked ? 'one' : 'none';
-                        setCameraHostCount(newMode);
-                        saveVideo.mutate({ cameraMode: newMode });
+                        if (!checked) {
+                          // Unrouting has to stop the local monitor as well as the on-air feed.
+                          stopCameraEverywhere();
+                          return;
+                        }
+                        setCameraHostCount('one');
+                        saveVideo.mutate({ cameraMode: 'one' });
                         toast({
-                          title: checked ? 'WebCam Routed to Cam 1 & Broadcast' : 'Cam 1 Turned Off',
+                          title: 'WebCam Routed to Cam 1 & Broadcast',
                           kind: 'info',
                         });
                       }}

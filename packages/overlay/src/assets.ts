@@ -25,6 +25,42 @@ export const assetUrl = (kind: 'players' | 'teams', id: string): string => {
 };
 
 /**
+ * A player photo with every fallback the store can hold: the live feed's id first, the name slug
+ * second (the scraper and the asset library do not always agree), and webp → png → svg for each.
+ * A feed that only carries `unknown-batter-1` still ends up on the drawn fallback instead of a
+ * broken image, and a photo filed under the player's name is still found.
+ */
+export const attachPlayerPhoto = (host: HTMLElement, ids: string[]): void => {
+  const slots = [...new Set(ids.filter((id) => !!id))];
+  const candidates: string[] = [];
+  for (const ext of ['webp', 'png', 'svg']) {
+    for (const id of slots) {
+      const v = ext === 'webp' ? versions.get(id) : undefined;
+      candidates.push(`${location.origin}/assets/players/${encodeURIComponent(id)}.${ext}${v ? `?v=${v}` : ''}`);
+    }
+  }
+  const next = (i: number): void => {
+    if (i >= candidates.length) return;
+    const img = document.createElement('img');
+    img.alt = '';
+    img.decoding = 'async';
+    img.className = 'asset-img';
+    img.style.display = 'none';
+    img.addEventListener('load', () => {
+      img.style.display = '';
+      host.classList.add('has-image');
+    });
+    img.addEventListener('error', () => {
+      img.remove();
+      next(i + 1);
+    });
+    img.src = candidates[i]!;
+    host.append(img);
+  };
+  next(0);
+};
+
+/**
  * Layer an image over a text fallback (initials, a letter). If the file does not exist the
  * request fails quietly and the fallback stays, so a missing photo never shows a broken icon.
  * Handles both local asset URLs and external URLs (Cricbuzz, Crex) with CORS support.
