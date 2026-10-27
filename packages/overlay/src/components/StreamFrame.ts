@@ -163,8 +163,9 @@ export class StreamFrame extends OverlayComponent {
 
   setCameraMode(mode: 'none' | 'one' | 'two'): void {
     this.cameraMode = mode;
-    // A real camera choice always wins over the gallery slate.
-    if (mode !== 'none') this.designPreview = false;
+    // A real camera choice always wins over the gallery slate — including switching the feed off.
+    // Otherwise a design-review frame kept advertising a camera the operator had just turned off.
+    this.designPreview = false;
     this.syncCamera();
     if (mode === 'none') {
       this.stopCameraFeed();

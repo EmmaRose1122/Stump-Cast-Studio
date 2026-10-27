@@ -17,6 +17,11 @@
     --look-main-txt: #ffffff;
     --look-score-txt: #ffffff;
     --look-yet-txt: #fde047;
+    --look-bg: #080e1a;
+    --look-panel: #0c1220;
+    --look-panel-deep: #080e1a;
+    --look-wing-shade: #081c2e;
+    --look-rival-shade: #450a0a;
     width: 1280px;
     height: 720px;
     position: relative;
@@ -24,7 +29,12 @@
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    background-color: #080e1a;
+    /* Each package tints the operator's stadium with its own deep tone, so the picture around the
+       graphics reads differently from look to look without hiding the live backdrop. */
+    background-color: transparent;
+    background-image:
+      radial-gradient(ellipse at 50% 0%, color-mix(in srgb, var(--look-panel) 34%, transparent), transparent 62%),
+      linear-gradient(180deg, color-mix(in srgb, var(--look-bg) 20%, transparent), color-mix(in srgb, var(--look-bg) 8%, transparent));
     background-size: cover;
     background-position: center;
     font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif;
@@ -76,7 +86,7 @@
     justify-content: space-between;
     border-radius: 6px;
     overflow: hidden;
-    background: #0c1220;
+    background: var(--look-panel-deep);
     border-bottom: 2.5px solid var(--look-accent);
     border-top: 1.5px solid var(--look-accent-alpha);
     box-shadow: 0 8px 24px rgba(0,0,0,0.65);
@@ -446,4 +456,142 @@
 }
 #stage .pl2-cam-window .sf-cam-slate span {
   font-size: 7px;
+}
+/* ---- Ambient motion ----------------------------------------------------------------
+   One continuous effect per package, chosen from the entrance language the look already
+   declares. Slow, low-contrast and pointer-transparent: the graphics stay readable, but the
+   frame is never completely still while a match is on air.
+*/
+.pl2-canvas::before,
+.pl2-canvas::after,
+.pl2-scorebar-wrap::after,
+.pl2-pod::after,
+.pl2-cam-window::after {
+  content: '';
+  position: absolute;
+  pointer-events: none;
+}
+
+/* Light band travelling across the score bar. */
+.pl2-canvas[data-ambient='sheen'] .pl2-scorebar-wrap::after,
+.pl2-canvas[data-ambient='sheen'] .pl2-pod::after {
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 38%;
+  background: linear-gradient(100deg, transparent 0%, rgba(255, 255, 255, 0.3) 50%, transparent 100%);
+  transform: translateX(-140%) skewX(-12deg);
+  animation: pl2-amb-sheen 6.5s ease-in-out infinite;
+  z-index: 30;
+}
+@keyframes pl2-amb-sheen {
+  0%, 55% { transform: translateX(-140%) skewX(-12deg); opacity: 0; }
+  62% { opacity: 1; }
+  100% { transform: translateX(320%) skewX(-12deg); opacity: 0; }
+}
+
+/* Accent glow breathing along the bar's edges. */
+.pl2-canvas[data-ambient='pulse'] .pl2-scorebar-wrap::after,
+.pl2-canvas[data-ambient='pulse'] .pl2-pod::after {
+  inset: 0;
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--look-accent) 55%, transparent),
+    inset 0 -12px 32px color-mix(in srgb, var(--look-accent) 45%, transparent);
+  animation: pl2-amb-pulse 3.6s ease-in-out infinite;
+  z-index: 30;
+}
+@keyframes pl2-amb-pulse {
+  0%, 100% { opacity: 0.25; }
+  50% { opacity: 0.9; }
+}
+
+/* Scanline drifting over the camera monitor. */
+.pl2-canvas[data-ambient='scan'] .pl2-cam-window::after {
+  left: 0;
+  right: 0;
+  height: 26%;
+  top: 0;
+  background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--look-accent) 45%, transparent), transparent);
+  animation: pl2-amb-scan 4.2s linear infinite;
+  z-index: 3;
+}
+@keyframes pl2-amb-scan {
+  0% { transform: translateY(-110%); opacity: 0; }
+  15% { opacity: 1; }
+  85% { opacity: 1; }
+  100% { transform: translateY(420%); opacity: 0; }
+}
+
+/* Wide soft light sweeping the whole package. */
+.pl2-canvas[data-ambient='sweep']::after {
+  inset: -20%;
+  background: linear-gradient(115deg, transparent 40%, rgba(255, 255, 255, 0.16) 50%, transparent 60%);
+  transform: translateX(-70%);
+  animation: pl2-amb-sweep 9s ease-in-out infinite;
+  z-index: 25;
+}
+@keyframes pl2-amb-sweep {
+  0%, 68% { transform: translateX(-70%); opacity: 0; }
+  76% { opacity: 1; }
+  100% { transform: translateX(70%); opacity: 0; }
+}
+
+/* Flare blooming and drifting above the score bar. */
+.pl2-canvas[data-ambient='orbit']::before {
+  top: -70px;
+  left: 50%;
+  width: 620px;
+  height: 260px;
+  margin-left: -310px;
+  background: radial-gradient(ellipse at 50% 50%, color-mix(in srgb, var(--look-accent) 55%, transparent), transparent 66%);
+  filter: blur(6px);
+  animation: pl2-amb-orbit 7.5s ease-in-out infinite;
+  z-index: 4;
+}
+@keyframes pl2-amb-orbit {
+  0%, 100% { transform: translateX(-14%) scale(0.9); opacity: 0.25; }
+  50% { transform: translateX(14%) scale(1.08); opacity: 0.7; }
+}
+
+/* Gentle vignette breathing around the package. */
+.pl2-canvas[data-ambient='breathe']::after {
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 50%, transparent 52%, color-mix(in srgb, var(--look-panel) 60%, transparent) 100%);
+  animation: pl2-amb-breathe 6s ease-in-out infinite;
+  z-index: 24;
+}
+@keyframes pl2-amb-breathe {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.8; }
+}
+
+/* A delivery that changes the score gets a brief flare on the number, so the eye is pulled to
+   the only figure a viewer actually looks for. */
+.pl2-canvas [data-bind='team1-score'] {
+  display: inline-block;
+}
+.pl2-canvas.is-score-flash [data-bind='team1-score'] {
+  animation: pl2-score-flash 0.75s ease-out;
+}
+@keyframes pl2-score-flash {
+  0% { transform: scale(1); text-shadow: 0 2px 6px rgba(0, 0, 0, 0.45); }
+  18% {
+    transform: scale(1.14);
+    text-shadow:
+      0 0 16px var(--look-accent),
+      0 0 38px color-mix(in srgb, var(--look-accent) 75%, transparent);
+  }
+  100% { transform: scale(1); text-shadow: 0 2px 6px rgba(0, 0, 0, 0.45); }
+}
+
+/* Each pod clips its own sheen; the container is left unclipped so the pod shadows survive. */
+.pl2-pod {
+  position: relative;
+  overflow: hidden;
+}
+/* Camera switched off: no monitor, no slate, no placeholder. The rail closes up instead of
+   leaving a dead frame on air — the same rule covers the studio preview, the pop-out and the
+   OBS window, because all three read the same setting. */
+#stage .pl2-stage[data-cam-mode='none'] .pl2-cam-box {
+  display: none !important;
 }

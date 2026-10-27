@@ -285,7 +285,11 @@ const syncPl2Stage = (active: Look): void => {
  * often arrives after mount (the look catalogue loads over HTTP), so this runs on every change.
  */
 const syncDesignPreview = (look: Look): void => {
-  if (params.preview && params.look && look.plan === 'pro') streamFrame.showDesignPreview();
+  if (!params.preview || !params.look || look.plan !== 'pro') return;
+  // The slate exists so a wall of gallery frames never opens a webcam per card. It must never
+  // resurrect a camera monitor the operator has switched off.
+  if (store.get().settings.video.cameraMode === 'none') return;
+  streamFrame.showDesignPreview();
 };
 
 const look = store.get().look;
@@ -306,6 +310,7 @@ upgradePopup.mount(stageEl, look);
 dataBadge.mount(stageEl, look);
 streamFrame.mount(stageEl, look);
 streamFrame.setCameraMode(store.get().settings.video.cameraMode);
+pl2Stage.setCameraMode(store.get().settings.video.cameraMode);
 syncDesignPreview(store.get().look);
 scorePop.mount(stageEl, look);
 // The ball-by-ball pop-up owns the same band as the player cards, so whichever is not on air steps
@@ -452,6 +457,7 @@ store.subscribe((s, prev) => {
     applyTvTheme(stageEl, s.settings.video.tvTheme);
     applyOnAirScreen(stageEl, s.settings.onAirScreen);
     streamFrame.setCameraMode(s.settings.video.cameraMode);
+    pl2Stage.setCameraMode(s.settings.video.cameraMode);
     preMatchScreen.setScene(s.settings.preMatch?.scene ?? 'auto');
     if (s.settings.layout === 'arena') {
       zones.right.append(winProb.element);

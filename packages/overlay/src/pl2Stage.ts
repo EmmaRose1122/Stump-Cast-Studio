@@ -167,15 +167,22 @@ export const pl2Vars = (look: Look): Record<string, string> => {
     '--look-accent-alpha': `${accent}88`,
     '--look-secondary': c.secondary ?? c.accent2 ?? '#0e7490',
     '--look-rival-bg': c.rival ?? '#b91c1c',
+    // Per-design surface tones: each package carries its own deep panel colour, so two looks
+    // never read as the same navy behind the graphics.
+    '--look-bg': c.bg ?? '#080e1a',
+    '--look-panel': c.panel ?? '#0c1220',
+    '--look-panel-deep': c.panelDeep ?? '#080e1a',
+    '--look-wing-shade': c.wingShade ?? '#081c2e',
+    '--look-rival-shade': c.rivalShade ?? '#450a0a',
     '--look-card-bg': c.card ?? '#0e6482',
     '--look-bowler-card-bg': c.bowlerCard ?? '#991b1b',
     '--look-thisball-bg': isLed ? '#090d16' : '#ffffff',
     '--look-thisball-txt': isLed ? accent : '#0f172a',
-    '--look-cell-bg': isDarkCells ? '#0b1424' : '#ffffff',
+    '--look-cell-bg': isDarkCells ? 'var(--look-panel-deep)' : '#ffffff',
     '--look-cell-txt': isLed ? accent : isDarkCells ? '#ffffff' : '#0f172a',
     '--look-hdr-bg': theme === 'mono-light' ? '#09090b' : accent,
     '--look-hdr-txt': theme === 'mono-light' ? '#ffffff' : '#090d16',
-    '--look-footer-bg': isWhite ? '#f1f5f9' : '#070b12',
+    '--look-footer-bg': isWhite ? '#f1f5f9' : 'var(--look-panel-deep)',
     '--look-footer-lbl': isWhite ? '#475569' : '#94a3b8',
     '--look-footer-val': isWhite ? '#0f172a' : '#ffffff',
     '--look-main-txt': isWhite ? '#0f172a' : '#ffffff',
@@ -290,13 +297,13 @@ const scoreBar = (look: Look, b: Pl2Board): string => {
     const leftBg = isWhite
       ? '#ffffff'
       : battingLeft
-        ? 'linear-gradient(90deg, #091e30 0%, var(--look-secondary) 100%)'
-        : 'linear-gradient(90deg, var(--look-rival-bg) 0%, #111827 100%)';
+        ? 'linear-gradient(90deg, var(--look-panel-deep) 0%, var(--look-secondary) 100%)'
+        : 'linear-gradient(90deg, var(--look-rival-bg) 0%, var(--look-rival-shade) 100%)';
     const rightBg = isWhite
       ? '#ffffff'
       : battingLeft
-        ? 'linear-gradient(90deg, var(--look-rival-bg) 0%, #450a0a 100%)'
-        : 'linear-gradient(90deg, #111827 0%, var(--look-secondary) 100%)';
+        ? 'linear-gradient(90deg, var(--look-rival-bg) 0%, var(--look-rival-shade) 100%)'
+        : 'linear-gradient(90deg, var(--look-panel-deep) 0%, var(--look-secondary) 100%)';
     return `
       <div class="pl2-scorebar-floating">
         <div class="pl2-pod" style="background:${leftBg}; justify-content:flex-start;">${left}</div>
@@ -306,11 +313,11 @@ const scoreBar = (look: Look, b: Pl2Board): string => {
   }
 
   const leftWing = battingLeft
-    ? 'linear-gradient(90deg, #081c2e 0%, var(--look-secondary) 100%)'
-    : 'linear-gradient(90deg, #450a0a 0%, var(--look-rival-bg) 100%)';
+    ? 'linear-gradient(90deg, var(--look-wing-shade) 0%, var(--look-secondary) 100%)'
+    : 'linear-gradient(90deg, var(--look-rival-shade) 0%, var(--look-rival-bg) 100%)';
   const rightWing = battingLeft
-    ? 'linear-gradient(90deg, var(--look-rival-bg) 0%, #450a0a 100%)'
-    : 'linear-gradient(90deg, var(--look-secondary) 0%, #081c2e 100%)';
+    ? 'linear-gradient(90deg, var(--look-rival-bg) 0%, var(--look-rival-shade) 100%)'
+    : 'linear-gradient(90deg, var(--look-secondary) 0%, var(--look-wing-shade) 100%)';
   return `
     <div class="pl2-scorebar-wrap">
       <div class="pl2-wing-left" style="background:${leftWing};">${left}</div>
@@ -333,8 +340,8 @@ const playerCard = (
   const tabBg = isBowler ? 'var(--look-accent)' : '#ffffff';
   const tabTxt = isBowler ? '#090d16' : '#0f172a';
   const bodyGrad = isBowler
-    ? 'linear-gradient(90deg, #450a0a 0%, var(--look-bowler-card-bg) 100%)'
-    : 'linear-gradient(90deg, #081d30 0%, var(--look-card-bg) 100%)';
+    ? 'linear-gradient(90deg, var(--look-rival-shade) 0%, var(--look-bowler-card-bg) 100%)'
+    : 'linear-gradient(90deg, var(--look-panel-deep) 0%, var(--look-card-bg) 100%)';
   // The photo slot keeps the drawn cricketer as its fallback; the real asset is layered on top
   // after paint, so a missing upload still reads as a designed card instead of an empty frame.
   const portrait = `<span class="pl2-photo" data-photo="${roleKey}">${headSvg()}</span>`;
@@ -398,7 +405,7 @@ const statSidebar = (b: Pl2Board): string => `
         <span data-bind="this-ball-unit" style="font-size:26px; font-weight:900; line-height:1;">${b.thisBallUnit}</span>
       </div>
     </div>
-    <div style="border-radius:5px; border:1.5px solid var(--look-accent); background:linear-gradient(90deg, #0b2236 0%, #3b1219 100%); padding:6px 8px; box-shadow:0 6px 16px rgba(0,0,0,0.55);">
+    <div style="border-radius:5px; border:1.5px solid var(--look-accent); background:linear-gradient(90deg, var(--look-panel) 0%, var(--look-rival-shade) 100%); padding:6px 8px; box-shadow:0 6px 16px rgba(0,0,0,0.55);">
       <div style="display:flex; align-items:center; justify-content:space-between; font-size:11px; font-weight:800; color:#cbd5e1; margin-bottom:5px; letter-spacing:0.05em;">
         <span>THIS OVER</span><span data-bind="over-runs" style="color:#ffffff; font-size:13px;">${b.overRuns}</span>
       </div>
@@ -427,11 +434,11 @@ const statCellHtml = (label: string, value: string): string => `
 
 /**
  * The designed CAM 1 monitor. The live camera monitor is re-homed into `[data-pl2-cam]` by the
- * StreamFrame, so the operator's camera shows inside this window; the placeholder stays for a
- * studio with no camera switched on.
+ * StreamFrame, so the operator's camera shows inside this window. With the camera switched off
+ * the whole box is hidden by CSS — the design never advertises a feed that is not there.
  */
 const camBox = (): string => `
-  <div style="height:184px; border-radius:5px; border:1.5px solid var(--look-accent); background:#0c1526; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 6px 16px rgba(0,0,0,0.6);">
+  <div class="pl2-cam-box" style="height:184px; border-radius:5px; border:1.5px solid var(--look-accent); background:var(--look-panel-deep); display:flex; flex-direction:column; overflow:hidden; box-shadow:0 6px 16px rgba(0,0,0,0.6);">
     <div class="pl2-cam-window" data-pl2-cam>
       <div class="pl2-cam-placeholder">
         <svg viewBox="0 0 24 24" style="width:28px; height:28px; margin-bottom:4px; stroke:currentColor;" fill="none" stroke-width="1.8">
@@ -440,14 +447,14 @@ const camBox = (): string => `
         <span style="font-size:12px; font-weight:800; letter-spacing:0.08em;">CAM 1</span>
       </div>
     </div>
-    <div style="height:26px; padding:0 10px; background:linear-gradient(90deg, var(--look-secondary) 0%, #091929 100%); border-top:1px solid var(--look-accent-alpha); display:flex; align-items:center; gap:6px; flex-shrink:0;">
+    <div style="height:26px; padding:0 10px; background:linear-gradient(90deg, var(--look-secondary) 0%, var(--look-panel-deep) 100%); border-top:1px solid var(--look-accent-alpha); display:flex; align-items:center; gap:6px; flex-shrink:0;">
       <span style="width:6px; height:6px; border-radius:50%; background:var(--look-accent);"></span>
       <span style="font-size:11.5px; font-weight:800; letter-spacing:0.06em; color:#ffffff;">STREAMER 1</span>
     </div>
   </div>`;
 
 const matchCentre = (b: Pl2Board): string => `
-  <div style="height:178px; border-radius:5px; border:1.5px solid var(--look-accent); background:linear-gradient(135deg, #0b2436 0%, #4c1118 100%); padding:10px; display:flex; flex-direction:column; justify-content:space-between; box-shadow:0 6px 16px rgba(0,0,0,0.6);">
+  <div style="height:178px; border-radius:5px; border:1.5px solid var(--look-accent); background:linear-gradient(135deg, var(--look-panel) 0%, var(--look-rival-shade) 100%); padding:10px; display:flex; flex-direction:column; justify-content:space-between; box-shadow:0 6px 16px rgba(0,0,0,0.6);">
     <div style="font-size:13px; font-weight:900; letter-spacing:0.06em; color:var(--look-accent); border-bottom:1px solid rgba(255,255,255,0.14); padding-bottom:4px;">MATCH CENTRE</div>
     <div>
       <div style="display:flex; align-items:center; justify-content:space-between; font-size:10px; font-weight:800; color:#cbd5e1; margin-bottom:4px;">
@@ -547,7 +554,7 @@ const clusterStats = (b: Pl2Board): string => `
       </div>
     </div>
     <div style="display:flex; flex-direction:column; justify-content:space-between; gap:6px;">
-      <div style="height:54px; border-radius:5px; border:1.5px solid var(--look-accent); background:linear-gradient(90deg, #0b2236 0%, #3b1219 100%); padding:4px 8px; display:flex; flex-direction:column; justify-content:space-between;">
+      <div style="height:54px; border-radius:5px; border:1.5px solid var(--look-accent); background:linear-gradient(90deg, var(--look-panel) 0%, var(--look-rival-shade) 100%); padding:4px 8px; display:flex; flex-direction:column; justify-content:space-between;">
         <div style="display:flex; justify-content:space-between; font-size:10px; font-weight:800; color:#cbd5e1;">
           <span>THIS OVER</span><span data-bind="over-runs" style="color:#ffffff;">${b.overRuns}</span>
         </div>
@@ -611,6 +618,38 @@ const middleLayout = (look: Look, b: Pl2Board): string => {
     </div>`;
 };
 
+/**
+ * Each package keeps one continuous effect, chosen from the entrance language it already
+ * declares. Six families keep the set varied without inventing a second motion vocabulary.
+ */
+export type Pl2Ambient = 'sheen' | 'pulse' | 'scan' | 'sweep' | 'orbit' | 'breathe';
+
+const AMBIENT_BY_ENTRANCE: Record<string, Pl2Ambient> = {
+  slide: 'sheen',
+  'slide-right': 'sheen',
+  rise: 'sheen',
+  drop: 'sheen',
+  glitch: 'scan',
+  skew: 'scan',
+  stretch: 'scan',
+  iris: 'pulse',
+  zoom: 'pulse',
+  'zoom-out': 'pulse',
+  pop: 'pulse',
+  diamond: 'pulse',
+  spin: 'pulse',
+  blinds: 'sweep',
+  curtain: 'sweep',
+  unfold: 'sweep',
+  flip: 'orbit',
+  swing: 'orbit',
+  fade: 'breathe',
+  blur: 'breathe',
+};
+
+export const ambientFor = (entrance: string): Pl2Ambient =>
+  AMBIENT_BY_ENTRANCE[entrance] ?? 'sheen';
+
 /** The whole 1280x720 package for one look. */
 export const pl2StageHtml = (look: Look, b: Pl2Board): string => {
   const v = look.layoutVariant;
@@ -625,7 +664,8 @@ export const pl2StageHtml = (look: Look, b: Pl2Board): string => {
          data-badge-style="${v.broadcastBadgeStyle ?? 'cutout-left'}"
          data-team-order="${v.teamOrder}"
          data-stat-theme="${v.statTheme ?? 'light'}"
-         data-entrance="${entrance}">
+         data-entrance="${entrance}"
+         data-ambient="${ambientFor(entrance)}">
       <div class="pl2-row-score pl2-entrance" style="animation-name: pl2-anim-${entrance};">${scoreBar(look, b)}</div>
       <div class="pl2-row-middle">${middleLayout(look, b)}</div>
       <div class="pl2-row-players pl2-entrance" style="animation-name: pl2-anim-${entrance};">${playerRow(look, b)}</div>
@@ -733,12 +773,25 @@ export class ProLook2Stage extends OverlayComponent {
   private builtFor: string | null = null;
   private video: HTMLElement | null = null;
   private camera: Pl2CameraHost | null = null;
+  private cameraMode: 'none' | 'one' | 'two' = 'none';
   private photoIds = '';
+  private lastScore = '';
 
   protected build(): HTMLElement {
     const root = document.createElement('div');
     root.className = 'pl2-stage';
+    root.dataset.camMode = this.cameraMode;
     return root;
+  }
+
+  /**
+   * The operator's camera setting decides whether the package draws a camera window at all. With
+   * the feed switched off, this design must not leave a monitor, a standby slate or a placeholder
+   * on screen — "off" has to look off, in the studio preview, the pop-out and the OBS window.
+   */
+  setCameraMode(mode: 'none' | 'one' | 'two'): void {
+    this.cameraMode = mode;
+    if (this.root) this.root.dataset.camMode = mode;
   }
 
   attachVideo(el: HTMLElement | null): void {
@@ -768,8 +821,15 @@ export class ProLook2Stage extends OverlayComponent {
   private paint(): void {
     if (!this.root || !this.look || !isProLook2(this.look)) return;
     this.builtFor = this.look.id;
-    for (const [k, v] of Object.entries(pl2Vars(this.look))) this.root.style.setProperty(k, v);
+    const vars = pl2Vars(this.look);
+    for (const [k, v] of Object.entries(vars)) this.root.style.setProperty(k, v);
     this.root.innerHTML = pl2StageHtml(this.look, this.board);
+    // The base stylesheet also declares these tokens, so an inherited value from the wrapper is
+    // not enough — every look was quietly painting in the first design's palette. Set them on the
+    // canvas itself, where they beat the stylesheet's declarations.
+    const canvas = this.root.querySelector<HTMLElement>('.pl2-canvas');
+    if (canvas) for (const [k, v] of Object.entries(vars)) canvas.style.setProperty(k, v);
+    this.lastScore = `${this.board.runs}-${this.board.wickets}`;
     this.placeVideo();
     this.placeCamera();
     this.photoIds = '';
@@ -808,6 +868,19 @@ export class ProLook2Stage extends OverlayComponent {
     }
   }
 
+  /** A delivery that changes the score flares the number for three quarters of a second. */
+  private flashScore(): void {
+    const score = `${this.board.runs}-${this.board.wickets}`;
+    if (score === this.lastScore) return;
+    this.lastScore = score;
+    const canvas = this.root?.querySelector<HTMLElement>('.pl2-canvas');
+    if (!canvas) return;
+    canvas.classList.remove('is-score-flash');
+    void canvas.offsetWidth;
+    canvas.classList.add('is-score-flash');
+    window.setTimeout(() => canvas.classList.remove('is-score-flash'), 800);
+  }
+
   private patch(): void {
     if (!this.root) return;
     const values = bindingsFor(this.board);
@@ -821,5 +894,6 @@ export class ProLook2Stage extends OverlayComponent {
       if (next !== undefined && el.textContent !== next) el.textContent = next;
     }
     this.syncPhotos();
+    this.flashScore();
   }
 }

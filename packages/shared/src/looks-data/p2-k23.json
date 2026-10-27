@@ -4,8 +4,8 @@
   "plan": "pro",
   "tokens": {
     "colors": {
-      "bg": "#080E1A",
-      "surface": "#0C1220",
+      "bg": "#1C080C",
+      "surface": "#411B24",
       "accent": "#F43F5E",
       "accent2": "#9D174D",
       "secondary": "#9D174D",
@@ -13,7 +13,11 @@
       "card": "#701A47",
       "bowlerCard": "#9A3412",
       "text": "#F8FAFC",
-      "warn": "#FDE047"
+      "warn": "#FDE047",
+      "panel": "#370f18",
+      "panelDeep": "#22090F",
+      "wingShade": "#2B0C13",
+      "rivalShade": "#2F0D15"
     },
     "gradients": {
       "accent": "linear-gradient(90deg, #f43f5e, #9d174d)"

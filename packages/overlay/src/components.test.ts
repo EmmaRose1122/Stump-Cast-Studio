@@ -211,6 +211,24 @@ describe('Pro Look 2 stage', () => {
     expect(stage.querySelectorAll('[data-bind="striker-name"]')).toHaveLength(1);
   });
 
+  it('paints its own palette on the canvas and flashes the score on a delivery', () => {
+    const stage = document.createElement('div');
+    const pl2 = new ProLook2Stage();
+    pl2.mount(stage, pl2Look);
+    pl2.update(t20);
+
+    const canvas = stage.querySelector<HTMLElement>('.pl2-canvas')!;
+    // The stylesheet declares the same tokens on .pl2-canvas, so an inherited value is not enough:
+    // without the inline set every package painted in the first design's palette.
+    expect(canvas.style.getPropertyValue('--look-panel')).toBe(pl2Look.tokens.colors.panel);
+    expect(canvas.style.getPropertyValue('--look-accent')).toBe(pl2Look.tokens.colors.accent);
+    expect(canvas.dataset.ambient).toBe('sheen');
+    expect(canvas.classList.contains('is-score-flash')).toBe(false);
+
+    pl2.update({ ...t20, score: { ...t20.score, runs: t20.score.runs + 4 } });
+    expect(canvas.classList.contains('is-score-flash')).toBe(true);
+  });
+
   it('uses the uploaded player photo over the drawn fallback', () => {
     const stage = document.createElement('div');
     const pl2 = new ProLook2Stage();
@@ -243,6 +261,29 @@ describe('Pro Look 2 stage', () => {
 
     pl2.attachCamera(null);
     expect(stage.querySelector('.c-stream-frame .sf-cam-container .sf-cam-1')).not.toBeNull();
+  });
+
+  it('switches the camera window off with the feed, in every window', () => {
+    const stage = document.createElement('div');
+    const frame = new StreamFrame();
+    frame.mount(stage, pl2Look);
+    const pl2 = new ProLook2Stage();
+    pl2.mount(stage, pl2Look);
+    pl2.update(t20);
+    pl2.attachCamera(frame);
+
+    pl2.setCameraMode('one');
+    expect(stage.querySelector<HTMLElement>('.pl2-stage')!.dataset.camMode).toBe('one');
+    expect(stage.querySelector('.pl2-cam-box')).not.toBeNull();
+
+    // The gallery slate must not survive the operator switching the feed off.
+    frame.showDesignPreview();
+    expect(frame.element.dataset.designPreview).toBe('1');
+    pl2.setCameraMode('none');
+    frame.setCameraMode('none');
+    expect(stage.querySelector<HTMLElement>('.pl2-stage')!.dataset.camMode).toBe('none');
+    expect(frame.element.dataset.cameraMode).toBe('none');
+    expect(frame.element.dataset.designPreview).toBeUndefined();
   });
 });
 
