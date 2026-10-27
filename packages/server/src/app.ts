@@ -189,6 +189,8 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
     let releaseNotes = '';
     let updateAvailable = false;
     let downloadUrl = '';
+    // Where a studio can always fetch the installer by hand if the in-app download fails.
+    let releaseUrl = 'https://github.com/EmmaRose1122/Stump-Cast-Studio/releases/latest';
 
     const v130Notes =
       '• Reliable Crex live extraction across Angular fetch/XHR responses\n• Correct Test innings, current batters, bowler, partnerships and recent balls\n• Team crests and player avatars are filed automatically from the live page\n• Continuous AI analyst with tactical forecasts from verified match facts\n• Hugging Face Qwen3-8B writer with Gemini fallback and safe local analysis\n• Ghost/path-based match ids and impossible scores are rejected';
@@ -221,8 +223,10 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
         currentVersion: effectiveCurrent,
         latestVersion: simVersion,
         updateAvailable: isNewerThan(effectiveCurrent, simVersion),
+        mandatory: isNewerThan(effectiveCurrent, simVersion),
         releaseNotes: v130Notes,
         downloadUrl: '/api/app/update-download-file',
+        releaseUrl,
         fileSize: 264183336,
       };
     }
@@ -296,6 +300,7 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
             releaseNotes = data.releaseNotes ?? '';
             updateAvailable = isNewerThan(effectiveCurrent, data.latestVersion);
             downloadUrl = findExeAsset(data.assets) ?? '/api/app/update-download-file';
+            if (data.html_url) releaseUrl = data.html_url;
           }
         } else if (data.tag_name) {
           const ghVer = data.tag_name.replace(/^v/, '');
@@ -304,6 +309,7 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
             releaseNotes = data.body ?? '';
             downloadUrl = findExeAsset(data.assets) ?? '/api/app/update-download-file';
             updateAvailable = isNewerThan(effectiveCurrent, ghVer);
+            if (data.html_url) releaseUrl = data.html_url;
           }
         }
       }
@@ -315,8 +321,13 @@ export const buildApp = async (config: ServerConfig): Promise<StumpCastApp> => {
       currentVersion: effectiveCurrent,
       latestVersion,
       updateAvailable,
+      // The studio gates itself on this: a successful check that found a newer build means the
+      // operator has to update before the studio opens. An unreachable feed leaves it false, so a
+      // venue with no internet is never locked out of a broadcast by a failed check.
+      mandatory: updateAvailable,
       releaseNotes,
       downloadUrl,
+      releaseUrl,
     };
   });
 

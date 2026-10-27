@@ -15,7 +15,6 @@ import { StumpCastIcon } from './StumpCastIcon';
 const ICONS: Record<string, string> = {
   '/live': 'M5 3l14 9-14 9z',
   '/graphics': 'M3 4h8v8H3zM13 4h8v5h-8zM13 11h8v9h-8zM3 14h8v6H3z',
-  '/pro-look-2': 'M4 5h16v4H4zM4 11h7v8H4zM13 11h7v8h-7z',
   '/video': 'M3 6h13v12H3zM16 10l5-3v10l-5-3z',
   '/sounds': 'M4 9v6h4l5 4V5L8 9zM16 8a5 5 0 010 8',
   '/players': 'M12 12a4 4 0 100-8 4 4 0 000 8zM4 21a8 8 0 0116 0',
